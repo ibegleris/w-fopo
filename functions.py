@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import division
+from __future__ import division, print_function
 """
 Created on Mon Oct 26 15:56:07 2015
 
@@ -107,15 +107,15 @@ class raman_object(object):
     
     def raman_load(self,t,dt):
         if self.on == 'on':
-            #print 'Raman on'
+            print('Raman on')
             if self.how == 'analytic':
-                print self.how
+                print(self.how)
                 t11 = 12.2e-3      # [ps]
                 t2 = 32e-3         # [ps]
                 htan = (t11**2 + t2**2)/(t11*t2**2)*np.exp(-t/t2*(t>=0))*np.sin(t/t11)*(t>=0)   # analytical response
                 hf = mfft(htan)   # Fourier transform of the analytic nonlinear response
             elif self.how == 'load':
-                #print 'loading for silica'
+                print('loading for silica')
                 # loads the measured response (Stolen et al. JOSAB 1989)
                 mat = loadmat('loading_data/silicaRaman.mat')
                 ht = mat['ht']
@@ -131,31 +131,44 @@ class raman_object(object):
         return self.hf   
 
 
-def dispersion_operator(lamda_c,D,S,int_fwm,sim_wind):
+def dispersion_operator(lamda_c,int_fwm,sim_wind):
     """
     Calculates the dispersion operator in rad/m units
     """
     alpha = int_fwm.alphadB/4.343
     c_norm = c*1e-12                                                                        #Speed of light [m/ps]                                                                         #Central wavelength [nm]
-    D = 1e6*np.array([D])                                                                   #[ps/m**2]
-    S = 1e15*np.array([S])                                                                  #[ps/m**3]
-    beta2 = -D[:]*(lamda_c**2/(2*pi*c_norm))                                                #[ps**2/m]
-    beta3 = lamda_c**4*S[:]/(4*(pi*c_norm)**2)+lamda_c**3*D[:]/(2*(pi*c_norm)**2)           #[ps**3/m] 
-    betap = np.zeros([int_fwm.nm,4])
+    beta0 = 0
+    beta1 = 0
+    beta2 = 0
+    beta3 = 6.75e-5
+    beta4 = -1e-7
+    
 
-    betap[0,0] = 0
-    betap[0,1] = 0
-    betap[0,2] = beta2[0]
-    betap[0,3] = beta3[0]
+    
+    wc = 2*pi * c_norm /sim_wind.lamda
+    w0 = 2*pi * c_norm / lamda_c
 
-    w = sim_wind.w + sim_wind.woffset
+    beta2 += beta3 * (wc - w0) + 0.5*beta4 * (wc - w0)**2
+    beta3 = beta3
+    beta4 = beta4
 
+
+    w = sim_wind.w # + sim_wind.woffset
+
+    betap = np.zeros([int_fwm.nm,5])
+
+    betap[0,0] = beta0
+    betap[0,1] = beta1
+    betap[0,2] = beta2
+    betap[0,3] = beta3
+    betap[0,4] = beta4
+    
     Dop = np.zeros([int_fwm.nt,int_fwm.nm],dtype=np.complex)
     Dop[:,:] = -alpha/2
-    Dop[:,0] -= 1j*(betap[0,0] +  betap[0,1]*(w) + (betap[0,2]*(w)**2)/2. + (betap[0,3]*(w)**3)/6.)
+    Dop[:,0] -= 1j*(betap[0,0] +  betap[0,1]*(w) + (betap[0,2]*(w)**2)/2. + (betap[0,3]*(w)**3)/6.+ (betap[0,4]*(w)**3)/6.)
     return Dop
 
-
+"""
 def dispersion_operator_polyval(nm,fmed,D01,D11,S01,S11,dbeta0,dbeta1,lamda_c,alphadB,w0,w,lv,lamda):
     alpha = alphadB/4.343
     c_norm = c                                                                        #Speed of light [m/ps]                                                                         #Central wavelength [nm]
@@ -190,7 +203,7 @@ def dispersion_operator_polyval(nm,fmed,D01,D11,S01,S11,dbeta0,dbeta1,lamda_c,al
         bn[ii,:] = fftshift(bn[ii,:])
     Dop = -alpha/2 -1j*bn
     return Dop.T
-
+"""
 def plotter_dbm(nm,lv,power_watts,xl,t,u,xtlim,which):
         
     fig = plt.figure(figsize=(20.0, 10.0))
@@ -313,17 +326,17 @@ def energy_conservation(entot):
 ################################Grid check for fft optimisation########################
 def check_ft_grid(fv):
     if np.log2(np.shape(fv)[0]) == int(np.log2(np.shape(fv)[0])):
-        print "------------------------------------------------------------------------------------"
-        print "All is good with the grid for fft's:", np.shape(fv)[0]
+        print("------------------------------------------------------------------------------------")
+        print("All is good with the grid for fft's:", np.shape(fv)[0])
         nt = np.shape(fv)[0]
     else:
-        print "fix the grid for optimization of the fft's, grid:", np.shape(fv)[0]
+        print("fix the grid for optimization of the fft's, grid:", np.shape(fv)[0])
         sys.exit()
     return 0
 ########################################################################################
 
 """---------- Q Matrices ----------------------------------"""
-def Q_matrixes(nm,n2,lamda):    
+def Q_matrixes(nm,n2,lamda,gama=None):    
     if nm==1:
         mat  = loadmat('loading_data/M1_M2_1m_new.mat') #loads M1 and M2 matrices
         M1 = np.real(mat['M1'])
@@ -331,6 +344,10 @@ def Q_matrixes(nm,n2,lamda):
         M2[:,:] -=1 
         M1[0:4] -=1
         M1[-1] -=1
+        if gama != None:
+            M1[4] = gama /(3*n2*(2*pi/lamda)) 
+            M1[5] = gama /(3*n2*(2*pi/lamda)) 
+            
     if nm==2:
         #mat  = loadmat('M1_M2_'+str(nm)+'m')  # loads M1 and M2 matrices
         mat = loadmat("loading_data/M1_M2_new_2m.mat")
@@ -339,6 +356,8 @@ def Q_matrixes(nm,n2,lamda):
         M2[:] -=1 
         M1[:4,:] -=1 
         M1[6,:] -=1
+
+        
     return M1,M2
 
 class mode1_mod(object):

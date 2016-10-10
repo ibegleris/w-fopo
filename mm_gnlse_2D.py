@@ -22,22 +22,23 @@ except ImportError:
 def lam_p2_vary(lam_s_max,lam_p1,Power_input,int_fwm,plot_conv,par = False,grid_only = False,timing= False):      
 	P0_p1 = Power_input
 	P0_s  = Power_input - 10
-	P0_p1 = dbm2w(P0_p1)                          #[w]
-	P0_s  = dbm2w(P0_s)                           #[w]
+	P0_p1 = 13#dbm2w(P0_p1)                          #[w]
+	P0_s  = 0#dbm2w(P0_s)                           #[w]
 
 	lamda = lam_p1*1e-9                           #central wavelength of the grid[m]
-	lamda_c = 1.5508e-6                           #central freequency of the dispersion
+	lamda_c = 1052.95e-9#1.5508e-6                           #central freequency of the dispersion
 	"----------------------------dispersion_fwm_parameters---------------------------"
 	#widths = np.loadtxt('loading_data/widths.dat')
 	widths = np.array([7.158763297837973212e-06,6.370597360033106490e-06,6.370597359570200443e-06])
 
 
-	D = 19.8                         #From experiment
-	S = 0.105                        #From experiment 
+	#D = 19.8                         #From experiment
+	#S = 0.105                        #From experiment 
+	gama = 10e-3#None					 # w/m
 	"-------------------------------------------------------------------------------"
 
 	"----------------------Obtain the Q matrixes------------------------------"
-	M1,M2 = Q_matrixes(int_fwm.nm,int_fwm.n2,lamda)
+	M1,M2 = Q_matrixes(int_fwm.nm,int_fwm.n2,lamda,gama)
 	"-------------------------------------------------------------------------"
 
 	two_waves = [1530,1555]
@@ -85,7 +86,7 @@ def lam_p2_vary(lam_s_max,lam_p1,Power_input,int_fwm,plot_conv,par = False,grid_
 		return sim_wind
 
 	"------------------------------Dispersion operator--------------------------------------"
-	Dop = dispersion_operator(lamda_c,D,S,int_fwm,sim_wind)
+	Dop = dispersion_operator(lamda_c,int_fwm,sim_wind)
 	"---------------------------------------------------------------------------------------"
 	#print(np.shape(Dop))
 	#print(Dop)
@@ -136,14 +137,14 @@ def main():
 	alphadB = 0                 # loss [dB/m]
 	"---------------------- General options -----------------------------------"
 
-	maxerr = 1e-14            # maximum tolerable error per step (variable step size version)
+	maxerr = 1e-3            # maximum tolerable error per step (variable step size version)
 	ss = 1                      # includes self steepening term
 	ram = 'on'                  # Raman contribution 'on' if yes and 'off' if no
 	
 	"---------- Simulation parameters ----------------------------------"
 	N = 10
 	nt = 2**N 					# number of grid points, There is a check that makes sure that it is a power of 2 for the FFT
-	z = 10						# total distance [m]
+	z = 18					# total distance [m]
 	nplot = 50                  # number of plots
 	dzstep = z/nplot            # distance per step
 	dz_less = 1e3
@@ -159,8 +160,8 @@ def main():
 	Power_input = 30.5                        #[dBm] 
 
 
-	lam_p1 = 1549                             #[nm]
-	lams_max_asked = 1555
+	lam_p1 = 1050                             #[nm]
+	lams_max_asked = 1200
 
 	lv = lam_p2_vary(2,lam_p1,Power_input,int_fwm,0,False,True).lv[::-1]
 	lv_lams = np.abs(np.asanyarray(lv) - lams_max_asked)
@@ -172,7 +173,7 @@ def main():
 
 
 
-	lam_p2_vary(lensig,lam_p1,Power_input,int_fwm,1,True)
+	lam_p2_vary(lensig,lam_p1,Power_input,int_fwm,1,False)
 	print('\a')
 	
 
