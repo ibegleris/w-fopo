@@ -437,6 +437,16 @@ class sim_window(object):
         self.xtlim =np.array([-self.T/2, self.T/2])  # time limits (for plots)
 
 
+#class WDM1(object):
+#    def port1(U)
+
+#class WDM(object):
+#    def __init__(self,func1,funt2):
+#        self.port1 = func1
+#        self.port2 = func2
+#        return None
+
+
 def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2):   
         if from_pump:
             s_pos = where[0] - wave
@@ -464,7 +474,12 @@ def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2
 
         int_fwm.raman.raman_load(sim_wind.t,sim_wind.dt) # bring the raman if needed
         string = "dAdzmm_r"+str(int_fwm.raman.on)+"_s"+str(int_fwm.ss)
-        dAdzmm = eval(string)
+        #dAdzmm = eval(string)
+        func_dict = {'dAdzmm_ron_s1':dAdzmm_ron_s1,
+             'dAdzmm_ron_s0':dAdzmm_ron_s0,
+             'dAdzmm_roff_s0':dAdzmm_roff_s0,
+             'dAdzmm_roff_s1':dAdzmm_roff_s1}
+        dAdzmm = func_dict[string]
         hf = int_fwm.raman.hf
         "--------------------------Pulse propagation--------------------------------"
         badz = 0        #counter for bad steps
