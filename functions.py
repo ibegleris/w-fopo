@@ -15,12 +15,12 @@ from scipy.io import loadmat
 from scipy.interpolate import interp1d, InterpolatedUnivariateSpline
 from scipy.io import savemat
 import pandas as pan
-
+ifftshift = scipy.fftpack.ifftshift
 from math import isinf
 import pickle
-
+from scipy.integrate import simps
 import matplotlib as mpl
-#mpl.use('Agg')
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.mlab import griddata
 from mpl_toolkits.mplot3d import Axes3D
@@ -168,72 +168,48 @@ def dispersion_operator(lamda_c,int_fwm,sim_wind):
     Dop[:,0] -= 1j*(betap[0,0] +  betap[0,1]*(w) + (betap[0,2]*(w)**2)/2. + (betap[0,3]*(w)**3)/6.+ (betap[0,4]*(w)**3)/6.)
     return Dop
 
-"""
-def dispersion_operator_polyval(nm,fmed,D01,D11,S01,S11,dbeta0,dbeta1,lamda_c,alphadB,w0,w,lv,lamda):
-    alpha = alphadB/4.343
-    c_norm = c                                                                        #Speed of light [m/ps]                                                                         #Central wavelength [nm]
-    D = 1e-12*1e6*np.array([D01,D11])                                                             #[ps/m**2]
-    S = 1e-12*1e15*np.array([S01,S11])                                                            #[ps/m**3]
-    beta2 = -D[:]*(lamda_c**2/(2*pi*c_norm))                                                #[ps**2/m]
-    beta3 = lamda_c**4*S[:]/(4*(pi*c_norm)**2)+lamda_c**3*D[:]/(2*(pi*c_norm)**2) 
 
-    b0_01 = 0
-    b0_11 = b0_01 + dbeta0
-    b1_01 = 0
-    b1_11 = b1_01 + dbeta1
-    b2_01,b2_11 = beta2[0], beta2[1]
-    b3_01,b3_11 = beta3[0], beta3[1]
-    p01 = [b3_01/6,b2_01/2, b1_01, b0_01];
-    p11 = [b3_11/6,b2_11/2, b1_11, b0_11];
-
-    k1 = np.polyval(p01,2*pi*c/(lv*1e-9)-w0);
-    k2 = np.polyval(p11,2*pi*c/(lv*1e-9)-w0);
-
-    beta = [k1, k2]
-    lambda2 = lv*1e-9
-
-    NN = 21
-    bn = np.zeros([nm,len(w)],dtype=np.complex128)
-    p = np.zeros([nm,22],dtype=np.complex128)
-    for ii in range(nm):
-        bn[ii,:] = InterpolatedUnivariateSpline((2*pi*c/lambda2 - 2*pi*fmed)*1e-12, beta[ii][:])(fftshift(w))
-        p[ii,:] = np.polyfit((2*pi*c/lambda2 - 2*pi*c/lamda )*1e-12,beta[ii][:],NN); # obtains the expansion coefficients in w - wmed in ps^n/m
-        
-        bn[ii,:] = bn[ii,:] - p[0,NN] - p[0,NN-1]*fftshift(w)
-        bn[ii,:] = fftshift(bn[ii,:])
-    Dop = -alpha/2 -1j*bn
-    return Dop.T
-"""
-def plotter_dbm(nm,lv,power_watts,xl,t,u,xtlim,which):
+def plotter_dbm(nm,lv,power_watts,xl,t,u,xtlim,which,filename=None,title=None,im=None):
         
     fig = plt.figure(figsize=(20.0, 10.0))
     for ii in range(nm):
-        plt.plot(lv,np.real(power_watts[:,ii]) - np.max(np.real(np.real(power_watts[:,ii]))),'-*',label='mode'+str(ii))
+        plt.plot(lv,np.real(power_watts[:,ii,which]),'-*',label='mode'+str(ii))
     plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
     plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
     plt.xlabel(r'$\lambda (nm)$')
     plt.ylabel(r'$Spectrum time space (dBm)$')
-    plt.title("wavelength space")
+    plt.title(title)
     plt.grid()
-    plt.xlim(xl)
-    #plt.legend()
-    
-    plt.savefig("figures/wavelength_space"+str(which))
+    plt.xlim(900,1200)
+    plt.ylim(-100,80)
+    try:
+        if im != None:
+            #im = plt.imread(D)
+            newax = fig.add_axes([0.8, 0.8, 0.2, 0.2], anchor='NE')
+            newax.imshow(im)
+            newax.axis('off')
+    except FutureWarning:
+        pass
+    plt.legend()
+    if filename == None:
+        plt.savefig("figures/wavelength_space"+str(which),bbox_inched='tight')
+    else:
+        plt.savefig("figures/wavelength_space"+filename,bbox_inched='tight')
     #plt.show()
     plt.close(fig)
-    fig = plt.figure(figsize=(20.0, 10.0))
-    for ii in range(nm):
-        plt.plot(t,np.abs(u[:,ii,which])**2,'*-',label='mode'+str(ii))
-    plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
-    plt.title("time space")
-    plt.grid()
-    plt.xlabel(r'$t(ps)$')
-    plt.ylabel(r'$Spectrum$')
-    plt.xlim(xtlim)
+    #fig = plt.figure(figsize=(20.0, 10.0))
+    #for ii in range(nm):
+    #    plt.plot(t,np.abs(u[:,ii,which])**2,'*-',label='mode'+str(ii))
+    #plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
+    #plt.title("time space")
+    #plt.grid()
+    #plt.xlabel(r'$t(ps)$')
+    #plt.ylabel(r'$Spectrum$')
+    #plt.xlim(xtlim)
     #plt.legend()
-    plt.savefig("figures/time_space"+str(which))
+    #plt.savefig("figures/time_space"+str(which))
 
-    #plt.close(fig)
+    plt.close(fig)
     return 0 
 
 def plotter(nm,lv,U,xl,t,u,xtlim,which):
@@ -275,39 +251,10 @@ def plotter_dbm_lams_large(modes,lv,U,xl,t,xtlim,which,lams_vec):
     plt.ylabel(r'$Spectrum time space (dBm)$',fontsize=18)
     plt.xlim(xl)
     plt.grid()
-    plt.ylim(-60,0)
+    #plt.ylim(-60,0)
     plt.legend()
-    plt.savefig("figures/wavelength_space_large.png",fontsize=18)
+    plt.savefig("figures/wavelength_space_large.png",fontsize=18,bbox_inched='tight')
     plt.close('all')
-    return 0
-
-
-def animator(lv,t,P0_f_sparce,U,zv,xl):    
-    def animate(i):
-        line.set_ydata(w2dbm(np.real(U[:,0,i])/P0_f_sparce)- np.max(w2dbm(np.real(U[:,0,0])/P0_f_sparce)))  # update the data
-        line2.set_ydata(w2dbm(np.real(U[:,1,i])/P0_f_sparce)- np.max(w2dbm(np.real(U[:,0,0])/P0_f_sparce)))
-        return line,line2
-
-
-    def init():
-        line.set_ydata(np.ma.array(t, mask=True))
-        return line,
-
-
-    fig, ax = plt.subplots()
-    i = range(len(zv))
-    line,  = ax.plot(lv,w2dbm(np.real(U[:,0,0])/P0_f_sparce) - np.max(w2dbm(np.real(U[:,0,0])/P0_f_sparce)),label= 'mode0')
-    line2, = ax.plot(lv,w2dbm(np.real(U[:,1,0])/P0_f_sparce) - np.max(w2dbm(np.real(U[:,0,0])/P0_f_sparce)),label= 'mode1')
-    ax.set_xlabel(r'$\lambda (nm)$')
-    ax.set_ylabel('Spectrum (dBm)')
-    ax.set_xlim(xl[0],xl[1])
-    ax.set_ylim(-60,0)
-    ax.get_xaxis().get_major_formatter().set_useOffset(False)
-    ax.get_yaxis().get_major_formatter().set_useOffset(False)
-    ani = animation.FuncAnimation(fig, animate, np.arange(0, len(zv)), init_func=init,
-                                  interval=1000, blit=True)
-    ani.save('figures/basic_animation.mp4', fps=1, extra_args=['-vcodec', 'libx264'])
-    plt.show()
     return 0
 
 
@@ -318,7 +265,7 @@ def energy_conservation(entot):
         plt.grid()
         plt.xlabel("nplots(snapshots)",fontsize=18)
         plt.ylabel("Total energy",fontsize=18)
-        plt.show()
+        #plt.show()
         sys.exit("energy is not conserved")
     return 0
 
@@ -418,7 +365,7 @@ class sim_window(object):
         self.lamda = lamda
         self.lmin = 1e-3*c/np.max(fv)                                                #[nm]
         self.lmax = 1e-3*c/np.min(fv)                                                #[nm]
-        self.lv = 1e-3*c/fv                                                          #[nm]
+        self.lv = 1e-3*c/fv                                                         #[nm]
         self.fmed = c/(lamda)                                                  #[Hz]
         self.deltaf = 1e-3*(c/self.lmin - c/self.lmax)                                         #[THz]
         self.df = self.deltaf/int_fwm.nt                                                 #[THz]
@@ -426,6 +373,7 @@ class sim_window(object):
         self.woffset = 2*pi*(self.fmed - c/lamda)*1e-12                                   #[rad/ps]
         self.woffset2 = 2*pi*(self.fmed - c/lamda_c)*1e-12                                #[rad/ps] Offset of central freequency and that of the experiment  
         self.xl = np.array([self.lmin, self.lmax])                                             # wavelength limits (for plots) (nm)
+        
         self.w0 = 2*pi*self.fmed                                                          # central angular frequency [rad/s]
         self.tsh = 1/self.w0*1e12                                                         # shock time [ps]
         self.dt = self.T/int_fwm.nt                                                               #timestep (dt)     [ps]
@@ -437,14 +385,58 @@ class sim_window(object):
         self.xtlim =np.array([-self.T/2, self.T/2])  # time limits (for plots)
 
 
-#class WDM1(object):
-#    def port1(U)
 
-#class WDM(object):
-#    def __init__(self,func1,funt2):
-#        self.port1 = func1
-#        self.port2 = func2
-#        return None
+class WDM(object):
+    def __init__(self,x1,x2):
+        self.x1 = x1 # High part of port 1 
+        self.x2 = x2 # Low wavelength of port 1
+        self.omega = 0.5*pi/np.abs(x1 - x2)
+        self.phi = pi - self.omega*self.x2
+        return None
+
+
+    def il_port1(self,lamda):
+        return (np.sin(self.omega*lamda+self.phi))**2
+
+
+    def il_port2(self,lamda):
+        return (np.cos(self.omega*lamda+self.phi))**2
+
+    def wdm_port1_pass(self,U,sim_wind):
+        U[:,0] *= (self.il_port1(sim_wind.lv))**0.5
+        u = imfft(ifftshift(U[:,:],axes=(0,))/sim_wind.dt)
+        U_true = fftshift(np.abs(sim_wind.dt*mfft(u[:,:]))**2,axes=(0,))
+        return u,U,U_true
+
+    def wdm_port2_pass(self,U,sim_wind):
+        U[:,0] *= (self.il_port2(sim_wind.lv))**0.5
+        u = imfft(ifftshift(U[:,:],axes=(0,))/sim_wind.dt)
+        U_true = fftshift(np.abs(sim_wind.dt*mfft(u[:,:]))**2,axes=(0,))
+        return u,U,U_true
+
+    def plot(self,lamda):
+        fig = plt.figure()
+        plt.plot(lamda,self.il_port1(lamda), label = "%0.2f" % (self.x1*1e9) +' nm port') 
+        plt.plot(lamda,self.il_port2(lamda), label =  "%0.2f" % (self.x2*1e9) +' nm port')
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.13),ncol=2)
+        plt.xlabel(r'$\lambda (\mu m)$')
+        plt.ylabel(r'$Insertion loss (dB)$')
+        plt.savefig('figures/WDM_high_'+str(self.x1)+'_low_'+str(self.x2)+'.png')
+        #plt.show()
+        return None
+
+
+    def plot_dB(self,lamda):
+        fig = plt.figure()
+        plt.plot(lamda,10*np.log10(self.il_port1(lamda)), label =  "%0.2f" % (self.x1*1e9) +' nm port') 
+        plt.plot(lamda,10*np.log10(self.il_port2(lamda)), label =  "%0.2f" % (self.x2*1e9) +' nm port')
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.13), ncol=2)
+        plt.xlabel(r'$\lambda (\mu m)$')
+        plt.ylabel(r'$Insertion loss (dB)$')
+        plt.ylim(-60,0)
+        plt.savefig('figures/WDM_dB_high_'+str(self.x1)+'_low_'+str(self.x2)+'.png')
+        #plt.show()
+        return None
 
 
 def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2):   
@@ -454,19 +446,15 @@ def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2
             s_pos -= wave
         u = np.zeros([len(sim_wind.t),int_fwm.nm,len(sim_wind.zv)],dtype='complex128')    # initialisation (for fixed steps)
         U = np.zeros([len(sim_wind.t),int_fwm.nm,len(sim_wind.zv)],dtype='complex128')    #
-
+        U_true = np.copy(U)
         pquant = np.sum(1.054e-34*(sim_wind.w*1e12 + sim_wind.w0)/(sim_wind.T*1e-12))  # Quantum noise (Peter's version)
         noise = (pquant/2)**0.5*(np.random.randn(int_fwm.nm,int_fwm.nt) + 1j*np.random.randn(int_fwm.nm,int_fwm.nt))
 
         u[:,:,0] = noise.T
         u[:,0,0] += (P0_p1)**0.5
-        
-        woff1 = -(s_pos - where[0])*2*pi*sim_wind.df
-        u[:,0,0] += (P0_s)**0.5 * np.exp(-1j*(woff1)*sim_wind.t)
 
-        U[:,:,0] = fftshift(np.abs(sim_wind.dt*mfft(u[:,:,0]))**2,(0,1,1))
-        print(U[s_pos,0,0])
-
+        U[:,:,0] = fftshift(sim_wind.dt*mfft(u[:,:,0]),axes=(0,))
+        U_true[:,:,0] = fftshift(np.abs(sim_wind.dt*mfft(u[:,:,0]))**2,axes=(0,))
         "----------------------Plot the inputs------------------------------------"
         #plotter_dbm(int_fwm.nm,sim_wind.lv,w2dbm(U),sim_wind.xl,sim_wind.t,u,sim_wind.xtlim,0)
         #sys.exit()
@@ -474,69 +462,138 @@ def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2
 
         int_fwm.raman.raman_load(sim_wind.t,sim_wind.dt) # bring the raman if needed
         string = "dAdzmm_r"+str(int_fwm.raman.on)+"_s"+str(int_fwm.ss)
-        #dAdzmm = eval(string)
         func_dict = {'dAdzmm_ron_s1':dAdzmm_ron_s1,
              'dAdzmm_ron_s0':dAdzmm_ron_s0,
              'dAdzmm_roff_s0':dAdzmm_roff_s0,
              'dAdzmm_roff_s1':dAdzmm_roff_s1}
+        pulse_pos_dict_or = ( 'after propagation', "pass WDM2", "pass WDM1 on port2 (remove pump)", 'add more pump','out')
+        
+
+        keys = ['loading_data/green_dot_fopo/pngs/'+str(i)+str('.png') for i in range(7)]
+        D_pic = [plt.imread(i) for i in keys]
+        
+
         dAdzmm = func_dict[string]
         hf = int_fwm.raman.hf
-        "--------------------------Pulse propagation--------------------------------"
-        badz = 0        #counter for bad steps
-        goodz = 0       #counter for good steps
-        dztot = 0       #total distance traveled
-        dzv = np.zeros(1)   
-        dzv[0] = int_fwm.dz
-        u1 = np.copy(u[:,:,0])
-        energy = np.NaN*np.ones([int_fwm.nm,int_fwm.nplot+1])
-        entot = np.NaN*np.ones(int_fwm.nplot+1)
-        for ii in range(int_fwm.nm):
-            energy[ii,0] = np.linalg.norm(u1[:,ii],2)**2  # energy per mode
-        dz = int_fwm.dz * 1
-        entot[0,]= np.sum(energy[:,0]**1)         # total energy (must be conserved)  
-        for jj in range(int_fwm.nplot):
-            exitt = False
-            while not(exitt):
-                delta = 2*int_fwm.maxerr                       # trick to do the first iteration
-                while delta > int_fwm.maxerr:    
-                    u1new = imfft(np.exp(Dop*dz/2)*mfft(u1))
-                    u1new = np.ascontiguousarray(u1)
-                    A, delta = RK5mm(dAdzmm,u1new,dz,M1,M2,sim_wind.t,int_fwm.n2,sim_wind.lamda,sim_wind.tsh,sim_wind.w,sim_wind.woffset,sim_wind.dt,hf) # calls a 5th order Runge Kutta routine
-                    if (delta > int_fwm.maxerr):
-                        dz *= (int_fwm.maxerr/delta)**0.25   # calculate the step (shorter) to redo
-                        badz += 1
-                #####################################Successful step##############################################
-                u1 = imfft(np.exp(Dop*dz/2)*mfft(A))                           # propagate the remaining half step             
-                dztot += dz                                                    # update the propagated distance
-                goodz += 1                                                     # update the number of steps taken
-                dzv = np.append(dzv,dz)                                        # store the dz just taken
-                dz2 = np.min([0.95*dz*(int_fwm.maxerr/delta)**0.2,0.95*int_fwm.dzstep])        # calculate the next step (longer)                                                      # without exceeding max dzstep
-                ###################################################################################################
-                
-                if dztot == (int_fwm.dzstep*(jj+1)):
-                    exitt = True
 
-                elif ((dztot + dz2 )>= int_fwm.dzstep*(jj+1)):
-                    dz2 = int_fwm.dzstep*(jj+1) - dztot   
-                dz = np.copy(dz2) 
-                ###################################################################################################
-            
-            u[:,:,jj+1] = u1
-            U[:,:,jj+1] = fftshift(np.abs(sim_wind.dt*mfft(u[:,:,jj+1]))**2,(0,1,1))
+        #Define te WDMs
+        WDM1 = WDM(1050, 1200)
+        WDM2 = WDM(1200, 930)
+        WDM1.plot_dB(sim_wind.lv)
+        WDM2.plot_dB(sim_wind.lv)
+        WDM1.plot(sim_wind.lv)
+        WDM2.plot(sim_wind.lv)
+        #sys.exit()
+
+        
+        plotter_dbm(int_fwm.nm,sim_wind.lv,w2dbm(U_true),sim_wind.xl,sim_wind.t,u,sim_wind.xtlim,0,'0','original pump',D_pic[0])
+        
+        #Pass the original pump through the WDM1 port1
+        u[:,:,0],U[:,:,0], U_true[:,:,0] = WDM1.wdm_port1_pass(U[:,:,0],sim_wind)
+        
+
+        at_WDM_in = U[:,:,0]
+        
+        rounds = 200
+
+        for ro in range(rounds):
+            pulse_pos_dict = ['round '+ str(ro)+', ' + i for i in pulse_pos_dict_or]
+            plotter_dbm(int_fwm.nm,sim_wind.lv,w2dbm(U_true),sim_wind.xl,sim_wind.t,u,sim_wind.xtlim,0,str(ro)+'1',pulse_pos_dict[3],D_pic[5])
+            "--------------------------Pulse propagation--------------------------------"
+            badz = 0        #counter for bad steps
+            goodz = 0       #counter for good steps
+            dztot = 0       #total distance traveled
+            dzv = np.zeros(1)   
+            dzv[0] = int_fwm.dz
+            u1 = np.copy(u[:,:,0])
+            energy = np.NaN*np.ones([int_fwm.nm,int_fwm.nplot+1])
+            entot = np.NaN*np.ones(int_fwm.nplot+1)
             for ii in range(int_fwm.nm):
-                energy[ii,jj+1] = norm(u1[:,ii],2)**2 # energy per mode
-            entot[jj+1] = np.sum(energy[:,jj+1])             # total energy
-        print(delta,badz)
-        "-------------------------------------------------------------------------------------------------------------------"
+                energy[ii,0] = np.linalg.norm(u1[:,ii],2)**2  # energy per mode
+            dz = int_fwm.dz * 1
+            entot[0,]= np.sum(energy[:,0]**1)         # total energy (must be conserved)  
+            for jj in range(int_fwm.nplot):
+                exitt = False
+                while not(exitt):
+                    delta = 2*int_fwm.maxerr                       # trick to do the first iteration
+                    while delta > int_fwm.maxerr:    
+                        u1new = imfft(np.exp(Dop*dz/2)*mfft(u1))
+                        u1new = np.ascontiguousarray(u1)
+                        A, delta = RK5mm(dAdzmm,u1new,dz,M1,M2,sim_wind.t,int_fwm.n2,sim_wind.lamda,sim_wind.tsh,sim_wind.w,sim_wind.woffset,sim_wind.dt,hf) # calls a 5th order Runge Kutta routine
+                        if (delta > int_fwm.maxerr):
+                            dz *= (int_fwm.maxerr/delta)**0.25   # calculate the step (shorter) to redo
+                            badz += 1
+                    #####################################Successful step##############################################
+                    u1 = imfft(np.exp(Dop*dz/2)*mfft(A))                           # propagate the remaining half step             
+                    dztot += dz                                                    # update the propagated distance
+                    goodz += 1                                                     # update the number of steps taken
+                    dzv = np.append(dzv,dz)                                        # store the dz just taken
+                    dz2 = np.min([0.95*dz*(int_fwm.maxerr/delta)**0.2,0.95*int_fwm.dzstep])        # calculate the next step (longer)                                                      # without exceeding max dzstep
+                    ###################################################################################################
+                    
+                    if dztot == (int_fwm.dzstep*(jj+1)):
+                        exitt = True
+
+                    elif ((dztot + dz2 )>= int_fwm.dzstep*(jj+1)):
+                        dz2 = int_fwm.dzstep*(jj+1) - dztot   
+                    dz = np.copy(dz2) 
+                    ###################################################################################################
+                
+                u[:,:,jj+1] = u1
+                U[:,:,jj+1] = fftshift(sim_wind.dt*mfft(u[:,:,jj+1]),axes=(0,))
+                U_true[:,:,jj+1] = fftshift(np.abs(sim_wind.dt*mfft(u[:,:,jj+1]))**2,axes=(0,))
+                for ii in range(int_fwm.nm):
+                    energy[ii,jj+1] = norm(u1[:,ii],2)**2 # energy per mode
+                entot[jj+1] = np.sum(energy[:,jj+1])             # total energy
+            print(delta,badz)
+            "-------------------------------------------------------------------------------------------------------------------"
+           
+        
+
+            plotter_dbm(int_fwm.nm,sim_wind.lv,w2dbm(U_true),sim_wind.xl,sim_wind.t,u,sim_wind.xtlim,-1,str(ro)+'2',pulse_pos_dict[0],D_pic[2])
+            print('round', ro)
+
+
+            # pass through WDM2 to get the signal only
+            u[:,:,-1],U[:,:,-1], U_true[:,:,-1] = WDM2.wdm_port1_pass(U[:,:,-1],sim_wind)
+            plotter_dbm(int_fwm.nm,sim_wind.lv,w2dbm(U_true),sim_wind.xl,sim_wind.t,u,sim_wind.xtlim,-1,str(ro)+'3',pulse_pos_dict[1],D_pic[3])
+
+
+
+            # To see what is out
+            b,a, U_true[:,:,-1] = WDM2.wdm_port2_pass(U[:,:,-1],sim_wind)
+            plotter_dbm(int_fwm.nm,sim_wind.lv,w2dbm(U_true),sim_wind.xl,sim_wind.t,u,sim_wind.xtlim,-1,str(ro)+'5',pulse_pos_dict[3],D_pic[6])
+
+            # Pass through the WDM1 port2 to get rid of its pump
+            u[:,:,-1],U[:,:,-1], U_true[:,:,-1] = WDM1.wdm_port2_pass(U[:,:,-1],sim_wind)
+            plotter_dbm(int_fwm.nm,sim_wind.lv,w2dbm(U_true),sim_wind.xl,sim_wind.t,u,sim_wind.xtlim,-1,str(ro)+'4',pulse_pos_dict[2],D_pic[4])
+
+
+            # Add the original pump 
+            U[:,:,-1] += at_WDM_in
+
+
+            u[:,:,-1] = imfft(ifftshift(U[:,:,-1],axes=(0,))/sim_wind.dt)
+            U_true[:,:,-1] = fftshift(np.abs(sim_wind.dt*mfft(u[:,:,-1]))**2,axes=(0,))
+
+            
+
+            u[:,:,0] = imfft(ifftshift(U[:,:,-1],axes=(0,))/sim_wind.dt)
+            U_true[:,:,0] = U_true[:,:,-1]
+            
+ 
+       
+
+        U[:,:,-1] = fftshift(np.abs(sim_wind.dt*mfft(u[:,:,0]))**2,axes=(0,))
         power_dbm = w2dbm(np.abs(U[:,:,-1]))
         max_norm = np.max(power_dbm[:,0])
-        power_dbm[:,0] -= max_norm
+        power_dbm -= max_norm
 
-        "Looking for the peaks themselves for all peaks of"
+        #"Looking for the peaks themselves for all peaks of"
         modulation = mode1_mod(power_dbm, where,sim_wind.lv,s_pos,int_fwm.nt)
-        print('---------------------------------------------')
-        print('Pump1     :  ', sim_wind.lv[where[0]], power_dbm[where[0],0])
-        print('Signal     : ', sim_wind.lv[s_pos], power_dbm[s_pos,0])
-        print('idler: ',modulation.lam, modulation.pow)
-        print('----------------------------------------------')
-        return power_dbm[:,:],s_pos, modulation,max_norm
+        #print('---------------------------------------------')
+        #print('Pump1     :  ', sim_wind.lv[where[0]], power_dbm[where[0],0])
+        #print('Signal     : ', sim_wind.lv[s_pos], power_dbm[s_pos,0])
+        #print('idler: ',modulation.lam, modulation.pow)
+        #print('----------------------------------------------')
+        return power_dbm[:,:],s_pos, modulation,max_norm,rounds
