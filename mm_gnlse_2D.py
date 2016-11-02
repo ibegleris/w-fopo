@@ -3,7 +3,6 @@ import numpy as np
 from time import time
 from scipy.constants import c, pi
 from functions import *
-import os
 from sys import exit
 from scipy.io import savemat
 import scipy.fftpack
@@ -19,15 +18,126 @@ except ImportError:
     pass
 
 
-def lam_p2_vary(lam_s_max,lam_p1,Power_input,int_fwm,plot_conv,par = False,grid_only = False,timing= False):      
-	P0_p1 = Power_input 		                           				#[w]
-	P0_s  = 0		                                                    #[w]
 
-	lamda = lam_p1*1e-9                           #central wavelength of the grid[m]
-	lamda_c = 1052.95e-9#1.5508e-6                           #central freequency of the dispersion
+def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2):   
+	if from_pump:
+	    s_pos = where[0] - wave
+	else:
+	    s_pos -= wave
+	u = np.zeros([len(sim_wind.t),int_fwm.nm,len(sim_wind.zv)],dtype='complex128')    # initialisation (for fixed steps)
+	U = np.zeros([len(sim_wind.t),int_fwm.nm,len(sim_wind.zv)],dtype='complex128')    #
+	Uabs = np.copy(U)
+	pquant = np.sum(1.054e-34*(sim_wind.w*1e12 + sim_wind.w0)/(sim_wind.T*1e-12))  # Quantum noise (Peter's version)
+	noise = (pquant/2)**0.5*(np.random.randn(int_fwm.nm,int_fwm.nt) + 1j*np.random.randn(int_fwm.nm,int_fwm.nt))
+	
+	u[:,:,0] = noise.T
+	u[:,0,0] += (P0_p1)**0.5
+
+	U[:,:,0] = fftshift(sim_wind.dt*mfft(u[:,:,0]),axes=(0,))
+	Uabs[:,:,0] = fftshift(np.abs(sim_wind.dt*mfft(u[:,:,0]))**2,axes=(0,))
+	"----------------------Plot the inputs------------------------------------"
+	#plotter_dbm(int_fwm.nm,sim_wind.lv,w2dbm(U),sim_wind.xl,sim_wind.t,u,sim_wind.xtlim,0)
+	#sys.exit()
+	"-------------------------------------------------------------------------"
+
+	int_fwm.raman.raman_load(sim_wind.t,sim_wind.dt) # bring the raman if needed
+	string = "dAdzmm_r"+str(int_fwm.raman.on)+"_s"+str(int_fwm.ss)
+	func_dict = {'dAdzmm_ron_s1':dAdzmm_ron_s1,
+	     'dAdzmm_ron_s0':dAdzmm_ron_s0,
+	     'dAdzmm_roff_s0':dAdzmm_roff_s0,
+	     'dAdzmm_roff_s1':dAdzmm_roff_s1}
+	pulse_pos_dict_or = ( 'after propagation', "pass WDM2", "pass WDM1 on port2 (remove pump)", 'add more pump','out')
+
+
+	keys = ['loading_data/green_dot_fopo/pngs/'+str(i)+str('.png') for i in range(7)]
+	D_pic = [plt.imread(i) for i in keys]
+
+
+	dAdzmm = func_dict[string]
+	hf = int_fwm.raman.hf
+
+	#Define te WDMs
+	#WDM1 = WDM(1050, 1200)
+	#WDM2 = WDM(1200, 930)
+	#WDM1.plot_dB(sim_wind.lv)
+	#WDM2.plot_dB(sim_wind.lv)
+	#WDM1.plot(sim_wind.lv)
+	#WDM2.plot(sim_wind.lv)
+	#sys.exit()
+
+
+	plotter_dbm(int_fwm.nm,sim_wind.lv,w2dbm(Uabs),sim_wind.xl,sim_wind.t,u,sim_wind.xtlim,0,'0','original pump',D_pic[0])
+
+	#Pass the original pump through the WDM1 port1
+	#u[:,:,0],U[:,:,0], Uabs[:,:,0] = WDM1.wdm_port1_pass(U[:,:,0],sim_wind)
+
+
+	#at_WDM_in = U[:,:,0]
+
+	rounds = 1
+
+	for ro in range(rounds):
+		pulse_pos_dict = ['round '+ str(ro)+', ' + i for i in pulse_pos_dict_or]
+		#plotter_dbm(int_fwm.nm,sim_wind.lv,w2dbm(Uabs),sim_wind.xl,sim_wind.t,u,sim_wind.xtlim,0,str(ro)+'1',pulse_pos_dict[3],D_pic[5])
+		u,U,Uabs = pulse_propagation(u,U,Uabs,int_fwm,M1,M2,sim_wind,hf,Dop,dAdzmm)
+
+
+
+
+		#plotter_dbm(int_fwm.nm,sim_wind.lv,w2dbm(Uabs),sim_wind.xl,sim_wind.t,u,sim_wind.xtlim,-1,str(ro)+'2',pulse_pos_dict[0],D_pic[2])
+		print('round', ro)
+
+
+		# pass through WDM2 to get the signal only
+		#u[:,:,-1],U[:,:,-1], Uabs[:,:,-1] = WDM2.wdm_port1_pass(U[:,:,-1],sim_wind)
+		#plotter_dbm(int_fwm.nm,sim_wind.lv,w2dbm(Uabs),sim_wind.xl,sim_wind.t,u,sim_wind.xtlim,-1,str(ro)+'3',pulse_pos_dict[1],D_pic[3])
+
+
+
+		# To see what is out
+		#b,a, Uabs[:,:,-1] = WDM2.wdm_port2_pass(U[:,:,-1],sim_wind)
+		#plotter_dbm(int_fwm.nm,sim_wind.lv,w2dbm(Uabs),sim_wind.xl,sim_wind.t,u,sim_wind.xtlim,-1,str(ro)+'5',pulse_pos_dict[3],D_pic[6])
+
+		# Pass through the WDM1 port2 to get rid of its pump
+		#u[:,:,-1],U[:,:,-1], Uabs[:,:,-1] = WDM1.wdm_port2_pass(U[:,:,-1],sim_wind)
+		#plotter_dbm(int_fwm.nm,sim_wind.lv,w2dbm(Uabs),sim_wind.xl,sim_wind.t,u,sim_wind.xtlim,-1,str(ro)+'4',pulse_pos_dict[2],D_pic[4])
+
+
+		# Add the original pump 
+		#U[:,:,-1] += at_WDM_in
+
+
+		#u[:,:,-1] = imfft(ifftshift(U[:,:,-1],axes=(0,))/sim_wind.dt)
+		#Uabs[:,:,-1] = fftshift(np.abs(sim_wind.dt*mfft(u[:,:,-1]))**2,axes=(0,))
+
+
+
+		u[:,:,0] = imfft(ifftshift(U[:,:,-1],axes=(0,))/sim_wind.dt)
+		Uabs[:,:,0] = Uabs[:,:,-1]
+
+
+
+
+	#U[:,:,-1] = fftshift(np.abs(sim_wind.dt*mfft(u[:,:,0]))**2,axes=(0,))
+	
+
+	power_dbm = w2dbm(np.abs(Uabs[:,:,-1]))
+	max_norm = np.max(power_dbm[:,0])
+	#power_dbm -= max_norm
+	return power_dbm,s_pos,max_norm,rounds
+
+
+
+def lam_p2_vary(lam_s_max,lam_p1,Power_input,int_fwm,plot_conv,gama,par = False,grid_only = False,timing= False):      
+	
+	P0_p1 = Power_input 		  #[w]
+	P0_s  = 0		              #[w]
+
+	lamda = lam_p1*1e-9           #central wavelength of the grid[m]
+	lamda_c = 1051.85e-9#1052.95e-9          #central freequency of the dispersion
 	"----------------------------dispersion_fwm_parameters---------------------------"
 
-	gama = 10e-3#None					 # w/m
+	
 	"-------------------------------------------------------------------------------"
 
 	"----------------------Obtain the Q matrixes------------------------------"
@@ -35,62 +145,24 @@ def lam_p2_vary(lam_s_max,lam_p1,Power_input,int_fwm,plot_conv,par = False,grid_
 	"-------------------------------------------------------------------------"
 
 
-
-	lam_start = 800
-
-	print(int_fwm.N)
-
-	f_p1 = 1e-3*c/lam_p1
-	f_start = 1e-3*c/lam_start
-
-	fv1 = np.linspace(f_start,f_p1,2**(int_fwm.N - 1))
-		
-	fv = np.ndarray.tolist(fv1)
-
-	diff = fv[1] - fv[0]
+	fv,where = fv_creator(800,lam_p1,int_fwm)
 
 
-
-	for i in range(2**(int_fwm.N -1)):
-		fv.append(fv[-1]+diff)
-	fv = np.asanyarray(fv)
-
-
-
-
-	######################################################################################
-
-
-	################################Grid check for fft optimisation########################
-	check_ft_grid(fv)
-	#######################################################################################
-
-
-	##############################Where are the pumps on the grid and is the grid uniform?#########################
-	where = [2**(int_fwm.N-1)] 
-	lvio = []
-	for i in range(len(fv)-1):
-	    lvio.append(fv[i+1] - fv[i])
-	    
-	grid_error = np.asanyarray(lvio)[:] + diff
-	if not(np.allclose(grid_error,0,rtol=0,atol=1e-13)):
-	    print(grid_error)
-
-	#####################################################################################################################
 
 	sim_wind = sim_window(fv,lamda,lamda_c,int_fwm)
 	if grid_only:
 		return sim_wind
 
 	"------------------------------Dispersion operator--------------------------------------"
-	Dop = dispersion_operator(lamda_c,int_fwm,sim_wind)
+	betas = np.array([[0,0,0,6.75e-5,-1001e-7]]) # betas at
+	Dop = dispersion_operator(betas,lamda_c,int_fwm,sim_wind)
 	"---------------------------------------------------------------------------------------"
 
 
 	lam_s_max -= 2**(int_fwm.N-1)
 	lam_s_max +=2
 	waves = range(1,lam_s_max)
-
+	waves = [1]
 
 
 	UU = np.zeros([len(waves),len(sim_wind.t),int_fwm.nm],dtype='complex128')
@@ -110,12 +182,9 @@ def lam_p2_vary(lam_s_max,lam_p1,Power_input,int_fwm,plot_conv,par = False,grid_
 			mod_pow[i] = res[i][2].pow
 			mod_lam[i] = res[i][2].lam
 			P0_s_out[i] = np.real(UU[i,s_pos_vec[i],0])
-			max_norm = res[i][3]
 	else:
 		for ii,wave in enumerate(waves):
-		    UU[ii,:,:], s_pos_vec[ii], mod,max_norm,rounds = lams_s_vary(wave,where[0],True,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2)
-		    mod_pow[ii] = mod.pow
-		    mod_lam[ii] = mod.lam
+		    UU[ii,:,:], s_pos_vec[ii], mod,rounds = lams_s_vary(wave,where[0],True,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2)
 		    P0_s_out[ii] = np.real(UU[ii,s_pos_vec[ii],0])
 		    break
 	lams_vec = sim_wind.lv[s_pos_vec.astype(int)]
@@ -123,25 +192,27 @@ def lam_p2_vary(lam_s_max,lam_p1,Power_input,int_fwm,plot_conv,par = False,grid_
 
 	plotter_dbm_lams_large([0],sim_wind.lv,UU,sim_wind.xl,sim_wind.t,sim_wind.xtlim,-1,lams_vec) 
 
-	return mod_lam,lams_vec,max_norm,P0_s_out,mod_pow,rounds
+	return mod_lam,lams_vec,P0_s_out,mod_pow,rounds
 
 
 def main():
-	"------Stable parameters-----"
-	n2 = 2.5e-20                # n2 for silica [m/W]
-	nm = 1                      # number of modes
-	alphadB = 0.0011666666666666668                 # loss [dB/m]
-	"---------------------- General options -----------------------------------"
+	"-----------------------------Stable parameters----------------------------"
+	n2 = 2.5e-20                				# n2 for silica [m/W]
+	nm = 1                      				# number of modes
+	alphadB = 0.0011666666666666668             # loss [dB/m]
+	gama = 10e-3 								# w/m
+	Power_input = 13                      		#[W]
+	"-----------------------------General options------------------------------"
 
-	maxerr = 1e-3            # maximum tolerable error per step (variable step size version)
+	maxerr = 1e-6            	# maximum tolerable error per step
 	ss = 1                      # includes self steepening term
 	ram = 'on'                  # Raman contribution 'on' if yes and 'off' if no
 	
-	"---------- Simulation parameters ----------------------------------"
-	N = 11
-	nt = 2**N 					# number of grid points, There is a check that makes sure that it is a power of 2 for the FFT
-	z = 18					# total distance [m]
-	nplot = 50                  # number of plots
+	"----------------------------Simulation parameters-------------------------"
+	N = 13
+	z = 1000				 	# total distance [m]
+	nplot = 100                  # number of plots
+	nt = 2**N 					# number of grid points
 	dzstep = z/nplot            # distance per step
 	dz_less = 1e3
 	dz = dzstep/dz_less         # starting guess value of the step
@@ -152,55 +223,30 @@ def main():
 	int_fwm.general_options(maxerr,ss,ram)
 	int_fwm.propagation_parameters(N, z, nplot, dz_less, wavelength_space)
 
-	"""---------------------FWM wavelengths----------------------------------------"""
-	Power_input = 13                      #[W] 
-
-
-	lam_p1 = 1050                             #[nm]
-	lams_max_asked = 1051
-
-	lv = lam_p2_vary(2,lam_p1,Power_input,int_fwm,0,False,True).lv[::-1]
+	"---------------------FWM wavelengths----------------------------------------"
+	lam_p1 = 1051.85              #[nm]
+	lams_max_asked = 1051	   #[nm]
+	lv = lam_p2_vary(2,lam_p1,Power_input,int_fwm,0,gama,False,True).lv[::-1]
 	lv_lams = np.abs(np.asanyarray(lv) - lams_max_asked)
 	lams_index = np.where(lv_lams == np.min(lv_lams))[0][0]+1
-	print("S_max wavelength asked for: "+str(lams_max_asked), "With this grid the best I can do is: ",lv[lams_index])
- 
+	print('S_max wavelength asked for: '+str(lams_max_asked),
+			'With this grid the best I can do is: ',lv[lams_index])
 	lensig = np.shape(range(1,lams_index))[0]
+	"----------------------------------------------------------------------------"
 
 
-
-	mod_lam,lams_vec,max_norm,P0_s_out,mod_pow,rounds = lam_p2_vary(lensig,lam_p1,Power_input,int_fwm,1,False)
+	mod_lam,lams_vec,P0_s_out,mod_pow,rounds = \
+						lam_p2_vary(lensig,lam_p1,Power_input,int_fwm,1,
+							gama,par = False,grid_only = False,timing= False)
 	print('\a')
 
-	os.system("rm figures/*.pdf")
-	
-	strings_large = ["convert figures/wavelength_space0.png "]
-	#sys.exit()
 
-	for i in range(6):
-		strings_large.append("convert ")
+	#animator_pdf_maker(rounds)
 
-	for ro in range(rounds):
-		for i in range(5):
-			strings_large[i+1] += "figures/wavelength_space"+str(ro)+str(i+1)+".png "
-		for w in range(1,4):
-			if i ==5:
-				break
-			strings_large[0] += "figures/wavelength_space"+str(ro)+str(w)+".png "
-	
-	for i in range(6):
-		strings_large[0] += "figures/wavelength_space_large.png "
-		os.system(strings_large[i]+"figures/wavelength_space"+str(i)+".pdf")
-		#print("-------------------------------------------------------------")
-		#print(i)
-		#print(strings_large[i])
-	
-	#os.system("open figures/wavelength_space.pdf")
-	os.system("rm figures/*.png")
-	for i in range(6):
-		os.system('convert -delay 30 figures/wavelength_space'+str(i)+'.pdf figures/wavelength_space'+str(i)+'.mp4')
 	return None
 
 
 if __name__ =='__main__':
 	main()
+
 
