@@ -1,5 +1,5 @@
 import matplotlib as mpl
-mpl.use('Agg')
+#mpl.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -74,7 +74,8 @@ def plotter_dbm_lams_large(modes,sim_wind,U,which,lams_vec):
     plt.grid()
     plt.xlim([np.min(sim_wind.lv),np.max(sim_wind.lv)])
     plt.savefig("figures/wavelength/wavelength_space_final.png",bbox_inched='tight')
-    plt.close('all')
+    
+    #plt.close('all')
    
     fig = plt.figure(figsize=(20.0, 10.0))
     for mode in modes:     
@@ -87,9 +88,12 @@ def plotter_dbm_lams_large(modes,sim_wind,U,which,lams_vec):
     plt.xlim([np.min(sim_wind.fv),np.max(sim_wind.fv)])
     plt.grid()
     plt.savefig("figures/freequency/freequency_space_final.png",bbox_inched='tight')
-    plt.close('all')
     
-
+    #plt.close('all')
+    
+    
+    
+    plt.show()
 
     return 0
 

@@ -138,7 +138,7 @@ def lam_p2_vary(lam_s_max,lam_p1,Power_input,int_fwm,plot_conv,gama,par = False,
 	"----------------------Obtain the Q matrixes------------------------------"
 	M1,M2 = Q_matrixes(int_fwm.nm,int_fwm.n2,lamda,gama)
 	"-------------------------------------------------------------------------"
-	fv,where = fv_creator(900,lam_p1,int_fwm)
+	fv,where = fv_creator(700,lam_p1,int_fwm)
 	sim_wind = sim_window(fv,lamda,lamda_c,int_fwm)
 	if grid_only:
 		return sim_wind
