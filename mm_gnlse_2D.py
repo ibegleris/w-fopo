@@ -192,12 +192,12 @@ def main():
 	Power_input = 13                      		#[W]
 	"-----------------------------General options------------------------------"
 
-	maxerr = 1e-6            	# maximum tolerable error per step
+	maxerr = 1e-13            	# maximum tolerable error per step
 	ss = 1                      # includes self steepening term
 	ram = 'off'                  # Raman contribution 'on' if yes and 'off' if no
 	
 	"----------------------------Simulation parameters-------------------------"
-	N = 13
+	N = 14
 	z = 18				 	# total distance [m]
 	nplot = 100                  # number of plots
 	nt = 2**N 					# number of grid points
