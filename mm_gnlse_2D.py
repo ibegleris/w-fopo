@@ -138,14 +138,15 @@ def lam_p2_vary(lam_s_max,lam_p1,Power_input,int_fwm,plot_conv,gama,par = False,
 	"----------------------Obtain the Q matrixes------------------------------"
 	M1,M2 = Q_matrixes(int_fwm.nm,int_fwm.n2,lamda,gama)
 	"-------------------------------------------------------------------------"
-	fv,where = fv_creator(800,lam_p1,int_fwm)
+	fv,where = fv_creator(900,lam_p1,int_fwm)
 	sim_wind = sim_window(fv,lamda,lamda_c,int_fwm)
 	if grid_only:
 		return sim_wind
 
 	"------------------------------Dispersion operator--------------------------------------"
-	betas = np.array([[0,0,0,6.75e-5,-1001e-7]]) # betas at
+	betas = np.array([[0,0,0,6.755e-2,-1.001e-4]])*1e-3 # betas at ps/m (given in ps/km)
 	Dop = dispersion_operator(betas,lamda_c,int_fwm,sim_wind)
+	
 	"---------------------------------------------------------------------------------------"
 	lam_s_max -= 2**(int_fwm.N-1)
 	lam_s_max +=2
@@ -186,18 +187,18 @@ def main():
 	"-----------------------------Stable parameters----------------------------"
 	n2 = 2.5e-20                				# n2 for silica [m/W]
 	nm = 1                      				# number of modes
-	alphadB = 0.0011666666666666668             # loss [dB/m]
+	alphadB = 0#0.0011666666666666668             # loss [dB/m]
 	gama = 10e-3 								# w/m
 	Power_input = 13                      		#[W]
 	"-----------------------------General options------------------------------"
 
 	maxerr = 1e-6            	# maximum tolerable error per step
 	ss = 1                      # includes self steepening term
-	ram = 'on'                  # Raman contribution 'on' if yes and 'off' if no
+	ram = 'off'                  # Raman contribution 'on' if yes and 'off' if no
 	
 	"----------------------------Simulation parameters-------------------------"
 	N = 13
-	z = 80				 	# total distance [m]
+	z = 18				 	# total distance [m]
 	nplot = 100                  # number of plots
 	nt = 2**N 					# number of grid points
 	dzstep = z/nplot            # distance per step

@@ -4,25 +4,25 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def plotter_dbm(nm,sim_wind,power_watts,u,which,filename=None,title=None,im=0):
+def plotter_dbm(nm,sim_wind,power_watts,u,which,filename=None,title=None,im = 0):
 	fig = plt.figure(figsize=(20.0, 10.0))
 	for ii in range(nm):
 		plt.plot(sim_wind.lv,np.real(power_watts[:,ii,which]),'-*',label='mode'+str(ii))
 	plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
 	plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
-	plt.xlabel(r'$\lambda (nm)$')
-	plt.ylabel(r'$Spectrum (a.u.)$')
+	plt.xlabel(r'$\lambda (nm)$',fontsize=18)
+	plt.ylabel(r'$Spectrum (a.u.)$',fontsize=18)
+	plt.xlim([np.min(sim_wind.lv),np.max(sim_wind.lv)])
 	plt.title(title)
 	plt.grid()
-	plt.legend()
 	if type(im) != int:
 		newax = fig.add_axes([0.8, 0.8, 0.2, 0.2], anchor='NE')
 		newax.imshow(im)
 		newax.axis('off')
 	if filename == None:
-		plt.savefig("figures/wavelength_space"+str(which),bbox_inched='tight')
+		plt.show()
 	else:
-		plt.savefig("figures/wavelength_space"+filename,bbox_inched='tight')
+		plt.savefig("figures/wavelength/wavelength_space"+filename,bbox_inched='tight')
 	plt.close(fig)
 
 	fig = plt.figure(figsize=(20.0, 10.0))
@@ -30,19 +30,19 @@ def plotter_dbm(nm,sim_wind,power_watts,u,which,filename=None,title=None,im=0):
 		plt.plot(sim_wind.fv,np.real(power_watts[:,ii,which]),'-*',label='mode'+str(ii))
 	plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
 	plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
-	plt.xlabel(r'$f (THz)$')
-	plt.ylabel(r'$Spectrum (a.u.)$')
+	plt.xlabel(r'$f (THz)$',fontsize=18)
+	plt.ylabel(r'$Spectrum (a.u.)$',fontsize=18)
+	plt.xlim([np.min(sim_wind.fv),np.max(sim_wind.fv)])
 	plt.title(title)
 	plt.grid()
-	plt.legend()
 	if type(im) != int:
 		newax = fig.add_axes([0.8, 0.8, 0.2, 0.2], anchor='NE')
 		newax.imshow(im)
 		newax.axis('off')
 	if filename == None:
-		plt.savefig("figures/freequency_space"+str(which),bbox_inched='tight')
+		plt.show()
 	else:
-		plt.savefig("figures/freequency_space"+filename,bbox_inched='tight')
+		plt.savefig("figures/freequency/freequency_space"+filename,bbox_inched='tight')
 	plt.close(fig)
 
 
@@ -72,11 +72,10 @@ def plotter_dbm_lams_large(modes,sim_wind,U,which,lams_vec):
     plt.xlabel(r'$\lambda (nm)$',fontsize=18)
     plt.ylabel(r'$Spectrum (a.u.)$',fontsize=18)
     plt.grid()
-    plt.xlabel(r'$f (THz)$')
-    plt.legend()
-    plt.savefig("figures/wavelength_space_large.png",fontsize=18,bbox_inched='tight')
+    plt.xlim([np.min(sim_wind.lv),np.max(sim_wind.lv)])
+    plt.savefig("figures/wavelength/wavelength_space_final.png",bbox_inched='tight')
     plt.close('all')
-    
+   
     fig = plt.figure(figsize=(20.0, 10.0))
     for mode in modes:     
         for lamm,lamda in enumerate(lams_vec):    
@@ -85,9 +84,9 @@ def plotter_dbm_lams_large(modes,sim_wind,U,which,lams_vec):
     plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
     plt.xlabel(r'$f (THz)$',fontsize=18)
     plt.ylabel(r'$Spectrum (a.u.)$',fontsize=18)
+    plt.xlim([np.min(sim_wind.fv),np.max(sim_wind.fv)])
     plt.grid()
-    plt.legend()
-    plt.savefig("figures/freequency_space_large.png",fontsize=18,bbox_inched='tight')
+    plt.savefig("figures/freequency/freequency_space_final.png",bbox_inched='tight')
     plt.close('all')
     
 

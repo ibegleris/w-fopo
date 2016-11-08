@@ -34,7 +34,6 @@ try:
     mkfft = mklfft.fftpack.fft
     imkfft = mklfft.fftpack.ifft
 except ImportError:
-    #print("install the mklfft packadge. Sometimes it works well others not.")
     imkfft = scipy.fftpack.ifft
     mkfft = scipy.fftpack.fft
     pass
@@ -62,7 +61,14 @@ def w2dbm(W,floor=-100):
        Returns::
            Power in units of dBm(float)
     """
-    a = 10. * (np.ma.log10(W)).filled(floor) + 30
+    if type(W) != np.ndarray:
+    	if W>0:
+    		return 10. * np.log10(W) + 30
+    	elif W==0:
+    		return floor
+    	else:
+    		raise(ZeroDivisionError)
+    a = 10. * (np.ma.log10(W)).filled(floor/10-3) + 30
     return a
 
 
@@ -83,62 +89,70 @@ def immfft(a):
 
 
 class raman_object(object):
-    def __init__(self,a,b = None):
-        self.on = a
-        self.how = b
-        self.hf = None 
-    
-    def raman_load(self,t,dt):
-        if self.on == 'on':
-            print('Raman on')
-            if self.how == 'analytic':
-                print(self.how)
-                t11 = 12.2e-3      # [ps]
-                t2 = 32e-3         # [ps]
-                htan = (t11**2 + t2**2)/(t11*t2**2)*np.exp(-t/t2*(t>=0))*np.sin(t/t11)*(t>=0)   # analytical response
-                hf = mfft(htan)   # Fourier transform of the analytic nonlinear response
-            elif self.how == 'load':
-                print('loading for silica')
-                # loads the measured response (Stolen et al. JOSAB 1989)
-                mat = loadmat('loading_data/silicaRaman.mat')
-                ht = mat['ht']
-                t1 = mat['t1']        
-                htmeas_f = InterpolatedUnivariateSpline(t1*1e-3,ht)
-                htmeas = htmeas_f(t)     
-                htmeas *=(t>0)*(t<1)    # only measured between +/- 1 ps)
-                htmeas /= (dt*np.sum(htmeas))    # normalised
-                hf = mfft(htmeas)   # Fourier transform of the measured nonlinear response
-            else:
-                hf = None
-            self.hf = hf
-        return self.hf   
+	def __init__(self,a,b = None):
+	    self.on = a
+	    self.how = b
+	    self.hf = None 
+
+	def raman_load(self,t,dt):
+		if self.on == 'on':
+			print('Raman on')
+			if self.how == 'analytic':
+				print(self.how)
+				t11 = 12.2e-3      # [ps]
+				t2 = 32e-3         # [ps]
+				htan = (t11**2 + t2**2)/(t11*t2**2)*np.exp(-t/t2*(t>=0))*np.sin(t/t11)*(t>=0)   # analytical response
+				self.hf = mfft(htan)   # Fourier transform of the analytic nonlinear response
+			elif self.how == 'load':
+				print('loading for silica')
+				# loads the measured response (Stolen et al. JOSAB 1989)
+				mat = loadmat('loading_data/silicaRaman.mat')
+				ht = mat['ht']
+				t1 = mat['t1']        
+				htmeas_f = InterpolatedUnivariateSpline(t1*1e-3,ht)
+				htmeas = htmeas_f(t)     
+				htmeas *=(t>0)*(t<1)    # only measured between +/- 1 ps)
+				htmeas /= (dt*np.sum(htmeas))    # normalised
+				self.hf = mfft(htmeas)   # Fourier transform of the measured nonlinear response
+			else:
+				self.hf = None
+			return self.hf   
 
 
 def dispersion_operator(betas,lamda_c,int_fwm,sim_wind):
-    """
-    Calculates the dispersion operator in rad/m units
-    INputed are the dispersion operators at the omega0
-    LOcal include the taylor expansion to get these opeators at omegac 
-    Returns Dispersion operator
-    """
-    alpha = int_fwm.alphadB/4.343
-    c_norm = c*1e-12                                                                        #Speed of light [m/ps] #Central wavelength [nm]
-    wc = 2*pi * c_norm /sim_wind.lamda #
-    w0 = 2*pi * c_norm / lamda_c
-    betap = np.zeros_like(betas)
-    for i in range(int_fwm.nm):
-        for j in range(len(betas.T)):
-            fac = 0
-            for k in range(j,len(betas.T)):
-                betap[i,j] += (1/factorial(fac))*betas[i,k] * (wc - w0)**(fac)
-                fac +=1    
+	"""
+	Calculates the dispersion operator in rad/m units
+	INputed are the dispersion operators at the omega0
+	LOcal include the taylor expansion to get these opeators at omegac 
+	Returns Dispersion operator
+	"""
+	alpha = int_fwm.alphadB/4.343
+	c_norm = c*1e-12                                                                        #Speed of light [m/ps] #Central wavelength [nm]
+	wc = 2*pi * c_norm /sim_wind.lamda
+	w0 = 2*pi * c_norm / lamda_c
+	betap = np.zeros_like(betas)
+	for i in range(int_fwm.nm):
+	    for j in range(len(betas.T)):
+	        fac = 0
+	        for k in range(j,len(betas.T)):
+	            betap[i,j] += (1/factorial(fac))*betas[i,k] * (wc - w0)**(fac)
+	            fac += 1
 
-    w = sim_wind.w 
-    Dop = np.zeros([int_fwm.nt,int_fwm.nm],dtype=np.complex)
-    Dop[:,:] = -alpha/2
-    for i in range(int_fwm.nm):
-        Dop[:,i] -= 1j*(betap[i,0] +  betap[i,1]*(w) + (betap[i,2]*(w)**2)/2. + (betap[i,3]*(w)**3)/6.+ (betap[i,4]*(w)**3)/6.)
-    return Dop
+	w = sim_wind.w 
+	Dop = np.zeros([int_fwm.nt,int_fwm.nm],dtype=np.complex)
+	Dop[:,:] = -alpha/2
+
+	beta0,beta1 = betap[0,0],betap[0,1] # set the fundemental betas as the one of the first mode
+	betap[:,0] -= beta0
+	betap[:,1] -= beta1
+	print(betap)
+	for i in range(int_fwm.nm):
+		for j,bb in enumerate(betap[i,:]):
+			print(bb)
+			Dop[:,i] -= 1j*(w**j * bb /factorial(j))
+	plt.plot(w, np.imag(Dop))
+	plt.savefig('dispersion.png')
+	return Dop
 
 
 def Q_matrixes(nm,n2,lamda,gama=None):  
