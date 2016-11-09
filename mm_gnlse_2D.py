@@ -212,7 +212,7 @@ def main():
 	int_fwm.propagation_parameters(N, z, nplot, dz_less, wavelength_space)
 	fft, ifft, fft_method = pick(N,nm,100)
 	"---------------------FWM wavelengths----------------------------------------"
-	lam_p1 = 1047.5              #[nm]
+	lam_p1 = 1051.4              #[nm]
 	lams_max_asked = 1051	   	  #[nm]
 	lv = lam_p2_vary(2,lam_p1,Power_input,int_fwm,0,gama,fft,ifft,False,True).lv[::-1]
 	lv_lams = np.abs(np.asanyarray(lv) - lams_max_asked)
