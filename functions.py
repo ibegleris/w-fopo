@@ -1,24 +1,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import division, print_function
-import sys
-import os
+import sys, os 
 import numpy as np
-import scipy.fftpack
-scfft,fftshift,scifft,ifftshift = \
-scipy.fftpack.fft, scipy.fftpack.fftshift, scipy.fftpack.ifft, scipy.fftpack.ifftshift
 from scipy.linalg import norm
 from scipy.constants import pi, c
-from scipy.io import loadmat
+from scipy.io import loadmat, savemat
 from scipy.interpolate import interp1d, InterpolatedUnivariateSpline
-from scipy.io import savemat
-import pandas as pan
-from math import isinf
 from scipy.integrate import simps
-import warnings
-warnings.filterwarnings("error")
-from math import factorial
+from scipy.fftpack import fftshift, ifftshift
+from math import isinf, factorial
 from integrand_and_rk import *
 from plotters_animators import *
+
 try:
     import accelerate
     jit = accelerate.numba.jit
@@ -29,20 +22,6 @@ except ImportError:
     print("install the accelerate packadge from anaconda or change the source code ie remove references to @jit and accelerate imports")
     pass
 
-try:
-    import mklfft
-    mkfft = mklfft.fftpack.fft
-    imkfft = mklfft.fftpack.ifft
-except ImportError:
-    imkfft = scipy.fftpack.ifft
-    mkfft = scipy.fftpack.fft
-    pass
-
-try:
-    import mkl
-except ImportError:
-    print("MKL libaries help when you are not running in paralel. There is a free academic lisence by continuum analytics")
-    pass
 
 def dbm2w(dBm):
     """This function converts a power given in dBm to a power given in W.
@@ -72,29 +51,13 @@ def w2dbm(W,floor=-100):
     return a
 
 
-def mfft(a):
-    return scfft(a.T).T
-
-
-def imfft(a):
-    return scifft(a.T).T
-
-
-def mmfft(a):
-    return mkfft(a.T).T
-
-
-def immfft(a):
-    return imkfft(a.T).T
-
-
 class raman_object(object):
 	def __init__(self,a,b = None):
 	    self.on = a
 	    self.how = b
 	    self.hf = None 
 
-	def raman_load(self,t,dt):
+	def raman_load(self,t,dt,fft,ifft):
 		if self.on == 'on':
 			print('Raman on')
 			if self.how == 'analytic':
@@ -102,9 +65,8 @@ class raman_object(object):
 				t11 = 12.2e-3      # [ps]
 				t2 = 32e-3         # [ps]
 				htan = (t11**2 + t2**2)/(t11*t2**2)*np.exp(-t/t2*(t>=0))*np.sin(t/t11)*(t>=0)   # analytical response
-				self.hf = mfft(htan)   # Fourier transform of the analytic nonlinear response
+				self.hf = fft(htan)   # Fourier transform of the analytic nonlinear response
 			elif self.how == 'load':
-				print('loading for silica')
 				# loads the measured response (Stolen et al. JOSAB 1989)
 				mat = loadmat('loading_data/silicaRaman.mat')
 				ht = mat['ht']
@@ -113,7 +75,7 @@ class raman_object(object):
 				htmeas = htmeas_f(t)     
 				htmeas *=(t>0)*(t<1)    # only measured between +/- 1 ps)
 				htmeas /= (dt*np.sum(htmeas))    # normalised
-				self.hf = mfft(htmeas)   # Fourier transform of the measured nonlinear response
+				self.hf = fft(htmeas)   # Fourier transform of the measured nonlinear response
 			else:
 				self.hf = None
 			return self.hf   
@@ -145,10 +107,8 @@ def dispersion_operator(betas,lamda_c,int_fwm,sim_wind):
 	beta0,beta1 = betap[0,0],betap[0,1] # set the fundemental betas as the one of the first mode
 	betap[:,0] -= beta0
 	betap[:,1] -= beta1
-	print(betap)
 	for i in range(int_fwm.nm):
 		for j,bb in enumerate(betap[i,:]):
-			print(bb)
 			Dop[:,i] -= 1j*(w**j * bb /factorial(j))
 	plt.plot(w, np.imag(Dop))
 	plt.savefig('dispersion.png')
@@ -274,14 +234,14 @@ class WDM(object):
 
     def wdm_port1_pass(self,U,sim_wind):
         U[:,0] *= (self.il_port1(sim_wind.lv))**0.5
-        u = imfft(ifftshift(U[:,:],axes=(0,))/sim_wind.dt)
-        U_true = fftshift(np.abs(sim_wind.dt*mfft(u[:,:]))**2,axes=(0,))
+        u = ifft(ifftshift(U[:,:],axes=(0,))/sim_wind.dt)
+        U_true = fftshift(np.abs(sim_wind.dt*fft(u[:,:]))**2,axes=(0,))
         return u,U,U_true
 
     def wdm_port2_pass(self,U,sim_wind):
         U[:,0] *= (self.il_port2(sim_wind.lv))**0.5
-        u = imfft(ifftshift(U[:,:],axes=(0,))/sim_wind.dt)
-        U_true = fftshift(np.abs(sim_wind.dt*mfft(u[:,:]))**2,axes=(0,))
+        u = ifft(ifftshift(U[:,:],axes=(0,))/sim_wind.dt)
+        U_true = fftshift(np.abs(sim_wind.dt*fft(u[:,:]))**2,axes=(0,))
         return u,U,U_true
 
     def plot(self,lamda):
@@ -310,7 +270,7 @@ class WDM(object):
 """
 
 
-def pulse_propagation(u,U,Uabs,int_fwm,M1,M2,sim_wind,hf,Dop,dAdzmm):
+def pulse_propagation(u,U,Uabs,int_fwm,M1,M2,sim_wind,hf,Dop,dAdzmm,fft,ifft):
     "--------------------------Pulse propagation--------------------------------"
     badz = 0        #counter for bad steps
     goodz = 0       #counter for good steps
@@ -329,13 +289,13 @@ def pulse_propagation(u,U,Uabs,int_fwm,M1,M2,sim_wind,hf,Dop,dAdzmm):
         while not(exitt):
             delta = 2*int_fwm.maxerr                       # trick to do the first iteration
             while delta > int_fwm.maxerr:    
-                u1new = imfft(np.exp(Dop*dz/2)*mfft(u1))
-                A, delta = RK5mm(dAdzmm,u1new,dz,M1,M2,sim_wind.t,int_fwm.n2,sim_wind.lamda,sim_wind.tsh,sim_wind.w,sim_wind.woffset,sim_wind.dt,hf) # calls a 5th order Runge Kutta routine
+                u1new = ifft(np.exp(Dop*dz/2)*fft(u1))
+                A, delta = RK5mm(dAdzmm,u1new,dz,M1,M2,sim_wind.t,int_fwm.n2,sim_wind.lamda,sim_wind.tsh,sim_wind.w,sim_wind.woffset,sim_wind.dt,hf,fft,ifft) # calls a 5th order Runge Kutta routine
                 if (delta > int_fwm.maxerr):
                     dz *= (int_fwm.maxerr/delta)**0.25   # calculate the step (shorter) to redo
                     badz += 1
             #####################################Successful step##############################################
-            u1 = imfft(np.exp(Dop*dz/2)*mfft(A))                           # propagate the remaining half step             
+            u1 = ifft(np.exp(Dop*dz/2)*fft(A))                           # propagate the remaining half step             
             dztot += dz                                                    # update the propagated distance
             goodz += 1                                                     # update the number of steps taken
             dzv = np.append(dzv,dz)                                        # store the dz just taken
@@ -351,8 +311,8 @@ def pulse_propagation(u,U,Uabs,int_fwm,M1,M2,sim_wind,hf,Dop,dAdzmm):
             ###################################################################################################
         
         u[:,:,jj+1] = u1
-        U[:,:,jj+1] = fftshift(sim_wind.dt*mfft(u[:,:,jj+1]),axes=(0,))
-        Uabs[:,:,jj+1] = fftshift(np.abs(sim_wind.dt*mfft(u[:,:,jj+1]))**2,axes=(0,))
+        U[:,:,jj+1] = fftshift(sim_wind.dt*fft(u[:,:,jj+1]),axes=(0,))
+        Uabs[:,:,jj+1] = fftshift(np.abs(sim_wind.dt*fft(u[:,:,jj+1]))**2,axes=(0,))
         for ii in range(int_fwm.nm):
             energy[ii,jj+1] = norm(u1[:,ii],2)**2 # energy per mode
         entot[jj+1] = np.sum(energy[:,jj+1])             # total energy
@@ -412,3 +372,9 @@ def check_ft_grid(fv):
         print("fix the grid for optimization of the fft's, grid:", np.shape(fv)[0])
         sys.exit()
     return 0
+
+
+
+def which_fft(N, nm):
+
+	a = np.random.rand(2**N,nm)

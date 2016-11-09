@@ -2,3 +2,4 @@ figures
 figures/*
 __pycache__
 *pyc
+*lprof

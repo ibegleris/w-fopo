@@ -1,14 +1,13 @@
 from __future__ import division,print_function
 import numpy as np
-from time import time
 from scipy.constants import c, pi
-from functions import *
-from sys import exit
 from scipy.io import savemat
-import scipy.fftpack
 from joblib import Parallel, delayed
+from scipy.fftpack import fftshift, ifftshift
 import multiprocessing
 import sys
+from functions import *
+from fft_module import *
 try:
     import mkl
     max_threads = mkl.get_max_threads()
@@ -19,7 +18,7 @@ except ImportError:
 
 
 
-def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2):   
+def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2,fft,ifft):   
 	if from_pump:
 	    s_pos = where[0] - wave
 	else:
@@ -33,14 +32,14 @@ def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2
 	u[:,:,0] = noise.T
 	u[:,0,0] += (P0_p1)**0.5
 
-	U[:,:,0] = fftshift(sim_wind.dt*mfft(u[:,:,0]),axes=(0,))
-	Uabs[:,:,0] = fftshift(np.abs(sim_wind.dt*mfft(u[:,:,0]))**2,axes=(0,))
+	U[:,:,0] = fftshift(sim_wind.dt*fft(u[:,:,0]),axes=(0,))
+	Uabs[:,:,0] = fftshift(np.abs(sim_wind.dt*fft(u[:,:,0]))**2,axes=(0,))
 	"----------------------Plot the inputs------------------------------------"
 	#plotter_dbm(int_fwm.nm,sim_wind.lv,w2dbm(U),sim_wind.xl,sim_wind.t,u,sim_wind.xtlim,0)
 	#sys.exit()
 	"-------------------------------------------------------------------------"
 
-	int_fwm.raman.raman_load(sim_wind.t,sim_wind.dt) # bring the raman if needed
+	int_fwm.raman.raman_load(sim_wind.t,sim_wind.dt,fft,ifft) # bring the raman if needed
 	string = "dAdzmm_r"+str(int_fwm.raman.on)+"_s"+str(int_fwm.ss)
 	func_dict = {'dAdzmm_ron_s1':dAdzmm_ron_s1,
 	     'dAdzmm_ron_s0':dAdzmm_ron_s0,
@@ -64,7 +63,7 @@ def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2
 	#WDM1.plot(sim_wind.lv)
 	#WDM2.plot(sim_wind.lv)
 	#sys.exit()
-	print(np.max(w2dbm(Uabs)))
+
 
 	plotter_dbm(int_fwm.nm,sim_wind,w2dbm(Uabs),u,0,'0','original pump',D_pic[0])
 
@@ -81,7 +80,7 @@ def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2
 
 		pulse_pos_dict = ['round '+ str(ro)+', ' + i for i in pulse_pos_dict_or]
 		plotter_dbm(int_fwm.nm,sim_wind,w2dbm(Uabs),u,0,str(ro)+'1',pulse_pos_dict[3],D_pic[5])
-		u,U,Uabs = pulse_propagation(u,U,Uabs,int_fwm,M1,M2,sim_wind,hf,Dop,dAdzmm)
+		u,U,Uabs = pulse_propagation(u,U,Uabs,int_fwm,M1,M2,sim_wind,hf,Dop,dAdzmm,fft,ifft)
 
 
 
@@ -108,18 +107,18 @@ def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2
 		#U[:,:,-1] += at_WDM_in
 
 
-		#u[:,:,-1] = imfft(ifftshift(U[:,:,-1],axes=(0,))/sim_wind.dt)
-		#Uabs[:,:,-1] = fftshift(np.abs(sim_wind.dt*mfft(u[:,:,-1]))**2,axes=(0,))
+		#u[:,:,-1] = ifft(ifftshift(U[:,:,-1],axes=(0,))/sim_wind.dt)
+		#Uabs[:,:,-1] = fftshift(np.abs(sim_wind.dt*fft(u[:,:,-1]))**2,axes=(0,))
 
 
 
-		u[:,:,0] = imfft(ifftshift(U[:,:,-1],axes=(0,))/sim_wind.dt)
+		u[:,:,0] = ifft(ifftshift(U[:,:,-1],axes=(0,))/sim_wind.dt)
 		Uabs[:,:,0] = Uabs[:,:,-1]
 
 
 
 
-	#U[:,:,-1] = fftshift(np.abs(sim_wind.dt*mfft(u[:,:,0]))**2,axes=(0,))
+	#U[:,:,-1] = fftshift(np.abs(sim_wind.dt*fft(u[:,:,0]))**2,axes=(0,))
 	
 
 	power_dbm = w2dbm(np.abs(Uabs[:,:,-1]))
@@ -128,8 +127,8 @@ def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2
 
 
 
-def lam_p2_vary(lam_s_max,lam_p1,Power_input,int_fwm,plot_conv,gama,par = False,grid_only = False,timing= False):      
-	
+def lam_p2_vary(lam_s_max,lam_p1,Power_input,int_fwm,plot_conv,gama,fft,ifft,par = False,grid_only = False,timing= False):      
+
 	P0_p1 = Power_input 		  #[w]
 	P0_s  = 0		              #[w]
 
@@ -162,7 +161,7 @@ def lam_p2_vary(lam_s_max,lam_p1,Power_input,int_fwm,plot_conv,gama,par = False,
 	if par:
 		num_cores = 4
 		print("you have picked to run the signal wavelength in parallel. Make sure Mkl is dissabled.")
-		res = Parallel(n_jobs=num_cores)(delayed(lams_s_vary)(wave,where[0],True,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2) for wave in waves)
+		res = Parallel(n_jobs=num_cores)(delayed(lams_s_vary)(wave,where[0],True,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2,fft,ifft) for wave in waves)
 		
 		for i in range(len(waves)):
 			UU[i,:,:] = res[i][0]
@@ -172,7 +171,7 @@ def lam_p2_vary(lam_s_max,lam_p1,Power_input,int_fwm,plot_conv,gama,par = False,
 			P0_s_out[i] = np.real(UU[i,s_pos_vec[i],0])
 	else:
 		for ii,wave in enumerate(waves):
-		    UU[ii,:,:], s_pos_vec[ii], mod,rounds = lams_s_vary(wave,where[0],True,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2)
+		    UU[ii,:,:], s_pos_vec[ii], mod,rounds = lams_s_vary(wave,where[0],True,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2,fft,ifft)
 		    P0_s_out[ii] = np.real(UU[ii,s_pos_vec[ii],0])
 		    break
 	lams_vec = sim_wind.lv[s_pos_vec.astype(int)]
@@ -194,7 +193,7 @@ def main():
 
 	maxerr = 1e-13            	# maximum tolerable error per step
 	ss = 1                      # includes self steepening term
-	ram = 'off'                  # Raman contribution 'on' if yes and 'off' if no
+	ram = 'on'                  # Raman contribution 'on' if yes and 'off' if no
 	
 	"----------------------------Simulation parameters-------------------------"
 	N = 14
@@ -202,19 +201,20 @@ def main():
 	nplot = 100                  # number of plots
 	nt = 2**N 					# number of grid points
 	dzstep = z/nplot            # distance per step
-	dz_less = 1e3
+	dz_less = 1e4
 	dz = dzstep/dz_less         # starting guess value of the step
+	print(dz)
 	wavelength_space = True    	# Set wavelength space for grid calculation
 
 
 	int_fwm = sim_parameters(n2,nm,alphadB)
 	int_fwm.general_options(maxerr,ss,ram)
 	int_fwm.propagation_parameters(N, z, nplot, dz_less, wavelength_space)
-
+	fft, ifft, fft_method = pick(N,nm,100)
 	"---------------------FWM wavelengths----------------------------------------"
-	lam_p1 = 1051.85              #[nm]
+	lam_p1 = 1047.5              #[nm]
 	lams_max_asked = 1051	   	  #[nm]
-	lv = lam_p2_vary(2,lam_p1,Power_input,int_fwm,0,gama,False,True).lv[::-1]
+	lv = lam_p2_vary(2,lam_p1,Power_input,int_fwm,0,gama,fft,ifft,False,True).lv[::-1]
 	lv_lams = np.abs(np.asanyarray(lv) - lams_max_asked)
 	lams_index = np.where(lv_lams == np.min(lv_lams))[0][0]+1
 	print('S_max wavelength asked for: '+str(lams_max_asked),
@@ -222,10 +222,10 @@ def main():
 	lensig = np.shape(range(1,lams_index))[0]
 	"----------------------------------------------------------------------------"
 
-
+	print("The fft method that was found to be faster for your system is:", fft_method)
 	mod_lam,lams_vec,P0_s_out,mod_pow,rounds = \
-						lam_p2_vary(lensig,lam_p1,Power_input,int_fwm,1,
-							gama,par = False,grid_only = False,timing= False)
+						lam_p2_vary(lensig,lam_p1,Power_input,int_fwm,1
+							,gama,fft,ifft,par = False,grid_only = False,timing= False)
 	print('\a')
 
 
