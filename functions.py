@@ -82,23 +82,25 @@ class raman_object(object):
 
 
 def dispersion_operator(betas,lamda_c,int_fwm,sim_wind):
+	
 	"""
 	Calculates the dispersion operator in rad/m units
 	INputed are the dispersion operators at the omega0
 	LOcal include the taylor expansion to get these opeators at omegac 
 	Returns Dispersion operator
 	"""
+
 	alpha = int_fwm.alphadB/4.343
 	c_norm = c*1e-12                                                                        #Speed of light [m/ps] #Central wavelength [nm]
 	wc = 2*pi * c_norm /sim_wind.lamda
 	w0 = 2*pi * c_norm / lamda_c
 	betap = np.zeros_like(betas)
 	for i in range(int_fwm.nm):
-	    for j in range(len(betas.T)):
-	        fac = 0
-	        for k in range(j,len(betas.T)):
-	            betap[i,j] += (1/factorial(fac))*betas[i,k] * (wc - w0)**(fac)
-	            fac += 1
+		for j in range(len(betas.T)):
+			fac = 0
+			for k in range(j,len(betas.T)):
+				betap[i,j] += (1/factorial(fac))*betas[i,k] * (wc - w0)**(fac)
+				fac += 1
 
 	w = sim_wind.w 
 	Dop = np.zeros([int_fwm.nt,int_fwm.nm],dtype=np.complex)
@@ -110,8 +112,6 @@ def dispersion_operator(betas,lamda_c,int_fwm,sim_wind):
 	for i in range(int_fwm.nm):
 		for j,bb in enumerate(betap[i,:]):
 			Dop[:,i] -= 1j*(w**j * bb /factorial(j))
-	plt.plot(w, np.imag(Dop))
-	plt.savefig('dispersion.png')
 	return Dop
 
 
@@ -136,33 +136,6 @@ def Q_matrixes(nm,n2,lamda,gama=None):
         M1[6,:] -=1
     return M1,M2
 
-
-class mode1_mod(object):
-    def __init__(self,power_watts,where,lv,pos,nt):
-        self.pos = 2*where[0] - pos
-        self.pow = power_watts[self.pos,0]
-        self.lam = lv[self.pos]
-
-
-class mode1_mod2:
-    def __init__(self,power_watts,where,lv,pos,nt):
-        self.pos = where[0] - 2*(where[0] - pos)
-        self.pow = power_watts[self.pos,0]
-        self.lam = lv[self.pos]
-
-
-class mode2_pc:
-    def __init__(self,power_watts,where,lv,pos,nt):
-        self.pos = nt - where[1] + (where[0] - pos)
-        self.pow = power_watts[self.pos,1]
-        self.lam = lv[self.pos]
-
-
-class mode2_bs:
-    def __init__(self,power_watts,where,lv,pos,nt):
-        self.pos = nt - where[1] - (where[0] - pos)
-        self.pow = power_watts[self.pos,1]
-        self.lam = lv[self.pos]
 
 
 class sim_parameters(object):
@@ -215,12 +188,12 @@ class sim_window(object):
         self.xtlim =np.array([-self.T/2, self.T/2])  # time limits (for plots)
 
 
-"""
+
 class WDM(object):
     def __init__(self,x1,x2):
         self.x1 = x1 # High part of port 1 
         self.x2 = x2 # Low wavelength of port 1
-        self.omega = 0.5*pi/np.abs(x1 - x2)
+        self.omega = 0.5*pi/np.abs(self.x1 - self.x2)
         self.phi = pi - self.omega*self.x2
         return None
 
@@ -232,13 +205,13 @@ class WDM(object):
     def il_port2(self,lamda):
         return (np.cos(self.omega*lamda+self.phi))**2
 
-    def wdm_port1_pass(self,U,sim_wind):
+    def wdm_port1_pass(self,U,sim_wind,fft,ifft):
         U[:,0] *= (self.il_port1(sim_wind.lv))**0.5
         u = ifft(ifftshift(U[:,:],axes=(0,))/sim_wind.dt)
         U_true = fftshift(np.abs(sim_wind.dt*fft(u[:,:]))**2,axes=(0,))
         return u,U,U_true
 
-    def wdm_port2_pass(self,U,sim_wind):
+    def wdm_port2_pass(self,U,sim_wind,fft,ifft):
         U[:,0] *= (self.il_port2(sim_wind.lv))**0.5
         u = ifft(ifftshift(U[:,:],axes=(0,))/sim_wind.dt)
         U_true = fftshift(np.abs(sim_wind.dt*fft(u[:,:]))**2,axes=(0,))
@@ -267,7 +240,7 @@ class WDM(object):
         plt.savefig('figures/WDM_dB_high_'+str(self.x1)+'_low_'+str(self.x2)+'.png')
         #plt.show()
         return None
-"""
+
 
 
 def pulse_propagation(u,U,Uabs,int_fwm,M1,M2,sim_wind,hf,Dop,dAdzmm,fft,ifft):
@@ -372,9 +345,3 @@ def check_ft_grid(fv):
         print("fix the grid for optimization of the fft's, grid:", np.shape(fv)[0])
         sys.exit()
     return 0
-
-
-
-def which_fft(N, nm):
-
-	a = np.random.rand(2**N,nm)
