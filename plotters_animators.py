@@ -46,18 +46,18 @@ def plotter_dbm(nm,sim_wind,power_watts,u,which,filename=None,title=None,im = 0)
 	plt.close(fig)
 
 
-	#fig = plt.figure(figsize=(20.0, 10.0))
-	#for ii in range(nm):
-	#    plt.plot(sim_wind.t,np.abs(u[:,ii,which])**2,'*-',label='mode'+str(ii))
-	#plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
-	#plt.title("time space")
-	#plt.grid()
-	#plt.xlabel(r'$t(ps)$')
-	#plt.ylabel(r'$Spectrum$')
+	fig = plt.figure(figsize=(20.0, 10.0))
+	for ii in range(nm):
+	    plt.plot(sim_wind.t,np.abs(u[:,ii,which])**2,'*-',label='mode'+str(ii))
+	plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
+	plt.title("time space")
+	plt.grid()
+	plt.xlabel(r'$t(ps)$')
+	plt.ylabel(r'$Spectrum$')
 	#plt.xlim(xtlim)
-	#plt.legend()
-	#plt.savefig("figures/time_space"+str(which))
-
+	plt.legend()
+	plt.savefig("figures/time_space"+str(which))
+	plt.show()
 	plt.close(fig)
 	return 0 
 

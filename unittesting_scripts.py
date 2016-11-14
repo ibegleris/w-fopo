@@ -102,7 +102,9 @@ def test_dispersion():
 
 "-------------------------------WDM------------------------------------"
 class Test_WDM(object):
-	"""docstring for Test_WDM"""
+	"""WDM test. first it makes sure that the port multiplyers are equal to one 
+	over the grid and after looks in to a random pumped WDM and asks if
+	U_port1 + U_port2 = U ( not much to ask a?)"""
 	def test1_WDM(self):
 
 		self.x1 = 1550
@@ -123,10 +125,15 @@ class Test_WDM(object):
 		WDMS = WDM(self.x1, self.x2)
 		
 		U =  np.random.randn(self.nt, 1)+1j* np.random.randn(self.nt, 1)
+		U  = np.ones([self.nt,1])
 		port1 = WDMS.wdm_port1_pass(U,sim_wind,fft,ifft)
 		port2 = WDMS.wdm_port2_pass(U,sim_wind,fft,ifft)
-		assert 0 ==0
-		#assert_array_almost_equal(port1[1][:,0]+port2[1][:,0], U[:,0])
+		print(port1[1]+port2[1]-U)
+		print(port1[1]+port2[1]-2*U)
+		sys.exit()
+		assert_array_almost_equal(port1[1]+port2[1], U)
+
+"-----------------------Full soliton--------------------------------------------"	
 def test_pulse_propagation():
 	"SOLITON TEST. IF THIS FAILS GOD HELP YOU!"
 	
@@ -144,8 +151,8 @@ def test_pulse_propagation():
 	ram = 'on'                  # Raman contribution 'on' if yes and 'off' if no
 	
 	"----------------------------Simulation parameters-------------------------"
-	N = 14
-	z = 18				 	# total distance [m]
+	N = 10
+	z = 10				 	# total distance [m]
 	nplot = 100                  # number of plots
 	nt = 2**N 					# number of grid points
 	dzstep = z/nplot            # distance per step
@@ -153,26 +160,35 @@ def test_pulse_propagation():
 	dz = dzstep/dz_less         # starting guess value of the step
 	
 
-	lam_p1 = 1550
-	lamda_c = 1550e-9
+	lam_p1 = 500
+	lamda_c = 500e-9
 	lamda = lam_p1*1e-9
-	P0_p1 = 1
+	
+	N_sol = 1 
+	TFWHM = 0.03
+	
+	beta2 = -11.83e-3
+	gama = 1
+	T0 = TFWHM/2/(np.log(2)); 
+	P0_p1 =  np.abs(beta2) / (gama * T0)
+
+
 
 	int_fwm = sim_parameters(n2,nm,alphadB)
 	int_fwm.general_options(maxerr,ss,ram)
 	int_fwm.propagation_parameters(N, z, nplot, dz_less, True)
 
 
-
-	fv,where = fv_creator(700,lam_p1,int_fwm)
+	#print(lam_p1)
+	fv,where = fv_creator(lam_p1 - 100,lam_p1,int_fwm)
 	sim_wind = sim_window(fv,lamda,lamda_c,int_fwm)
 
 	
-	betas = np.array([[0,0,0,6.755e-2,-1.001e-4]])*1e-3 # betas at ps/m (given in ps/km)
+	betas = np.array([[0,0,beta2,0,0]])*1e-3 # betas at ps/m (given in ps/km)
 	Dop = dispersion_operator(betas,lamda_c,int_fwm,sim_wind)
 
 	dAdzmm = dAdzmm_ron_s1
-	M1,M2 = Q_matrixes(1,n2,lamda,gama=None)
+	M1,M2 = Q_matrixes(1,n2,lamda,gama=gama)
 	int_fwm.raman.raman_load(sim_wind.t,sim_wind.dt,fft,ifft)
 	hf = int_fwm.raman.hf
 	
@@ -180,9 +196,17 @@ def test_pulse_propagation():
 	u = np.zeros([len(sim_wind.t),int_fwm.nm,len(sim_wind.zv)],dtype='complex128')
 	U = np.zeros([len(sim_wind.t),int_fwm.nm,len(sim_wind.zv)],dtype='complex128')
 	Uabs = np.copy(U)
-	u[:,:,0] = 0
-	u[:,0,0] += (P0_p1)**0.5
+	
+
+
+
+	u[:,0,0] = (P0_p1)**0.5/ np.cosh(sim_wind.t/T0)*np.exp(-1j*(sim_wind.woffset)*sim_wind.t);
 
 	U[:,:,0] = fftshift(sim_wind.dt*fft(u[:,:,0]),axes=(0,))
 	Uabs[:,:,0] = fftshift(np.abs(sim_wind.dt*fft(u[:,:,0]))**2,axes=(0,))
-	a = pulse_propagation(u,U,Uabs,int_fwm,M1,M2,sim_wind,hf,Dop,dAdzmm,fft,ifft)
+	u,U,Uabs  = pulse_propagation(u,U,Uabs,int_fwm,M1,M2,sim_wind,hf,Dop,dAdzmm,fft,ifft)
+
+	#plotter_dbm(1, sim_wind, Uabs, u, 0)
+	#plotter_dbm(1, sim_wind, Uabs, u, -1)
+
+	assert_array_almost_equal(np.abs(U[:,0,0])**2,np.abs(U[:,0,-1])**2)

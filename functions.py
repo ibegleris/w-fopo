@@ -206,13 +206,13 @@ class WDM(object):
         return (np.cos(self.omega*lamda+self.phi))**2
 
     def wdm_port1_pass(self,U,sim_wind,fft,ifft):
-        U[:,0] *= (self.il_port1(sim_wind.lv))**0.5
+        U[:,0] *= (self.il_port1(sim_wind.lv))
         u = ifft(ifftshift(U[:,:],axes=(0,))/sim_wind.dt)
         U_true = fftshift(np.abs(sim_wind.dt*fft(u[:,:]))**2,axes=(0,))
         return u,U,U_true
 
     def wdm_port2_pass(self,U,sim_wind,fft,ifft):
-        U[:,0] *= (self.il_port2(sim_wind.lv))**0.5
+        U[:,0] *= (self.il_port2(sim_wind.lv))
         u = ifft(ifftshift(U[:,:],axes=(0,))/sim_wind.dt)
         U_true = fftshift(np.abs(sim_wind.dt*fft(u[:,:]))**2,axes=(0,))
         return u,U,U_true
@@ -303,23 +303,20 @@ def fv_creator(lam_start,lam_p1,int_fwm):
     #lam_start = 800
     f_p1 = 1e-3*c/lam_p1
     f_start = 1e-3*c/lam_start
-    fv1 = np.linspace(f_start,f_p1,2**(int_fwm.N - 1))
+    
+
+    fv1 = np.linspace(f_p1,f_start,2**(int_fwm.N - 1))
     fv = np.ndarray.tolist(fv1)
     diff = fv[1] - fv[0]
+
     for i in range(2**(int_fwm.N -1)):
-        fv.append(fv[-1]+diff)
+        fv.append(fv[-1]-diff)
     fv = np.asanyarray(fv)
-    check_ft_grid(fv)
+    check_ft_grid(fv,diff)
+
     where = [2**(int_fwm.N-1)] 
-    lvio = []
-    for i in range(len(fv)-1):
-        lvio.append(fv[i+1] - fv[i])
-        
-    grid_error = np.abs(np.asanyarray(lvio)[:]) - np.abs(diff)
-    if not(np.allclose(grid_error,0,rtol=0,atol=1e-13)):
-        for i in grid_error:
-            print(i)
-        raise(NotImplementedError)
+
+
     return fv,where
 
 
@@ -335,13 +332,26 @@ def energy_conservation(entot):
     return 0
 
 
-def check_ft_grid(fv):
+def check_ft_grid(fv,diff):
     """Grid check for fft optimisation"""
+    if fv.any() < 0:
+        sys.exit("some of your grid is negative")
+
+
     if np.log2(np.shape(fv)[0]) == int(np.log2(np.shape(fv)[0])):
         print("------------------------------------------------------------------------------------")
         print("All is good with the grid for fft's:", np.shape(fv)[0])
         nt = np.shape(fv)[0]
     else:
-        print("fix the grid for optimization of the fft's, grid:", np.shape(fv)[0])
-        sys.exit()
+        print(" ")
+        sys.exit("fix the grid for optimization of the fft's, grid:", np.shape(fv)[0])
+
+    lvio = []
+    for i in range(len(fv)-1):
+        lvio.append(fv[i+1] - fv[i])
+        
+    grid_error = np.abs(np.asanyarray(lvio)[:]) - np.abs(diff)
+    if not(np.allclose(grid_error,0,rtol=0,atol=1e-12)):
+        print(np.max(grid_error))
+        sys.exit("your grid is not uniform")
     return 0
