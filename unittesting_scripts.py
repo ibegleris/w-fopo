@@ -100,38 +100,7 @@ def test_dispersion():
 	assert_array_almost_equal(betas_disp,betas_exact)
 
 
-"-------------------------------WDM------------------------------------"
-class Test_WDM(object):
-	"""WDM test. first it makes sure that the port multiplyers are equal to one 
-	over the grid and after looks in to a random pumped WDM and asks if
-	U_port1 + U_port2 = U ( not much to ask a?)"""
-	def test1_WDM(self):
 
-		self.x1 = 1550
-		self.x2 = 1555
-		self.nt = 3
-		self.lamda = np.linspace(1000, 2000,self.nt)
-		WDMS = WDM(self.x1, self.x2)
-		assert_array_almost_equal(WDMS.il_port1(self.lamda) +WDMS.il_port2(self.lamda),np.ones(self.nt))
-	def test2_WDM(self):
-		self.x1 = 1550
-		self.x2 = 1555
-		self.nt = 10
-		self.lmax, self.lmin = 1450, 1600
-		self.lamda = np.linspace(self.lmax, self.lmin,self.nt)
-
-		sim_wind = sim_windows(self.lamda,self.lamda,self.lmax, self.lmin)
-
-		WDMS = WDM(self.x1, self.x2)
-		
-		U =  np.random.randn(self.nt, 1)+1j* np.random.randn(self.nt, 1)
-		U  = np.ones([self.nt,1])
-		port1 = WDMS.wdm_port1_pass(U,sim_wind,fft,ifft)
-		port2 = WDMS.wdm_port2_pass(U,sim_wind,fft,ifft)
-		print(port1[1]+port2[1]-U)
-		print(port1[1]+port2[1]-2*U)
-		sys.exit()
-		assert_array_almost_equal(port1[1]+port2[1], U)
 
 "-----------------------Full soliton--------------------------------------------"	
 def test_pulse_propagation():
@@ -210,3 +179,36 @@ def test_pulse_propagation():
 	#plotter_dbm(1, sim_wind, Uabs, u, -1)
 
 	assert_array_almost_equal(np.abs(U[:,0,0])**2,np.abs(U[:,0,-1])**2)
+
+
+
+
+"-------------------------------WDM------------------------------------"
+class Test_WDM(object):
+	"""WDM test. first it makes sure that the port multiplyers are equal to one 
+	over the grid and after looks in to a random pumped WDM and asks if
+	U_port1 + U_port2 = U ( not much to ask a?)"""
+	def test1_WDM(self):
+
+		self.x1 = 1550
+		self.x2 = 1555
+		self.nt = 3
+		self.lamda = np.linspace(1000, 2000,self.nt)
+		WDMS = WDM(self.x1, self.x2)
+		assert_array_almost_equal(WDMS.il_port1(self.lamda) +WDMS.il_port2(self.lamda),np.ones(self.nt))
+	def test2_WDM(self):
+		self.x1 = 1550
+		self.x2 = 1555
+		self.nt = 10
+		self.lmax, self.lmin = 1450, 1600
+		self.lamda = np.linspace(self.lmax, self.lmin,self.nt)
+
+		sim_wind = sim_windows(self.lamda,self.lamda,self.lmax, self.lmin)
+
+		WDMS = WDM(self.x1, self.x2)
+		
+		U =  np.random.randn(self.nt, 1)+1j* np.random.randn(self.nt, 1)
+
+		port1 = WDMS.wdm_port1_pass(U,sim_wind,fft,ifft)
+		port2 = WDMS.wdm_port2_pass(U,sim_wind,fft,ifft)
+		assert_array_almost_equal(port1[1]+port2[1], U)

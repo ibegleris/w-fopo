@@ -206,13 +206,13 @@ class WDM(object):
         return (np.cos(self.omega*lamda+self.phi))**2
 
     def wdm_port1_pass(self,U,sim_wind,fft,ifft):
-        U[:,0] *= (self.il_port1(sim_wind.lv))
+        U[:,0] *= self.il_port1(sim_wind.lv)[0]
         u = ifft(ifftshift(U[:,:],axes=(0,))/sim_wind.dt)
         U_true = fftshift(np.abs(sim_wind.dt*fft(u[:,:]))**2,axes=(0,))
         return u,U,U_true
 
     def wdm_port2_pass(self,U,sim_wind,fft,ifft):
-        U[:,0] *= (self.il_port2(sim_wind.lv))
+        U[:,0] *=self.il_port2(sim_wind.lv)[0]
         u = ifft(ifftshift(U[:,:],axes=(0,))/sim_wind.dt)
         U_true = fftshift(np.abs(sim_wind.dt*fft(u[:,:]))**2,axes=(0,))
         return u,U,U_true
