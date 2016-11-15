@@ -5,6 +5,7 @@ import pytest
 from scipy.fftpack import fft,ifft,fftshift
 scfft,iscfft = fft,ifft
 import numpy as np
+from scipy.io import loadmat
 from numpy.testing import assert_array_almost_equal
 from scipy.interpolate import InterpolatedUnivariateSpline
 "---------------------------------W and dbm conversion tests--------------"
@@ -50,15 +51,28 @@ def test_raman_off():
 
 def test_raman_load():
 	ram = raman_object('on','load')
-	ram.raman_load(np.random.rand(10),np.random.rand(1)[0],fft,ifft)
-	assert 0 == 0
+	D = loadmat('testing_data/Raman_measured.mat')
+	t = D['t']
+	t = np.asanyarray([t[i][0] for i in range(t.shape[0])])
+	dt = D['dt'][0][0]
+	hf_exact = D['hf']
+	hf_exact = np.asanyarray([hf_exact[i][0] for i in range(hf_exact.shape[0])])
+	hf = ram.raman_load(t,dt,fft,ifft)
+
+	assert_array_almost_equal(hf, hf_exact)
 
 
 def test_raman_analytic():
 	ram = raman_object('on','analytic')
-	ram.raman_load(np.random.rand(10),np.random.rand(1)[0],fft,ifft)
-	assert 0 == 0
+	D = loadmat('testing_data/Raman_analytic.mat')
+	t = D['t']
+	t = np.asanyarray([t[i][0] for i in range(t.shape[0])])
+	dt = D['dt'][0][0]
+	hf_exact = D['hf']
+	hf_exact = np.asanyarray([hf_exact[i][0] for i in range(hf_exact.shape[0])])
+	hf = ram.raman_load(t,dt,fft,ifft)
 
+	assert_array_almost_equal(hf, hf_exact)
 
 
 "----------------------------Dispersion operator--------------"
