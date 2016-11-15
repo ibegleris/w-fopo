@@ -196,7 +196,7 @@ def main():
 	ram = 'on'                  # Raman contribution 'on' if yes and 'off' if no
 	
 	"----------------------------Simulation parameters-------------------------"
-	N = 14
+	N = 13
 	z = 18				 	# total distance [m]
 	nplot = 100                  # number of plots
 	nt = 2**N 					# number of grid points

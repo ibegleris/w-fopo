@@ -57,7 +57,7 @@ def plotter_dbm(nm,sim_wind,power_watts,u,which,filename=None,title=None,im = 0)
 	#plt.xlim(xtlim)
 	plt.legend()
 	plt.savefig("figures/time_space"+str(which))
-	plt.show()
+	#plt.show()
 	plt.close(fig)
 	return 0 
 
@@ -89,11 +89,11 @@ def plotter_dbm_lams_large(modes,sim_wind,U,which,lams_vec):
     plt.grid()
     plt.savefig("figures/freequency/freequency_space_final.png",bbox_inched='tight')
     
-    #plt.close('all')
+    plt.close('all')
     
     
     
-    plt.show()
+    #plt.show()
 
     return 0
 
