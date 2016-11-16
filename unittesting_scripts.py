@@ -207,22 +207,37 @@ class Test_WDM(object):
 		self.x1 = 1550
 		self.x2 = 1555
 		self.nt = 3
-		self.lamda = np.linspace(1000, 2000,self.nt)
-		WDMS = WDM(self.x1, self.x2)
-		assert_array_almost_equal(WDMS.il_port1(self.lamda) +WDMS.il_port2(self.lamda),np.ones(self.nt))
-	def test2_WDM(self):
-		self.x1 = 1550
-		self.x2 = 1555
-		self.nt = 10
-		self.lmax, self.lmin = 1450, 1600
-		self.lamda = np.linspace(self.lmax, self.lmin,self.nt)
-
-		sim_wind = sim_windows(self.lamda,self.lamda,self.lmax, self.lmin)
-
-		WDMS = WDM(self.x1, self.x2)
+		self.lv = np.linspace(1000, 2000,2**self.nt)
+		self.lmax, self.lmin = 1000, 2000
+		WDMS = WDM(self.x1, self.x2,self.lv)
+		sim_wind = sim_windows(self.lv,self.lv,self.lmax, self.lmin)
+		U_in = (np.random.rand(2**self.nt,1)+ 1j * np.random.rand(2**self.nt,1),np.random.rand(2**self.nt,1) + 1j * np.random.rand(2**self.nt,1))
+		u_out,U_out,U_true = WDMS.WDM_pass(U_in,sim_wind,fft,ifft)
 		
-		U =  np.random.randn(self.nt, 1)+1j* np.random.randn(self.nt, 1)
 
-		port1 = WDMS.wdm_port1_pass(U,sim_wind,fft,ifft)
-		port2 = WDMS.wdm_port2_pass(U,sim_wind,fft,ifft)
-		assert_array_almost_equal(port1[1]+port2[1], U)
+		U_in_sum = np.abs(U_in[0])**2 + np.abs(U_in[1])**2
+		U_true_sum = U_true[0] + U_true[1]
+			
+
+		#U_out_sum = U_out[0] + U_out[1] 
+		#print(U_true_sum)
+		assert_array_almost_equal(np.abs(U_out[0])**2 + np.abs(U_out[1])**2, U_true_sum)
+		assert_array_almost_equal(U_in_sum, U_true_sum)
+		#assert_array_almost_equal(U_in_sum, U_out_sum)
+		#assert_array_almost_equal(WDMS.il_port1(self.lamda) + WDMS.il_port2(self.lamda),np.ones(2**self.nt))
+	#def test2_WDM(self):
+	#	self.x1 = 1500
+	#	self.x2 = 1550
+	#	self.nt = 10
+	#	self.lmax, self.lmin = 1000, 2000
+	#	self.lamda = np.linspace(self.lmax, self.lmin,2**self.nt)
+	#
+	#	sim_wind = sim_windows(self.lamda,self.lamda,self.lmax, self.lmin)
+	#
+	#	WDMS = WDM(self.x1, self.x2)
+	#	WDMS.plot(sim_wind.lv)
+	#	print(sim_wind.lv)
+	#	U = np.ones((2**self.nt,1))
+	#	port1 = WDMS.wdm_port1_pass(np.copy(U),sim_wind,fft,ifft)
+	#	port2 = WDMS.wdm_port2_pass(np.copy(U),sim_wind,fft,ifft)
+	#	assert_array_almost_equal(port1[1]+port2[1], U)

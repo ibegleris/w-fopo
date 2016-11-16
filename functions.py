@@ -190,32 +190,57 @@ class sim_window(object):
 
 
 class WDM(object):
-    def __init__(self,x1,x2):
+    def __init__(self,x1,x2,lv,modes=1):
+        """
+            This class represents a 2x2 WDM coupler. The minimum and maximums are
+            given and then the object represents the class with WDM_pass the calculation
+            done.
+        """
         self.x1 = x1 # High part of port 1 
         self.x2 = x2 # Low wavelength of port 1
         self.omega = 0.5*pi/np.abs(self.x1 - self.x2)
         self.phi = pi - self.omega*self.x2
+        self.lv = lv
+        self.fv = self.omega*self.lv+self.phi
+
+        self.A = A = np.array([[np.reshape(np.cos(self.fv),(len(self.fv),modes)),
+                     np.reshape(np.sin(self.fv),(len(self.fv),modes))],
+                    [-np.reshape(np.sin(self.fv),(len(self.fv),modes)),
+                    np.reshape(np.cos(self.fv),(len(self.fv),modes))]])
         return None
 
+    def U_calc(self,U_in):
+        """
+        Uses the array defined in __init__ to calculate 
+        the outputed amplitude in arbitary units
+
+        """
+        Uout = (self.A[0][0] * U_in[0] + self.A[0][1] * U_in[1],)
+        Uout += (self.A[1][0] * U_in[0] + self.A[1][1] * U_in[1],) 
+
+        return Uout
+
+    def WDM_pass(self,U_in,sim_wind,fft,ifft):
+        """
+        Passes the amplitudes through the code. returns the u, U and Uabs
+        """
+        U_out = self.U_calc(U_in)
+
+        u_out, U_true = (),()
+        for i,UU in enumerate(U_out):
+            u_out += (ifft(ifftshift(UU,axes=(0,))/sim_wind.dt),)
+            U_true += (fftshift(np.abs(sim_wind.dt*fft(u_out[i]))**2,axes=(0,)),)
+      
+        return u_out,U_out,U_true
+  
 
     def il_port1(self,lamda):
-        return (np.sin(self.omega*lamda+self.phi))**2
+        return (np.sin(self.fv))**2
 
 
     def il_port2(self,lamda):
-        return (np.cos(self.omega*lamda+self.phi))**2
+        return (np.cos(self.fv))**2
 
-    def wdm_port1_pass(self,U,sim_wind,fft,ifft):
-        U[:,0] *= self.il_port1(sim_wind.lv)[0]
-        u = ifft(ifftshift(U[:,:],axes=(0,))/sim_wind.dt)
-        U_true = fftshift(np.abs(sim_wind.dt*fft(u[:,:]))**2,axes=(0,))
-        return u,U,U_true
-
-    def wdm_port2_pass(self,U,sim_wind,fft,ifft):
-        U[:,0] *=self.il_port2(sim_wind.lv)[0]
-        u = ifft(ifftshift(U[:,:],axes=(0,))/sim_wind.dt)
-        U_true = fftshift(np.abs(sim_wind.dt*fft(u[:,:]))**2,axes=(0,))
-        return u,U,U_true
 
     def plot(self,lamda):
         fig = plt.figure()
