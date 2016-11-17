@@ -196,8 +196,8 @@ class WDM(object):
             given and then the object represents the class with WDM_pass the calculation
             done.
         """
-        self.x1 = x1 # High part of port 1 
-        self.x2 = x2 # Low wavelength of port 1
+        self.x1 = x2 # High part of port 1 
+        self.x2 = x1 # Low wavelength of port 1
         self.omega = 0.5*pi/np.abs(self.x1 - self.x2)
         self.phi = pi - self.omega*self.x2
         self.lv = lv
@@ -248,6 +248,7 @@ class WDM(object):
         plt.plot(lamda,self.il_port2(lamda), label =  "%0.2f" % (self.x2*1e9) +' nm port')
         plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.13),ncol=2)
         plt.xlabel(r'$\lambda (\mu m)$')
+        plt.xlim((900,1250))
         plt.ylabel(r'$Insertion loss (dB)$')
         plt.savefig('figures/WDM_high_'+str(self.x1)+'_low_'+str(self.x2)+'.png')
         #plt.show()
@@ -262,12 +263,20 @@ class WDM(object):
         plt.xlabel(r'$\lambda (\mu m)$')
         plt.ylabel(r'$Insertion loss (dB)$')
         plt.ylim(-60,0)
+        plt.xlim((900,1250))
         plt.savefig('figures/WDM_dB_high_'+str(self.x1)+'_low_'+str(self.x2)+'.png')
         #plt.show()
         return None
 
+class Noise(object):
+    def __init__(self,sim_wind):
+        self.pquant = np.sum(1.054e-34*(sim_wind.w*1e12 + sim_wind.w0)/(sim_wind.T*1e-12))
+        return None
 
-
+    def noise_func(self,int_fwm):
+        noise = (self.pquant/2)**0.5*(np.random.randn(int_fwm.nm,int_fwm.nt) 
+                    + 1j*np.random.randn(int_fwm.nm,int_fwm.nt))
+        return noise.T
 def pulse_propagation(u,U,Uabs,int_fwm,M1,M2,sim_wind,hf,Dop,dAdzmm,fft,ifft):
     "--------------------------Pulse propagation--------------------------------"
     badz = 0        #counter for bad steps
@@ -316,7 +325,14 @@ def pulse_propagation(u,U,Uabs,int_fwm,M1,M2,sim_wind,hf,Dop,dAdzmm,fft,ifft):
         entot[jj+1] = np.sum(energy[:,jj+1])             # total energy
     return u, U,Uabs
 
-
+def dbm_nm(U,sim_wind,int_fwm):
+    U_out = U / sim_wind.T**2
+    U_out = -1*w2dbm(U_out)
+    dlv = [sim_wind.lv[i+1] - sim_wind.lv[i] for i in range(len(sim_wind.lv) - 1)]
+    dlv = np.asanyarray(dlv)
+    for i in range(int_fwm.nm):
+        U_out[:,i] /= dlv[i]
+    return U_out
 
 
 

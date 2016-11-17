@@ -56,21 +56,23 @@ def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2
 	hf = int_fwm.raman.hf
 
 	#Define te WDMs
-	WDM1 = WDM(1050, 1200,sim_wind.lv)
+	WDM1 = WDM(1200, 1050,sim_wind.lv)
 	WDM2 = WDM(930, 1200,sim_wind.lv)
-	#WDM1.plot_dB(sim_wind.lv)
-	#WDM2.plot_dB(sim_wind.lv)
+	WDM3 = WDM(930,1050,sim_wind.lv)
+	WDM4 = WDM(930,1200 ,sim_wind.lv)
+
 	WDM1.plot(sim_wind.lv)
 	WDM2.plot(sim_wind.lv)
-
+	WDM3.plot(sim_wind.lv)
+	WDM4.plot(sim_wind.lv)
 
 	plotter_dbm(int_fwm.nm,sim_wind,w2dbm(Uabs),u,0,'0','original pump',D_pic[0])
 	U_original_pump = np.copy(U[:,:,0])
 	#Pass the original pump through the WDM1 port1
 	utemp, Utemp, Uabstemp= WDM1.WDM_pass((U[:,:,0],noise.T), sim_wind, fft, ifft)
-	u[:,:,0],U[:,:,0], Uabs[:,:,0] = utemp[0], Utemp[0], Uabstemp[0]
+	u[:,:,0],U[:,:,0], Uabs[:,:,0] = utemp[1], Utemp[1], Uabstemp[1]
 
-	rounds = 1
+	rounds = 30
 
 	for ro in range(rounds):
 		print('round', ro)
@@ -81,7 +83,7 @@ def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2
 		plotter_dbm(int_fwm.nm,sim_wind,w2dbm(Uabs),u,-1,str(ro)+'2',pulse_pos_dict[0],D_pic[2])
 		
 
-		#pass through WDM2
+		#pass through WDM2 port 2 continues and port 1 is out of the loop
 		utemp, Utemp, Uabstemp = WDM2.WDM_pass((U[:,:,-1],noise.T), sim_wind, fft, ifft)
 		u[:,:,-1], U[:,:,-1], Uabs[:,:,-1] = utemp[1], Utemp[1], Uabstemp[1]
 		out1, out2, out3 = utemp[0], Utemp[0], Uabstemp[0]
@@ -91,21 +93,23 @@ def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2
 
 		
 		#Pass again through WDM1 with the signal now
-		utemp, Utemp, Uabstemp = WDM1.WDM_pass((U[:,:,-1],U_original_pump), sim_wind, fft, ifft)
-		u[:,:,0],U[:,:,0], Uabs[:,:,0] = utemp[0], Utemp[0], Uabstemp[0]
-	
+		utemp, Utemp, Uabstemp = WDM1.WDM_pass((U_original_pump,U[:,:,-1]), sim_wind, fft, ifft)
+		u[:,:,0],U[:,:,0], Uabs[:,:,0] = utemp[1], Utemp[1], Uabstemp[1]
+		
+
+		utemp, Utemp, Uabstemp = WDM3.WDM_pass((out2,noise.T), sim_wind, fft, ifft)
+		out1, out2, out3 = utemp[0], Utemp[0], Uabstemp[0]
+		u_portA,U_portA, Uabs_portA = utemp[1], Utemp[1], Uabstemp[1]
+		plotter_dbm(int_fwm.nm,sim_wind,w2dbm(np.reshape(Uabs_portA,(len(sim_wind.t),int_fwm.nm,1))),u,-1,str(ro)+'portA','round '+str(ro)+', portA')
+		
+		utemp, Utemp, Uabstemp = WDM4.WDM_pass((out2,noise.T), sim_wind, fft, ifft)
+		u_portB,U_portB, Uabs_portB = utemp[0], Utemp[0], Uabstemp[0]
+		plotter_dbm(int_fwm.nm,sim_wind,w2dbm(np.reshape(Uabs_portB,(len(sim_wind.t),int_fwm.nm,1))),u,-1,str(ro)+'portB','round '+str(ro)+', portB')
+		
 	u[:,:,-1],U[:,:,-1], Uabs[:,:,-1] = utemp[0], Utemp[0], Uabstemp[0]
 
-	WDM3 = WDM(930,1050,sim_wind.lv)
-	WDM4 = WDM(930,1200 ,sim_wind.lv)
 
 
-	utemp, Utemp, Uabstemp = WDM3.WDM_pass((out2,noise.T), sim_wind, fft, ifft)
-	out1, out2, out3 = utemp[0], Utemp[0], Uabstemp[0]
-	u_portA,U_portA, Uabs_portA = utemp[1], Utemp[1], Uabstemp[1]
-
-	utemp, Utemp, Uabstemp = WDM4.WDM_pass((out2,noise.T), sim_wind, fft, ifft)
-	u_portB,U_portB, Uabs_portB = utemp[0], Utemp[0], Uabstemp[0]
 
 	#power_dbm = w2dbm(np.abs(Uabs[:,:,-1]))
 	power_dbm = w2dbm(np.abs(Uabs_portB))
@@ -165,7 +169,7 @@ def lam_p2_vary(lam_s_max,lam_p1,Power_input,int_fwm,plot_conv,gama,fft,ifft,par
 	lam_p2_nm = sim_wind.lv[-where[-1]]
 
 	plotter_dbm_lams_large([0],sim_wind,UU,-1,lams_vec) 
-
+	animator_pdf_maker(rounds)
 	return mod_lam,lams_vec,P0_s_out,mod_pow,rounds
 
 
@@ -178,7 +182,7 @@ def main():
 	Power_input = 13                      		#[W]
 	"-----------------------------General options------------------------------"
 
-	maxerr = 1e-13            	# maximum tolerable error per step
+	maxerr = 1e-10            	# maximum tolerable error per step
 	ss = 1                      # includes self steepening term
 	ram = 'on'                  # Raman contribution 'on' if yes and 'off' if no
 	
