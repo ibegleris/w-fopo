@@ -50,24 +50,21 @@ try:
 
 except ImportError:
 	print("You dont have accelerate on this system, defaulting to scipy")
-	def mfft(x):
-		return scifft.fft(x.T).T
-	def imfft(x):
-		return scifft.ifft(x.T).T
-	def timing(N, nm,times):
-		return mfft,imfft,('scipy',)
-
-
-
-
-
+	def pick(N,nm,times):
+		
+		def mfft(x):
+			return scifft.fft(x.T).T
+		
+		def imfft(x):
+			return scifft.ifft(x.T).T
+		
+		return mfft,imfft,'scipy'
 
 
 
 
 if __name__ == '__main__':
 	import matplotlib.pyplot as plt
-	print('hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh')
 	points = []
 	start = 100
 	time1 = []

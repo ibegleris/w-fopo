@@ -175,21 +175,22 @@ def lam_p2_vary(lam_s_max,lam_p1,Power_input,int_fwm,plot_conv,gama,fft,ifft,par
 
 def main():
 	"-----------------------------Stable parameters----------------------------"
-	n2 = 2.5e-20                				# n2 for silica [m/W]
-	nm = 1                      				# number of modes
-	alphadB = 0.0011666666666666668             # loss [dB/m]
-	gama = 10e-3 								# w/m
-	Power_input = 13                      		#[W]
+	n2 = 2.5e-20                			# n2 for silica [m/W]
+	nm = 1                      			# number of modes
+	alphadB = 0.0011666666666666668         # loss [dB/m]
+	gama = 10e-3 							# w/m
+	Power_input = 13                      	#[W]
 	"-----------------------------General options------------------------------"
 
-	maxerr = 1e-10            	# maximum tolerable error per step
-	ss = 1                      # includes self steepening term
-	ram = 'on'                  # Raman contribution 'on' if yes and 'off' if no
+	maxerr = 1e-10            				# maximum tolerable error per step
+	ss = 1                      			# includes self steepening term
+	ram = 'on'                  			# Raman contribution 'on' if yes 
+											#and 'off' if no
 	
 	"----------------------------Simulation parameters-------------------------"
 	N = 13
-	z = 18				 	# total distance [m]
-	nplot = 100                  # number of plots
+	z = 18						# total distance [m]
+	nplot = 1001				# number of plots
 	nt = 2**N 					# number of grid points
 	dzstep = z/nplot            # distance per step
 	dz_less = 1e4
@@ -216,6 +217,8 @@ def main():
 	print("The fft method that was found to be faster for your system is:", fft_method)
 	pump_wavelengths = (1047.5,1047.9,1048.3,1048.6,1049.0,1049.5,1049.8,1050.2,1050.6,1051.0,1051.4)
 	pump_wavelengths = (1047.5,)
+	loss = Loss(int_fwm, )
+	print(loss.alpha)	
 	for i,lam_p1 in enumerate(pump_wavelengths):
 		mod_lam,lams_vec,P0_s_out,mod_pow,rounds = \
 						lam_p2_vary(lensig,lam_p1,Power_input,int_fwm,1

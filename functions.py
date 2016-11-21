@@ -90,6 +90,8 @@ def dispersion_operator(betas,lamda_c,int_fwm,sim_wind):
 	Returns Dispersion operator
 	"""
 
+    
+    
 	alpha = int_fwm.alphadB/4.343
 	c_norm = c*1e-12                                                                        #Speed of light [m/ps] #Central wavelength [nm]
 	wc = 2*pi * c_norm /sim_wind.lamda
@@ -185,6 +187,38 @@ class sim_window(object):
         self.lv = c/(self.fmed+self.vs*1e12)*1e9                   # wavelength vector [nm]
         self.zv = int_fwm.dzstep*np.asarray(range(0,int_fwm.nplot+1))    # space vector [m]
         self.xtlim =np.array([-self.T/2, self.T/2])  # time limits (for plots)
+
+
+class Loss(object):
+    
+    def __init__(self,int_fwm,sim_wind,apart_div = 8):
+        """
+        Initialise the calss Loss, takes in the general parameters and 
+        the freequenbcy window. From that it determines where the loss will become
+        freequency dependent. With the default value being an 8th of the difference
+        of max and min. 
+
+        """
+
+        self.alpha = int_fwm.alphadB/4.343
+        self.flims_large = (np.min(sim_wind.fv), np.max(sim_wind.fv))
+        self.apart = np.abs(self.flims_large[1] - self.flims_large[0])
+        self.apart /= apart_div
+        self.iapart  = len(fv)/apart_div
+
+    def atten_func_full(self, fv=0):
+        alpha = self.alpha_func(fv)
+
+        return alpha += self.alpha
+    def atten_func(self,fv):
+        return np.concatenate((a1, a2, ...))
+
+    def plot(self,fv):
+        fig = plt.figure()
+        plt.plot(fv, self.atten_func_full(fv))
+        plt.xlabel("Frequency (Thz)")
+        plt.ylabel("Attenuation (cm -1 )")
+        plt.show()
 
 
 class WDM(object):
