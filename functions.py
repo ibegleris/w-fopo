@@ -137,7 +137,6 @@ def Q_matrixes(nm,n2,lamda,gama=None):
     return M1,M2
 
 
-
 class sim_parameters(object):
     def __init__(self,n2,nm,alphadB):
         self.n2 = n2
@@ -186,7 +185,6 @@ class sim_window(object):
         self.lv = c/(self.fmed+self.vs*1e12)*1e9                   # wavelength vector [nm]
         self.zv = int_fwm.dzstep*np.asarray(range(0,int_fwm.nplot+1))    # space vector [m]
         self.xtlim =np.array([-self.T/2, self.T/2])  # time limits (for plots)
-
 
 
 class WDM(object):
@@ -268,6 +266,7 @@ class WDM(object):
         #plt.show()
         return None
 
+
 class Noise(object):
     def __init__(self,sim_wind):
         self.pquant = np.sum(1.054e-34*(sim_wind.w*1e12 + sim_wind.w0)/(sim_wind.T*1e-12))
@@ -277,6 +276,8 @@ class Noise(object):
         noise = (self.pquant/2)**0.5*(np.random.randn(int_fwm.nm,int_fwm.nt) 
                     + 1j*np.random.randn(int_fwm.nm,int_fwm.nt))
         return noise.T
+
+
 def pulse_propagation(u,U,Uabs,int_fwm,M1,M2,sim_wind,hf,Dop,dAdzmm,fft,ifft):
     "--------------------------Pulse propagation--------------------------------"
     badz = 0        #counter for bad steps
@@ -325,7 +326,11 @@ def pulse_propagation(u,U,Uabs,int_fwm,M1,M2,sim_wind,hf,Dop,dAdzmm,fft,ifft):
         entot[jj+1] = np.sum(energy[:,jj+1])             # total energy
     return u, U,Uabs
 
+
 def dbm_nm(U,sim_wind,int_fwm):
+    """
+    Converts The units of freequency to units of dBm/nm
+    """
     U_out = U / sim_wind.T**2
     U_out = -1*w2dbm(U_out)
     dlv = [sim_wind.lv[i+1] - sim_wind.lv[i] for i in range(len(sim_wind.lv) - 1)]
