@@ -191,7 +191,7 @@ class sim_window(object):
 
 class Loss(object):
     
-    def __init__(self,int_fwm,sim_wind,apart_div = 8):
+    def __init__(self,int_fwm,sim_wind,amax,apart_div = 8):
         """
         Initialise the calss Loss, takes in the general parameters and 
         the freequenbcy window. From that it determines where the loss will become
@@ -199,25 +199,49 @@ class Loss(object):
         of max and min. 
 
         """
-
         self.alpha = int_fwm.alphadB/4.343
+        self.amax  = amax/4.343
+
         self.flims_large = (np.min(sim_wind.fv), np.max(sim_wind.fv))
-        self.apart = np.abs(self.flims_large[1] - self.flims_large[0])
-        self.apart /= apart_div
-        self.iapart  = len(fv)/apart_div
+        try:    
+            temp = len(apart_div)
+            self.begin = apart_div[0]
+            self.end = apart_div[1]
+        except TypeError:
+            
+            self.apart = np.abs(self.flims_large[1] - self.flims_large[0])
+            self.apart /= apart_div
+            self.begin = self.flims_large[0] + self.apart
+            self.end = self.flims_large[1] - self.apart
 
-    def atten_func_full(self, fv=0):
-        alpha = self.alpha_func(fv)
 
-        return alpha += self.alpha
-    def atten_func(self,fv):
-        return np.concatenate((a1, a2, ...))
+    def atten_func_full(self,fv):
+        aten = []
+
+        a_s = ((self.amax - self.alpha)/ (self.flims_large[0] - self.begin),
+
+            (self.amax - self.alpha)/ (self.flims_large[1] - self.end))
+        b_s = (-a_s[0] *self.begin, -a_s[1] * self.end)
+
+        for f in fv:
+            if f <= self.begin:
+                aten.append(a_s[0] * f + b_s[0])
+            elif f >= self.end:
+                aten.append(a_s[1] * f + b_s[1])
+            else: 
+                aten.append(0)
+        return np.asanyarray(aten) + self.alpha
 
     def plot(self,fv):
         fig = plt.figure()
-        plt.plot(fv, self.atten_func_full(fv))
+        y = self.atten_func_full(fv)
+        print(y)
+        print(len(y))
+        print(type(y ))
+        plt.plot(fv, y)
         plt.xlabel("Frequency (Thz)")
         plt.ylabel("Attenuation (cm -1 )")
+        plt.savefig("figures/loss_function_fibre.png",bbox_inches = 'tight')
         plt.show()
 
 

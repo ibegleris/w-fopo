@@ -241,3 +241,37 @@ class Test_WDM(object):
 	#	port1 = WDMS.wdm_port1_pass(np.copy(U),sim_wind,fft,ifft)
 	#	port2 = WDMS.wdm_port2_pass(np.copy(U),sim_wind,fft,ifft)
 	#	assert_array_almost_equal(port1[1]+port2[1], U)
+class int_fwmss(object):
+	def __init__(self, alphadB):
+		self.alphadB = alphadB
+class sim_windowss(object):
+	def __init__(self, fv):
+		self.fv  = fv
+class Test_loss:
+	def test_loss1(a):
+		fv = np.linspace(200, 600,1024)
+		alphadB = 1
+		sim_wind = sim_windowss(fv)
+		int_fwm =  int_fwmss(alphadB)
+		loss = Loss(int_fwm, sim_wind, amax = alphadB)
+		alpha_func = loss.atten_func_full(sim_wind.fv)
+		assert_array_almost_equal(alpha_func, np.ones_like(alpha_func)*alphadB/4.343)
+	def test_loss2(a):
+		fv = np.linspace(200, 600,1024)
+		alphadB = 1
+		sim_wind = sim_windowss(fv)
+		int_fwm =  int_fwmss(alphadB)
+		loss = Loss(int_fwm, sim_wind, amax = 2*alphadB)
+		alpha_func = loss.atten_func_full(sim_wind.fv)
+		maxim = np.max(alpha_func)
+		assert maxim == 2*alphadB/4.343
+
+	def test_loss3(a):
+		fv = np.linspace(200, 600,1024)
+		alphadB = 1
+		sim_wind = sim_windowss(fv)
+		int_fwm =  int_fwmss(alphadB)
+		loss = Loss(int_fwm, sim_wind, amax = 2*alphadB)
+		alpha_func = loss.atten_func_full(sim_wind.fv)
+		minim = np.min(alpha_func)
+		assert minim == alphadB/4.343

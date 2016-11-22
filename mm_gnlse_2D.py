@@ -133,6 +133,10 @@ def lam_p2_vary(lam_s_max,lam_p1,Power_input,int_fwm,plot_conv,gama,fft,ifft,par
 	if grid_only:
 		return sim_wind
 
+	loss = Loss(int_fwm, sim_wind,1, (350,500))
+	print(loss.alpha)	
+	loss.plot(fv)
+	sys.exit()
 	"------------------------------Dispersion operator--------------------------------------"
 	betas = np.array([[0,0,0,6.755e-2,-1.001e-4]])*1e-3 # betas at ps/m (given in ps/km)
 	Dop = dispersion_operator(betas,lamda_c,int_fwm,sim_wind)
@@ -217,8 +221,8 @@ def main():
 	print("The fft method that was found to be faster for your system is:", fft_method)
 	pump_wavelengths = (1047.5,1047.9,1048.3,1048.6,1049.0,1049.5,1049.8,1050.2,1050.6,1051.0,1051.4)
 	pump_wavelengths = (1047.5,)
-	loss = Loss(int_fwm, )
-	print(loss.alpha)	
+
+	#sys.exit()
 	for i,lam_p1 in enumerate(pump_wavelengths):
 		mod_lam,lams_vec,P0_s_out,mod_pow,rounds = \
 						lam_p2_vary(lensig,lam_p1,Power_input,int_fwm,1
