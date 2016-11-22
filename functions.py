@@ -82,39 +82,37 @@ class raman_object(object):
 
 
 def dispersion_operator(betas,lamda_c,int_fwm,sim_wind):
-	
-	"""
-	Calculates the dispersion operator in rad/m units
-	INputed are the dispersion operators at the omega0
-	LOcal include the taylor expansion to get these opeators at omegac 
-	Returns Dispersion operator
-	"""
 
-    
-    
-	alpha = int_fwm.alphadB/4.343
-	c_norm = c*1e-12                                                                        #Speed of light [m/ps] #Central wavelength [nm]
-	wc = 2*pi * c_norm /sim_wind.lamda
-	w0 = 2*pi * c_norm / lamda_c
-	betap = np.zeros_like(betas)
-	for i in range(int_fwm.nm):
-		for j in range(len(betas.T)):
-			fac = 0
-			for k in range(j,len(betas.T)):
-				betap[i,j] += (1/factorial(fac))*betas[i,k] * (wc - w0)**(fac)
-				fac += 1
+    """
+    Calculates the dispersion operator in rad/m units
+    INputed are the dispersion operators at the omega0
+    LOcal include the taylor expansion to get these opeators at omegac 
+    Returns Dispersion operator
+    """
+    c_norm = c*1e-12                                                                        #Speed of light [m/ps] #Central wavelength [nm]
+    wc = 2*pi * c_norm /sim_wind.lamda
+    w0 = 2*pi * c_norm / lamda_c
+    betap = np.zeros_like(betas)
+    for i in range(int_fwm.nm):
+    	for j in range(len(betas.T)):
+    		fac = 0
+    		for k in range(j,len(betas.T)):
+    			betap[i,j] += (1/factorial(fac))*betas[i,k] * (wc - w0)**(fac)
+    			fac += 1
+    w = sim_wind.w 
+    Dop = np.zeros([int_fwm.nt,int_fwm.nm],dtype=np.complex)
+    alpha = np.reshape(int_fwm.alphadB,np.shape(Dop))
 
-	w = sim_wind.w 
-	Dop = np.zeros([int_fwm.nt,int_fwm.nm],dtype=np.complex)
-	Dop[:,:] = -alpha/2
+    Dop[:,:] = -alpha/2
 
-	beta0,beta1 = betap[0,0],betap[0,1] # set the fundemental betas as the one of the first mode
-	betap[:,0] -= beta0
-	betap[:,1] -= beta1
-	for i in range(int_fwm.nm):
-		for j,bb in enumerate(betap[i,:]):
-			Dop[:,i] -= 1j*(w**j * bb /factorial(j))
-	return Dop
+
+    beta0,beta1 = betap[0,0],betap[0,1] # set the fundemental betas as the one of the first mode
+    betap[:,0] -= beta0
+    betap[:,1] -= beta1
+    for i in range(int_fwm.nm):
+    	for j,bb in enumerate(betap[i,:]):
+    		Dop[:,i] -= 1j*(w**j * bb /factorial(j))
+    return Dop
 
 
 def Q_matrixes(nm,n2,lamda,gama=None):  
@@ -235,9 +233,6 @@ class Loss(object):
     def plot(self,fv):
         fig = plt.figure()
         y = self.atten_func_full(fv)
-        print(y)
-        print(len(y))
-        print(type(y ))
         plt.plot(fv, y)
         plt.xlabel("Frequency (Thz)")
         plt.ylabel("Attenuation (cm -1 )")

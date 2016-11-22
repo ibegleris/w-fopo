@@ -72,7 +72,7 @@ def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2
 	utemp, Utemp, Uabstemp= WDM1.WDM_pass((U[:,:,0],noise.T), sim_wind, fft, ifft)
 	u[:,:,0],U[:,:,0], Uabs[:,:,0] = utemp[1], Utemp[1], Uabstemp[1]
 
-	rounds = 30
+	rounds = 1
 
 	for ro in range(rounds):
 		print('round', ro)
@@ -136,7 +136,7 @@ def lam_p2_vary(lam_s_max,lam_p1,Power_input,int_fwm,plot_conv,gama,fft,ifft,par
 	loss = Loss(int_fwm, sim_wind,1, (350,500))
 	print(loss.alpha)	
 	loss.plot(fv)
-	sys.exit()
+	int_fwm.alphadB = loss.atten_func_full(fv)
 	"------------------------------Dispersion operator--------------------------------------"
 	betas = np.array([[0,0,0,6.755e-2,-1.001e-4]])*1e-3 # betas at ps/m (given in ps/km)
 	Dop = dispersion_operator(betas,lamda_c,int_fwm,sim_wind)

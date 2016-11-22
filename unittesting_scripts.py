@@ -106,6 +106,10 @@ def test_dispersion():
 	sim_wind = sim_windows(lamda0,lamda,lmin,lmax)
 	int_fwm = int_fwms(1, 0.1,nt)
 
+	loss = Loss(int_fwm, sim_wind, amax = 0.1)
+	alpha_func = loss.atten_func_full(sim_wind.fv)
+	int_fwm.alphadB = alpha_func
+	#print(np.shape(int_fwm.alphadB))
 	betas = np.array([[0,0,0,6.755e-2,-1.001e-4]])*1e-3
 
 	betas_disp = dispersion_operator(betas,lamdac,int_fwm,sim_wind)
@@ -166,6 +170,10 @@ def test_pulse_propagation():
 	fv,where = fv_creator(lam_p1 - 100,lam_p1,int_fwm)
 	sim_wind = sim_window(fv,lamda,lamda_c,int_fwm)
 
+
+	loss = Loss(int_fwm, sim_wind, amax =	int_fwm.alphadB)
+	alpha_func = loss.atten_func_full(sim_wind.fv)
+	int_fwm.alphadB = alpha_func
 	
 	betas = np.array([[0,0,beta2,0,0]])*1e-3 # betas at ps/m (given in ps/km)
 	Dop = dispersion_operator(betas,lamda_c,int_fwm,sim_wind)
