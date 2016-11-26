@@ -283,3 +283,12 @@ class Test_loss:
 		alpha_func = loss.atten_func_full(sim_wind.fv)
 		minim = np.min(alpha_func)
 		assert minim == alphadB/4.343
+
+
+def test_splicer():
+	U1 = 10*(np.random.randn(10) + 1j * np.random.randn(10))
+	U2 = 10 *(np.random.randn(10) + 1j * np.random.randn(10))
+	U_out1,U_out2 = splicer(U1,U2)
+	Power_in = np.abs(U1)**2 + np.abs(U2)**2
+	Power_out = np.abs(U_out1)**2 + np.abs(U_out2)**2
+	assert_array_almost_equal(Power_in,Power_out)

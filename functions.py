@@ -11,7 +11,8 @@ from scipy.fftpack import fftshift, ifftshift
 from math import isinf, factorial
 from integrand_and_rk import *
 from plotters_animators import *
-
+import cmath
+phasor = np.vectorize(cmath.polar)
 try:
     import accelerate
     jit = accelerate.numba.jit
@@ -189,7 +190,7 @@ class sim_window(object):
 
 class Loss(object):
     
-    def __init__(self,int_fwm,sim_wind,amax,apart_div = 8):
+    def __init__(self,int_fwm,sim_wind,amax = None,apart_div = 8):
         """
         Initialise the calss Loss, takes in the general parameters and 
         the freequenbcy window. From that it determines where the loss will become
@@ -198,7 +199,10 @@ class Loss(object):
 
         """
         self.alpha = int_fwm.alphadB/4.343
-        self.amax  = amax/4.343
+        if amax == None:
+            self.amax = self.alpha
+        else:
+            self.amax  = amax/4.343
 
         self.flims_large = (np.min(sim_wind.fv), np.max(sim_wind.fv))
         try:    
@@ -319,16 +323,34 @@ class WDM(object):
         #plt.show()
         return None
 
+def splicer(U, noise_obj,loss = 1):
+    """
+    Operates like a beam splitter that reduces the optical power by the loss given (in dB). 
+    The original idea of this function was for a splice loss hence the idea of the noise object to make sure 
+    that we dont go under quantum noise. Unfortunately it assumes that there is no change in the phase of the complex 
+    number but only to the modulus.
+    NOTE:!
+    MAKE SURE THAT YOU HAVE VECTORIZED cmath.polar with numpy vectorize!!!! 
+    """
+    
+    temp1 =  (U*np.conj(U) * 10**(-0.1*loss) + noise_obj*np.conj(noise_obj) * (1- 10**(-0.1*loss)))**0.5
+    temp2 = (U*np.conj(U) * (1- 10**(-0.1*loss)) + noise_obj*np.conj(noise_obj) * 10**(-0.1*loss))**0.5
+    U_1_phasor,U_2_phasor = phasor(U), phasor(noise_obj)
+    U_out1  =  temp1 * np.exp(1j*U_1_phasor[1])
+    U_out2  = temp2 * np.exp(1j*U_2_phasor[1])
+    return U_out1,U_out2
+
 
 class Noise(object):
     def __init__(self,sim_wind):
         self.pquant = np.sum(1.054e-34*(sim_wind.w*1e12 + sim_wind.w0)/(sim_wind.T*1e-12))
+        self.noise = (self.pquant/2)**0.5
         return None
 
     def noise_func(self,int_fwm):
-        noise = (self.pquant/2)**0.5*(np.random.randn(int_fwm.nm,int_fwm.nt) 
+        self.noise *= (np.random.randn(int_fwm.nm,int_fwm.nt) 
                     + 1j*np.random.randn(int_fwm.nm,int_fwm.nt))
-        return noise.T
+        return self.noise.T
 
 
 def pulse_propagation(u,U,Uabs,int_fwm,M1,M2,sim_wind,hf,Dop,dAdzmm,fft,ifft):
