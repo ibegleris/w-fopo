@@ -30,8 +30,8 @@ def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2
 	noise_obj = Noise(sim_wind)
 
 
-	noise = noise_obj.noise_func(int_fwm)
-
+	noise =  noise_obj.noise_func(int_fwm)
+	#noise = noise.T
 	u[:,:,0] = noise
 	u[:,0,0] += (P0_p1)**0.5
 
@@ -69,11 +69,25 @@ def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2
 	WDM3.plot(sim_wind.lv)
 	WDM4.plot(sim_wind.lv)
 
+
+	#splice loss
+	#splice loss
+	#splice loss
+
+
+
 	plotter_dbm(int_fwm.nm,sim_wind,w2dbm(Uabs),u,0,'0','original pump',D_pic[0])
+	
+
+
 	U_original_pump = np.copy(U[:,:,0])
+	
 	#Pass the original pump through the WDM1 port1
 	utemp, Utemp, Uabstemp= WDM1.WDM_pass((U[:,:,0],noise_obj.noise_func(int_fwm)), sim_wind, fft, ifft)
 	u[:,:,0],U[:,:,0], Uabs[:,:,0] = utemp[1], Utemp[1], Uabstemp[1]
+
+	#splice loss
+	
 
 	rounds = 20
 
@@ -85,14 +99,17 @@ def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2
 		u,U,Uabs = pulse_propagation(u,U,Uabs,int_fwm,M1,M2,sim_wind,hf,Dop,dAdzmm,fft,ifft)
 		plotter_dbm(int_fwm.nm,sim_wind,w2dbm(Uabs),u,-1,str(ro)+'2',pulse_pos_dict[0],D_pic[2])
 		
-
+		#splice loss
+		#splice loss
+	
 		#pass through WDM2 port 2 continues and port 1 is out of the loop
 		utemp, Utemp, Uabstemp = WDM2.WDM_pass((U[:,:,-1],noise_obj.noise_func(int_fwm)), sim_wind, fft, ifft)
 		u[:,:,-1], U[:,:,-1], Uabs[:,:,-1] = utemp[1], Utemp[1], Uabstemp[1]
 		out1, out2, out3 = utemp[0], Utemp[0], Uabstemp[0]
 		plotter_dbm(int_fwm.nm,sim_wind,w2dbm(Uabs),u,-1,str(ro)+'3',pulse_pos_dict[1],D_pic[3])
 
-
+		#splice loss on the signal
+	
 
 		
 		#Pass again through WDM1 with the signal now
@@ -100,11 +117,21 @@ def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2
 		u[:,:,0],U[:,:,0], Uabs[:,:,0] = utemp[1], Utemp[1], Uabstemp[1]
 		
 
+
+		#splice loss on the 
+	
+
+
 		utemp, Utemp, Uabstemp = WDM3.WDM_pass((out2,noise_obj.noise_func(int_fwm)), sim_wind, fft, ifft)
 		out1, out2, out3 = utemp[0], Utemp[0], Uabstemp[0]
 		u_portA,U_portA, Uabs_portA = utemp[1], Utemp[1], Uabstemp[1]
 		plotter_dbm(int_fwm.nm,sim_wind,w2dbm(np.reshape(Uabs_portA,(len(sim_wind.t),int_fwm.nm,1))),u,-1,str(ro)+'portA','round '+str(ro)+', portA')
 		
+
+
+
+
+
 		utemp, Utemp, Uabstemp = WDM4.WDM_pass((out2,noise_obj.noise_func(int_fwm)), sim_wind, fft, ifft)
 		u_portB,U_portB, Uabs_portB = utemp[0], Utemp[0], Uabstemp[0]
 		plotter_dbm(int_fwm.nm,sim_wind,w2dbm(np.reshape(Uabs_portB,(len(sim_wind.t),int_fwm.nm,1))),u,-1,str(ro)+'portB','round '+str(ro)+', portB')
@@ -197,7 +224,7 @@ def main():
 	"----------------------------Simulation parameters-------------------------"
 	N = 13
 	z = 18						# total distance [m]
-	nplot = 1001				# number of plots
+	nplot = 100				# number of plots
 	nt = 2**N 					# number of grid points
 	dzstep = z/nplot            # distance per step
 	dz_less = 1e4

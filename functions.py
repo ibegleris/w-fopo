@@ -241,7 +241,7 @@ class Loss(object):
         plt.xlabel("Frequency (Thz)")
         plt.ylabel("Attenuation (cm -1 )")
         plt.savefig("figures/loss_function_fibre.png",bbox_inches = 'tight')
-        plt.show()
+       
 
 
 class WDM(object):
@@ -277,7 +277,7 @@ class WDM(object):
 
     def WDM_pass(self,U_in,sim_wind,fft,ifft):
         """
-        Passes the amplitudes through the code. returns the u, U and Uabs
+        Passes the amplitudes through the WDM. returns the u, U and Uabs
         """
         U_out = self.U_calc(U_in)
 
