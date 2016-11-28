@@ -94,7 +94,9 @@ class sim_windows(object):
 		self.deltaf = 1e-3*(c/self.lmin - c/self.lmax)
 		self.df = self.deltaf/len(lv)
 		self.T = 1/self.df 
-		self.dt = self.T/len(lv)         
+		self.dt = self.T/len(lv)
+
+
 def test_dispersion():
 	nt = 512
 	lmin,lmax = 1000e-9,2000e-9
@@ -128,13 +130,13 @@ def test_pulse_propagation():
 
 	n2 = 2.5e-20                				# n2 for silica [m/W]
 	nm = 1                      				# number of modes
-	alphadB = 0#0.0011666666666666668             # loss [dB/m]
+	alphadB = 0.0011666666666666668             # loss [dB/m]
 	gama = 10e-3 								# w/m
 	Power_input = 13                      		#[W]
 	"-----------------------------General options------------------------------"
 
 	maxerr = 1e-13            	# maximum tolerable error per step
-	ss = 1                      # includes self steepening term
+	ss = 0                      # includes self steepening term
 	ram = 'on'                  # Raman contribution 'on' if yes and 'off' if no
 	
 	"----------------------------Simulation parameters-------------------------"
@@ -220,35 +222,37 @@ class Test_WDM(object):
 		WDMS = WDM(self.x1, self.x2,self.lv)
 		sim_wind = sim_windows(self.lv,self.lv,self.lmax, self.lmin)
 		U_in = (np.random.rand(2**self.nt,1)+ 1j * np.random.rand(2**self.nt,1),np.random.rand(2**self.nt,1) + 1j * np.random.rand(2**self.nt,1))
-		u_out,U_out,U_true = WDMS.WDM_pass(U_in,sim_wind,fft,ifft)
+		u_out,U_out,U_true = WDMS.pass_through(U_in,sim_wind,fft,ifft)
 		
 
 		U_in_sum = np.abs(U_in[0])**2 + np.abs(U_in[1])**2
 		U_true_sum = U_true[0] + U_true[1]
 			
 
-		#U_out_sum = U_out[0] + U_out[1] 
-		#print(U_true_sum)
 		assert_array_almost_equal(np.abs(U_out[0])**2 + np.abs(U_out[1])**2, U_true_sum)
+		
+	def test2_WDM(self):
+
+		self.x1 = 1550
+		self.x2 = 1555
+		self.nt = 3
+		self.lv = np.linspace(1000, 2000,2**self.nt)
+		self.lmax, self.lmin = 1000, 2000
+		WDMS = WDM(self.x1, self.x2,self.lv)
+		sim_wind = sim_windows(self.lv,self.lv,self.lmax, self.lmin)
+		U_in = (np.random.rand(2**self.nt,1)+ 1j * np.random.rand(2**self.nt,1),np.random.rand(2**self.nt,1) + 1j * np.random.rand(2**self.nt,1))
+		u_out,U_out,U_true = WDMS.pass_through(U_in,sim_wind,fft,ifft)
+		
+
+		U_in_sum = np.abs(U_in[0])**2 + np.abs(U_in[1])**2
+		U_true_sum = U_true[0] + U_true[1]
+			
+
 		assert_array_almost_equal(U_in_sum, U_true_sum)
-		#assert_array_almost_equal(U_in_sum, U_out_sum)
-		#assert_array_almost_equal(WDMS.il_port1(self.lamda) + WDMS.il_port2(self.lamda),np.ones(2**self.nt))
-	#def test2_WDM(self):
-	#	self.x1 = 1500
-	#	self.x2 = 1550
-	#	self.nt = 10
-	#	self.lmax, self.lmin = 1000, 2000
-	#	self.lamda = np.linspace(self.lmax, self.lmin,2**self.nt)
-	#
-	#	sim_wind = sim_windows(self.lamda,self.lamda,self.lmax, self.lmin)
-	#
-	#	WDMS = WDM(self.x1, self.x2)
-	#	WDMS.plot(sim_wind.lv)
-	#	print(sim_wind.lv)
-	#	U = np.ones((2**self.nt,1))
-	#	port1 = WDMS.wdm_port1_pass(np.copy(U),sim_wind,fft,ifft)
-	#	port2 = WDMS.wdm_port2_pass(np.copy(U),sim_wind,fft,ifft)
-	#	assert_array_almost_equal(port1[1]+port2[1], U)
+
+
+		
+
 class int_fwmss(object):
 	def __init__(self, alphadB):
 		self.alphadB = alphadB
@@ -285,10 +289,37 @@ class Test_loss:
 		assert minim == alphadB/4.343
 
 
-def test_splicer():
-	U1 = 10*(np.random.randn(10) + 1j * np.random.randn(10))
-	U2 = 10 *(np.random.randn(10) + 1j * np.random.randn(10))
-	U_out1,U_out2 = splicer(U1,U2)
-	Power_in = np.abs(U1)**2 + np.abs(U2)**2
-	Power_out = np.abs(U_out1)**2 + np.abs(U_out2)**2
-	assert_array_almost_equal(Power_in,Power_out)
+class Test_splicer():
+	
+
+	def test_splicer1(self):
+		splicer = Splicer()
+
+		U1 = 10*(np.random.randn(10) + 1j * np.random.randn(10))
+		U2 = 10 *(np.random.randn(10) + 1j * np.random.randn(10))
+		U_out1,U_out2 = splicer.U_calc((U1,U2))
+		Power_in = np.abs(U1)**2 + np.abs(U2)**2
+		Power_out = np.abs(U_out1)**2 + np.abs(U_out2)**2
+		assert_array_almost_equal(Power_in,Power_out)
+
+	def test_splicer2(self):
+		self.x1 = 1550
+		self.x2 = 1555
+		self.nt = 3
+		self.lv = np.linspace(1000, 2000,2**self.nt)
+		self.lmax, self.lmin = 1000, 2000
+		WDMS = WDM(self.x1, self.x2,self.lv)
+		sim_wind = sim_windows(self.lv,self.lv,self.lmax, self.lmin)
+		splicer = Splicer()
+		U1 = 10*(np.random.randn(10) + 1j * np.random.randn(10))
+		U2 = 10 *(np.random.randn(10) + 1j * np.random.randn(10))
+		U_in = (U1,U2)
+		
+
+		a = splicer.pass_through(U_in,sim_wind,fft,ifft)
+		U_out1,U_out2 = a[1][0],a[1][1]
+
+
+		Power_in = np.abs(U1)**2 + np.abs(U2)**2
+		Power_out = np.abs(U_out1)**2 + np.abs(U_out2)**2
+		assert_array_almost_equal(Power_in,Power_out)

@@ -104,7 +104,7 @@ def dispersion_operator(betas,lamda_c,int_fwm,sim_wind):
     Dop = np.zeros([int_fwm.nt,int_fwm.nm],dtype=np.complex)
     alpha = np.reshape(int_fwm.alphadB,np.shape(Dop))
 
-    Dop[:,:] = -alpha/2
+    Dop[:,:] = -fftshift(alpha/2)
 
 
     beta0,beta1 = betap[0,0],betap[0,1] # set the fundemental betas as the one of the first mode
@@ -275,9 +275,10 @@ class WDM(object):
 
         return Uout
 
-    def WDM_pass(self,U_in,sim_wind,fft,ifft):
+    def pass_through(self,U_in,sim_wind,fft,ifft):
         """
-        Passes the amplitudes through the WDM. returns the u, U and Uabs
+        Passes the amplitudes through the object. returns the u, U and Uabs
+        in a form of a tuple of (port1,port2)
         """
         U_out = self.U_calc(U_in)
 
@@ -323,34 +324,53 @@ class WDM(object):
         #plt.show()
         return None
 
-def splicer(U, noise_obj,loss = 1):
-    """
-    Operates like a beam splitter that reduces the optical power by the loss given (in dB). 
-    The original idea of this function was for a splice loss hence the idea of the noise object to make sure 
-    that we dont go under quantum noise. Unfortunately it assumes that there is no change in the phase of the complex 
-    number but only to the modulus.
-    NOTE:!
-    MAKE SURE THAT YOU HAVE VECTORIZED cmath.polar with numpy vectorize!!!! 
-    """
-    
-    temp1 =  (U*np.conj(U) * 10**(-0.1*loss) + noise_obj*np.conj(noise_obj) * (1- 10**(-0.1*loss)))**0.5
-    temp2 = (U*np.conj(U) * (1- 10**(-0.1*loss)) + noise_obj*np.conj(noise_obj) * 10**(-0.1*loss))**0.5
-    U_1_phasor,U_2_phasor = phasor(U), phasor(noise_obj)
-    U_out1  =  temp1 * np.exp(1j*U_1_phasor[1])
-    U_out2  = temp2 * np.exp(1j*U_2_phasor[1])
-    return U_out1,U_out2
+
+class Splicer(WDM):
+    def __init__(self, loss = 1):
+        self.loss = loss
+
+
+    def U_calc(self,U_in):
+        """
+        Operates like a beam splitter that reduces the optical power by the loss given (in dB). 
+        The original idea of this function was for a splice loss hence the idea of the noise object to make sure 
+        that we dont go under quantum noise. Unfortunately it assumes that there is no change in the phase of the complex 
+        number but only to the modulus.
+        NOTE:!
+        MAKE SURE THAT YOU HAVE VECTORIZED cmath.polar with numpy vectorize!!!! 
+        """
+        U, noise_obj = U_in
+        temp1 =  (U*np.conj(U) * 10**(-0.1*self.loss) + noise_obj*np.conj(noise_obj) * (1- 10**(-0.1*self.loss)))**0.5
+        temp2 = (U*np.conj(U) * (1- 10**(-0.1*self.loss)) + noise_obj*np.conj(noise_obj) * 10**(-0.1*self.loss))**0.5
+        
+        U_1_phasor,U_2_phasor = phasor(U), phasor(noise_obj)
+        
+        U_out1  =  temp1 * np.exp(1j*U_1_phasor[1])
+        U_out2  = temp2 * np.exp(1j*U_2_phasor[1])
+        return U_out1,U_out2
 
 
 class Noise(object):
     def __init__(self,sim_wind):
         self.pquant = np.sum(1.054e-34*(sim_wind.w*1e12 + sim_wind.w0)/(sim_wind.T*1e-12))
-        self.noise = (self.pquant/2)**0.5
+        self.pquant = (self.pquant/2)**0.5
         return None
 
+
     def noise_func(self,int_fwm):
-        self.noise *= (np.random.randn(int_fwm.nm,int_fwm.nt) 
-                    + 1j*np.random.randn(int_fwm.nm,int_fwm.nt))
-        return self.noise.T
+        noise = self.pquant * (np.random.randn(int_fwm.nt,int_fwm.nm) 
+                    + 1j*np.random.randn(int_fwm.nt,int_fwm.nm))
+        
+        #noise = self.pquant *np.ones([int_fwm.nt,int_fwm.nm])
+        return noise
+
+
+    def noise_func_freq(self,int_fwm,sim_wind,fft):
+        noise = self.noise_func(int_fwm)
+        noise_freq = fftshift(sim_wind.dt * fft(noise),axes=(0,))
+        #print(np.average(noise_freq))
+        #sys.exit()
+        return noise_freq
 
 
 def pulse_propagation(u,U,Uabs,int_fwm,M1,M2,sim_wind,hf,Dop,dAdzmm,fft,ifft):

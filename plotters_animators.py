@@ -24,7 +24,7 @@ def plotter_dbm(nm,sim_wind,power_watts,u,which,filename=None,title=None,im = 0)
 	if filename == None:
 		plt.show()
 	else:
-		plt.savefig("figures/wavelength/wavelength_space"+filename,bbox_inched='tight')
+		plt.savefig("figures/wavelength/"+filename,bbox_inched='tight')
 	plt.close(fig)
 
 	fig = plt.figure(figsize=(20.0, 10.0))
@@ -45,7 +45,7 @@ def plotter_dbm(nm,sim_wind,power_watts,u,which,filename=None,title=None,im = 0)
 	if filename == None:
 		plt.show()
 	else:
-		plt.savefig("figures/freequency/freequency_space"+filename,bbox_inched='tight')
+		plt.savefig("figures/freequency/"+filename,bbox_inched='tight')
 	plt.close(fig)
 
 
@@ -115,33 +115,42 @@ def animator_pdf_maker(rounds):
 	space = ('wavelength','freequency')
 	for sp in space:    
 		os.system('rm figures/'+sp+'/*.pdf')
-		strings_large = ['convert figures/'+sp+'/'+sp+'_space0.png ']
+		strings_large = ['convert figures/'+sp+'/0.png ']
 		for i in range(4):
 		    strings_large.append("convert ")
 		for ro in range(rounds):
 			for i in range(4):
-			    strings_large[i+1] += 'figures/'+sp+'/'+sp+'_space'+str(ro)+str(i+1)+'.png '
+			    strings_large[i+1] += 'figures/'+sp+'/'+str(ro)+str(i+1)+'.png '
 			for w in range(1,4):
 				if i ==5:
 					break
-				strings_large[0] += 'figures/'+sp+'/'+sp+'_space'+str(ro)+str(w)+'.png '
+				strings_large[0] += 'figures/'+sp+'/'+str(ro)+str(w)+'.png '
 		for i in range(4):
-			os.system(strings_large[i]+'figures/'+sp+'/'+sp+'_space'+str(i)+'.pdf')
+			os.system(strings_large[i]+'figures/'+sp+'/'+str(i)+'.pdf')
 		
 		string_porta = 'convert '
 		string_portb = 'convert '
 		for i in range(rounds):
-			string_porta += 'figures/'+sp+'/'+sp+'_space'+str(i)+'portA.png '
+			string_porta += 'figures/'+sp+'/portA/'+str(i)+'.png '
 
-			string_portb += 'figures/'+sp+'/'+sp+'_space'+str(i)+'portB.png '
-		string_porta += 'figures/'+sp+'/'+sp+'portA.pdf '
-		string_portb += 'figures/'+sp+'/'+sp+'portB.pdf '
+			string_portb += 'figures/'+sp+'/portB/'+str(i)+'.png '
+		string_porta += 'figures/'+sp+'/portA/porta.pdf '
+		string_portb += 'figures/'+sp+'/portB/portab.pdf '
 		os.system(string_porta)
 		os.system(string_portb)
 		
 		for i in range(4):
-			os.system('convert -delay 30 figures/'+sp+'/'+sp+'_space'+str(i)+'.pdf figures/'+sp+'/'+sp+'_space'+str(i)+'.mp4')
-		os.system('convert -delay 30 ' 'figures/'+sp+'/'+sp+'portA.pdf ' 'figures/'+sp+'/portA.mp4')
-		os.system('convert -delay 30 ' 'figures/'+sp+'/'+sp+'portB.pdf ' 'figures/'+sp+'/portB.mp4')
-		os.system('rm figures/'+sp+'/*.png')
-	return None
+			os.system('convert -delay 30 figures/'+sp+'/'+str(i)+'.pdf figures/'+sp+'/'+str(i)+'.mp4')
+		os.system('convert -delay 30 ' 'figures/'+sp+'/portA/porta.pdf ' 'figures/'+sp+'/portA/portaa.mp4 ')
+		os.system('convert -delay 30 ' 'figures/'+sp+'/portB/portab.pdf ' 'figures/'+sp+'/portB/portab.mp4 ')
+		
+		os.system('sleep 5')
+		os.system('rm figures/*.png')
+		os.system('rm figures/wavelength/*.png')
+		os.system('rm figures/wavelength/portA/*.png')
+		os.system('rm figures/wavelength/portB/*.png')
+		
+		os.system('rm figures/freequency/*.png')
+		os.system('rm figures/freequency/portA/*.png')
+		os.system('rm figures/freequency/portB/*.png')
+		return None
