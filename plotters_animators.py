@@ -1,5 +1,5 @@
 import matplotlib as mpl
-#mpl.use('Agg')
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -114,7 +114,7 @@ def animator_pdf_maker(rounds):
 	print("making pdf's and animations.")
 	space = ('wavelength','freequency')
 	for sp in space:    
-		os.system('rm figures/'+sp+'/*.pdf')
+		#os.system('rm figures/'+sp+'/*.pdf')
 		strings_large = ['convert figures/'+sp+'/0.png ']
 		for i in range(4):
 		    strings_large.append("convert ")
@@ -150,7 +150,7 @@ def animator_pdf_maker(rounds):
 		os.system('rm figures/wavelength/portA/*.png')
 		os.system('rm figures/wavelength/portB/*.png')
 		
-		os.system('rm figures/freequency/*.png')
-		os.system('rm figures/freequency/portA/*.png')
-		os.system('rm figures/freequency/portB/*.png')
+		#os.system('rm figures/freequency/*.png')
+		#os.system('rm figures/freequency/portA/*.png')
+		#os.system('rm figures/freequency/portB/*.png')
 		return None

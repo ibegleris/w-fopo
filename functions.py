@@ -100,9 +100,10 @@ def dispersion_operator(betas,lamda_c,int_fwm,sim_wind):
     		for k in range(j,len(betas.T)):
     			betap[i,j] += (1/factorial(fac))*betas[i,k] * (wc - w0)**(fac)
     			fac += 1
+    print(betap)
     w = sim_wind.w 
     Dop = np.zeros([int_fwm.nt,int_fwm.nm],dtype=np.complex)
-    alpha = np.reshape(int_fwm.alphadB,np.shape(Dop))
+    alpha = np.reshape(int_fwm.alpha,np.shape(Dop))
 
     Dop[:,:] = -fftshift(alpha/2)
 
