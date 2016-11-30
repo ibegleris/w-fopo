@@ -3,7 +3,7 @@ mpl.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-
+import h5py
 def plotter_dbm(nm,sim_wind,power_watts,u,which,filename=None,title=None,im = 0):
 	fig = plt.figure(figsize=(20.0, 10.0))
 	for ii in range(nm):
@@ -154,3 +154,18 @@ def animator_pdf_maker(rounds):
 		#os.system('rm figures/freequency/portA/*.png')
 		#os.system('rm figures/freequency/portB/*.png')
 		return None
+
+
+def read_variables(filename):
+    with h5py.File('output/'+str(filename)+'.hdf5','r') as ff:
+        D = {}
+        for i in ff.keys():
+            D[str(i)] = ff.get(str(i)).value
+    return D
+
+
+def save_variables(filename,**variables):
+    with h5py.File('output/'+str(filename)+'.hdf5','w') as f:
+        for i in (variables):
+            f.create_dataset(str(i), data=variables[i])
+    return None
