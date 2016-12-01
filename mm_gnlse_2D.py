@@ -90,7 +90,7 @@ def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2
 
 
 
-	plotter_dbm(int_fwm.nm,sim_wind,w2dbm(Uabs),u,0,'0','original pump',D_pic[0])
+	plotter_dbm(int_fwm.nm,sim_wind,w2dbm(Uabs),u,U,0,'00','original pump',D_pic[0])
 
 
 
@@ -109,7 +109,7 @@ def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2
 		print('round', ro)
 
 		pulse_pos_dict = ['round '+ str(ro)+', ' + i for i in pulse_pos_dict_or]
-		plotter_dbm(int_fwm.nm,sim_wind,w2dbm(Uabs),u,0,str(ro)+'1',pulse_pos_dict[3],D_pic[5])
+		plotter_dbm(int_fwm.nm,sim_wind,w2dbm(Uabs),u,U,0,str(ro)+'1',pulse_pos_dict[3],D_pic[5])
 		
 		#Splice4
 		utemp, Utemp, Uabstemp = splicer1.pass_through((U[:,:,0],noise_obj.noise_func_freq(int_fwm,sim_wind,fft)), sim_wind, fft, ifft)
@@ -117,7 +117,7 @@ def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2
 
 
 		u,U,Uabs = pulse_propagation(u,U,Uabs,int_fwm,M1,M2,sim_wind,hf,Dop,dAdzmm,fft,ifft)
-		plotter_dbm(int_fwm.nm,sim_wind,w2dbm(Uabs),u,-1,str(ro)+'2',pulse_pos_dict[0],D_pic[2])
+		plotter_dbm(int_fwm.nm,sim_wind,w2dbm(Uabs),u,U,-1,str(ro)+'2',pulse_pos_dict[0],D_pic[2])
 		
 
 
@@ -134,7 +134,7 @@ def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2
 		utemp, Utemp, Uabstemp = WDM2.pass_through((U[:,:,-1],noise_obj.noise_func_freq(int_fwm,sim_wind,fft)), sim_wind, fft, ifft)
 		u[:,:,-1], U[:,:,-1], Uabs[:,:,-1] = utemp[1], Utemp[1], Uabstemp[1]
 		out1, out2, out3 = utemp[0], Utemp[0], Uabstemp[0]
-		plotter_dbm(int_fwm.nm,sim_wind,w2dbm(Uabs),u,-1,str(ro)+'3',pulse_pos_dict[1],D_pic[3])
+		plotter_dbm(int_fwm.nm,sim_wind,w2dbm(Uabs),u,U,-1,str(ro)+'3',pulse_pos_dict[1],D_pic[3])
 
 		
 		#Splice7 after WDM2 for the signal
@@ -158,7 +158,8 @@ def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2
 		utemp, Utemp, Uabstemp = WDM3.pass_through((out2,noise_obj.noise_func_freq(int_fwm,sim_wind,fft)), sim_wind, fft, ifft)
 		out1, out2, out3 = utemp[0], Utemp[0], Uabstemp[0]
 		u_portA,U_portA, Uabs_portA = utemp[1], Utemp[1], Uabstemp[1]
-		plotter_dbm(int_fwm.nm,sim_wind,w2dbm(np.reshape(Uabs_portA,(len(sim_wind.t),int_fwm.nm,1))),u,-1,'portA/'+str(ro),'round '+str(ro)+', portA')
+		plotter_dbm(int_fwm.nm,sim_wind,w2dbm(np.reshape(Uabs_portA,(len(sim_wind.t),int_fwm.nm,1))),u,
+			np.reshape(U_portA,(len(sim_wind.t),int_fwm.nm,1)),-1,'portA/'+str(ro),'round '+str(ro)+', portA')
 		
 		#Splice9 before WDM4
 		utemp, Utemp, Uabstemp = splicer2.pass_through((out2,noise_obj.noise_func_freq(int_fwm,sim_wind,fft)), sim_wind, fft, ifft)
@@ -167,7 +168,8 @@ def lams_s_vary(wave,s_pos,from_pump,int_fwm,sim_wind,where,P0_p1,P0_s,Dop,M1,M2
 
 		utemp, Utemp, Uabstemp = WDM4.pass_through((out2,noise_obj.noise_func_freq(int_fwm,sim_wind,fft)), sim_wind, fft, ifft)
 		u_portB,U_portB, Uabs_portB = utemp[0], Utemp[0], Uabstemp[0]
-		plotter_dbm(int_fwm.nm,sim_wind,w2dbm(np.reshape(Uabs_portB,(len(sim_wind.t),int_fwm.nm,1))),u,-1,'portB/'+str(ro),'round '+str(ro)+', portB')
+		plotter_dbm(int_fwm.nm,sim_wind,w2dbm(np.reshape(Uabs_portB,(len(sim_wind.t),int_fwm.nm,1))),u,
+			np.reshape(U_portB,(len(sim_wind.t),int_fwm.nm,1)),-1,'portB/'+str(ro),'round '+str(ro)+', portB')
 		
 	u[:,:,-1],U[:,:,-1], Uabs[:,:,-1] = utemp[0], Utemp[0], Uabstemp[0]
 
@@ -244,7 +246,7 @@ def main():
 	"-----------------------------Stable parameters----------------------------"
 	n2 = 2.5e-20                			# n2 for silica [m/W]
 	nm = 1                      			# number of modes
-	alphadB = 0.0011666666666666668         # loss [dB/m]
+	alphadB = 0.0011666666666666668         # loss within fibre[dB/m]
 	gama = 10e-3 							# w/m
 	Power_input = 13                      	#[W]
 	"-----------------------------General options------------------------------"
@@ -282,15 +284,15 @@ def main():
 	"----------------------------------------------------------------------------"
 
 	print("The fft method that was found to be faster for your system is:", fft_method)
-	#pump_wavelengths = (1047.5,1047.9,1048.3,1048.6,1049.0,1049.5,1049.8,1050.2,1050.6,1051.0,1051.4)
+	pump_wavelengths = (1047.5,1047.9,1048.3,1048.6,1049.0,1049.5,1049.8,1050.2,1050.6,1051.0,1051.4)
 	#pump_wavelengths = (1047.5,)
-	pump_wavelengths = (1050.2,)
+	#pump_wavelengths = (1050.2,)
 	#sys.exit()
 	for i,lam_p1 in enumerate(pump_wavelengths):
 		mod_lam,lams_vec,P0_s_out,mod_pow,rounds = \
 						lam_p2_vary(lensig,lam_p1,Power_input,int_fwm,1
 							,gama,fft,ifft,par = False,grid_only = False,timing= False)
-		os.system('cp -r figures figures'+str(i))
+		os.system('cp -r output output_dump/output'+str(i))
 	print('\a')
 
 

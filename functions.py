@@ -10,7 +10,7 @@ from scipy.integrate import simps
 from scipy.fftpack import fftshift, ifftshift
 from math import isinf, factorial
 from integrand_and_rk import *
-from plotters_animators import *
+from data_plotters_animators import *
 import cmath
 phasor = np.vectorize(cmath.polar)
 try:
@@ -100,7 +100,7 @@ def dispersion_operator(betas,lamda_c,int_fwm,sim_wind):
     		for k in range(j,len(betas.T)):
     			betap[i,j] += (1/factorial(fac))*betas[i,k] * (wc - w0)**(fac)
     			fac += 1
-    print(betap)
+
     w = sim_wind.w 
     Dop = np.zeros([int_fwm.nt,int_fwm.nm],dtype=np.complex)
     alpha = np.reshape(int_fwm.alpha,np.shape(Dop))
@@ -241,7 +241,7 @@ class Loss(object):
         plt.plot(fv, y)
         plt.xlabel("Frequency (Thz)")
         plt.ylabel("Attenuation (cm -1 )")
-        plt.savefig("figures/loss_function_fibre.png",bbox_inches = 'tight')
+        plt.savefig("output/figures/WDMs&loss/loss_function_fibre.png",bbox_inches = 'tight')
        
 
 
@@ -307,7 +307,7 @@ class WDM(object):
         plt.xlabel(r'$\lambda (\mu m)$')
         plt.xlim((900,1250))
         plt.ylabel(r'$Insertion loss (dB)$')
-        plt.savefig('figures/WDM_high_'+str(self.x1)+'_low_'+str(self.x2)+'.png')
+        plt.savefig('output/figures/WDMs&loss/WDM_high_'+str(self.x1)+'_low_'+str(self.x2)+'.png')
         #plt.show()
         return None
 
@@ -321,7 +321,7 @@ class WDM(object):
         plt.ylabel(r'$Insertion loss (dB)$')
         plt.ylim(-60,0)
         plt.xlim((900,1250))
-        plt.savefig('figures/WDM_dB_high_'+str(self.x1)+'_low_'+str(self.x2)+'.png')
+        plt.savefig('output/figures/WDMs&loss/WDM_dB_high_'+str(self.x1)+'_low_'+str(self.x2)+'.png')
         #plt.show()
         return None
 

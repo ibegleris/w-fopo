@@ -1,3 +1,3 @@
 # SM-FOPO
 
-This repository has a view to firstly recreate the Fibre OPO that Zlobina et al. have experimentally measured and further to that be expanded.
+The repository holds the model of a unidirectional single mode FOPO based upon the system shown in. 

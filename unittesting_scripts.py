@@ -8,8 +8,7 @@ import numpy as np
 from scipy.io import loadmat
 from numpy.testing import assert_array_almost_equal
 from scipy.interpolate import InterpolatedUnivariateSpline
-import h5py
-from plotters_animators import *
+from data_plotters_animators import *
 "---------------------------------W and dbm conversion tests--------------"
 def test_dbm2w():
 	assert dbm2w(30) == 1
@@ -333,12 +332,13 @@ def test_read_write1():
 	A = np.random.rand(10,3,5) + 1j* np.random.rand(10,3,5)
 	B  = np.random.rand(10)
 	C = 1
-	save_variables('foor',A = A, B = B, C=C)
+	save_variables('/.testind_data_export/foor',A = A, B = B, C=C)
 	A_copy, B_copy, C_copy = np.copy(A), np.copy(B), np.copy(C)
 	del A,B,C
-	D = read_variables('foor')
+	D = read_variables('/.testind_data_export/foor')
 
 	A,B,C = D['A'], D['B'], D['C']
+	#locals().update(D)
 	assert_array_almost_equal(A,A_copy)
 	return None
 
@@ -347,11 +347,12 @@ def test_read_write2():
 	A = np.random.rand(10,3,5) + 1j* np.random.rand(10,3,5)
 	B  = np.random.rand(10)
 	C = 1
-	save_variables('foor',A = A, B = B, C=C)
+	save_variables('/.testind_data_export/foor',A = A, B = B, C=C)
 	A_copy, B_copy, C_copy = np.copy(A), np.copy(B), np.copy(C)
 	del A,B,C
-	D = read_variables('foor')
+	D = read_variables('/.testind_data_export/foor')
 	A,B,C = D['A'], D['B'], D['C']
+	#locals().update(D)
 	assert_array_almost_equal(B,B_copy)
 	return None
 
@@ -360,10 +361,11 @@ def test_read_write3():
 	A = np.random.rand(10,3,5) + 1j* np.random.rand(10,3,5)
 	B  = np.random.rand(10)
 	C = 1
-	save_variables('foor',A = A, B = B, C=C)
+	save_variables('/.testind_data_export/foor',A = A, B = B, C=C)
 	A_copy, B_copy, C_copy = np.copy(A), np.copy(B), np.copy(C)
 	del A,B,C
-	D = read_variables('foor')
+	D = read_variables('/.testind_data_export/foor')
 	A,B,C = D['A'], D['B'], D['C']
+	#locals().update(D)
 	assert C == C_copy
 	return None

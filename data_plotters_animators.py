@@ -1,10 +1,12 @@
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
+
 import numpy as np
 import os
 import h5py
-def plotter_dbm(nm,sim_wind,power_watts,u,which,filename=None,title=None,im = 0):
+
+def plotter_dbm(nm,sim_wind,power_watts,u,U,which,filename=None,title=None,im = 0):
 	fig = plt.figure(figsize=(20.0, 10.0))
 	for ii in range(nm):
 		plt.plot(sim_wind.lv,np.real(power_watts[:,ii,which]),'-*',label='mode'+str(ii))
@@ -24,7 +26,8 @@ def plotter_dbm(nm,sim_wind,power_watts,u,which,filename=None,title=None,im = 0)
 	if filename == None:
 		plt.show()
 	else:
-		plt.savefig("figures/wavelength/"+filename,bbox_inched='tight')
+		plt.savefig("output/figures/wavelength/"+filename,bbox_inched='tight')
+	
 	plt.close(fig)
 
 	fig = plt.figure(figsize=(20.0, 10.0))
@@ -45,7 +48,7 @@ def plotter_dbm(nm,sim_wind,power_watts,u,which,filename=None,title=None,im = 0)
 	if filename == None:
 		plt.show()
 	else:
-		plt.savefig("figures/freequency/"+filename,bbox_inched='tight')
+		plt.savefig("output/figures/freequency/"+filename,bbox_inched='tight')
 	plt.close(fig)
 
 
@@ -54,15 +57,24 @@ def plotter_dbm(nm,sim_wind,power_watts,u,which,filename=None,title=None,im = 0)
 	    plt.plot(sim_wind.t,np.abs(u[:,ii,which])**2,'*-',label='mode'+str(ii))
 	plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
 	plt.title("time space")
+	if type(im) != int:
+		newax = fig.add_axes([0.8, 0.8, 0.2, 0.2], anchor='NE')
+		newax.imshow(im)
+		newax.axis('off')
 	plt.grid()
 	plt.xlabel(r'$t(ps)$')
 	plt.ylabel(r'$Spectrum$')
-	#plt.xlim(xtlim)
-	plt.legend()
-	plt.savefig("figures/time_space"+str(which))
-	#plt.show()
+	plt.ylim([0,20])
+	plt.savefig("output/figures/time/"+filename)
 	plt.close(fig)
+
+	save_variables('data/'+filename,U=U, t = sim_wind.t, u = u, fv = sim_wind.fv,lv = sim_wind.lv,power_watts=power_watts,which = which,nm=nm)
 	return 0 
+
+def plotter_dbm_load():
+	#class sim_window(object):
+	plotter_dbm(nm, sim_wind, power_watts, u, which)
+	return None
 
 
 def plotter_dbm_lams_large(modes,sim_wind,U,which,lams_vec):
@@ -78,7 +90,7 @@ def plotter_dbm_lams_large(modes,sim_wind,U,which,lams_vec):
     #plt.ylim([-70,0])
     plt.xlim([900,1250])
     plt.xlim([np.min(sim_wind.lv),np.max(sim_wind.lv)])
-    plt.savefig("figures/wavelength/wavelength_space_final.png",bbox_inched='tight')
+    plt.savefig("output/figures/wavelength/wavelength_space_final.png",bbox_inched='tight')
     
     #plt.close('all')
    
@@ -92,14 +104,9 @@ def plotter_dbm_lams_large(modes,sim_wind,U,which,lams_vec):
     plt.ylabel(r'$Spectrum (a.u.)$',fontsize=18)
     plt.xlim([np.min(sim_wind.fv),np.max(sim_wind.fv)])
     plt.grid()
-    plt.savefig("figures/freequency/freequency_space_final.png",bbox_inched='tight')
+    plt.savefig("output/figures/freequency/freequency_space_final.png",bbox_inched='tight')
     
     plt.close('all')
-    
-    
-    
-    #plt.show()
-
     return 0
 
 
@@ -112,56 +119,57 @@ def animator_pdf_maker(rounds):
 
 	"""
 	print("making pdf's and animations.")
-	space = ('wavelength','freequency')
+	space = ('wavelength','freequency','time')
 	for sp in space:    
-		#os.system('rm figures/'+sp+'/*.pdf')
-		strings_large = ['convert figures/'+sp+'/0.png ']
+		file_loc = 'output/'+'figures/'+sp+'/'
+		strings_large = ['convert '+file_loc+'00.png ']
 		for i in range(4):
 		    strings_large.append("convert ")
 		for ro in range(rounds):
 			for i in range(4):
-			    strings_large[i+1] += 'figures/'+sp+'/'+str(ro)+str(i+1)+'.png '
+			    strings_large[i+1] += file_loc+str(ro)+str(i+1)+'.png '
 			for w in range(1,4):
 				if i ==5:
 					break
-				strings_large[0] += 'figures/'+sp+'/'+str(ro)+str(w)+'.png '
+				strings_large[0] += file_loc+str(ro)+str(w)+'.png '
 		for i in range(4):
-			os.system(strings_large[i]+'figures/'+sp+'/'+str(i)+'.pdf')
+			os.system(strings_large[i]+file_loc+str(i)+'.pdf')
 		
+		
+
+		file_loca = file_loc+'portA/'
+		file_locb = file_loc+'portB/' 
 		string_porta = 'convert '
 		string_portb = 'convert '
 		for i in range(rounds):
-			string_porta += 'figures/'+sp+'/portA/'+str(i)+'.png '
+			string_porta += file_loca + str(i) + '.png '
+			string_portb += file_loca + str(i) + '.png '
 
-			string_portb += 'figures/'+sp+'/portB/'+str(i)+'.png '
-		string_porta += 'figures/'+sp+'/portA/porta.pdf '
-		string_portb += 'figures/'+sp+'/portB/portab.pdf '
+		string_porta += file_loca+'porta.pdf '
+		string_portb += file_locb+'portb.pdf '
 		os.system(string_porta)
 		os.system(string_portb)
 		
 		for i in range(4):
-			os.system('convert -delay 30 figures/'+sp+'/'+str(i)+'.pdf figures/'+sp+'/'+str(i)+'.mp4')
-		os.system('convert -delay 30 ' 'figures/'+sp+'/portA/porta.pdf ' 'figures/'+sp+'/portA/portaa.mp4 ')
-		os.system('convert -delay 30 ' 'figures/'+sp+'/portB/portab.pdf ' 'figures/'+sp+'/portB/portab.mp4 ')
+			os.system('convert -delay 30 '+file_loc+str(i)+'.pdf '+file_loc+str(i)+'.mp4')
+		os.system('convert -delay 30 '+ file_loca +'porta.pdf ' +file_loca+'porta.mp4 ')
+		os.system('convert -delay 30 '+ file_locb +'portb.pdf ' +file_locb+'porta.mp4 ')
 		
-		os.system('sleep 5')
-		os.system('rm figures/*.png')
-		os.system('rm figures/wavelength/*.png')
-		os.system('rm figures/wavelength/portA/*.png')
-		os.system('rm figures/wavelength/portB/*.png')
-		
-		#os.system('rm figures/freequency/*.png')
-		#os.system('rm figures/freequency/portA/*.png')
-		#os.system('rm figures/freequency/portB/*.png')
-		return None
+	
+		for i in (file_loc,file_loca,file_locb):
+			os.system('rm '+ i +'*.png')
+	return None
 
 
-def read_variables(filename):
-    with h5py.File('output/'+str(filename)+'.hdf5','r') as ff:
-        D = {}
-        for i in ff.keys():
-            D[str(i)] = ff.get(str(i)).value
-    return D
+
+
+
+def read_variables(filename,filepath=''):
+	with h5py.File(filepath+str(filename)+'.hdf5','r') as ff:
+		D = {}
+		for i in ff.keys():
+		    D[str(i)] = ff.get(str(i)).value
+	return D
 
 
 def save_variables(filename,**variables):
