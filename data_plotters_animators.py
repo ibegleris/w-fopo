@@ -1,12 +1,12 @@
 import matplotlib as mpl
-mpl.use('Agg')
+#mpl.use('Agg')
 import matplotlib.pyplot as plt
 
 import numpy as np
 import os
 import h5py
 
-def plotter_dbm(nm,sim_wind,power_watts,u,U,which,filename=None,title=None,im = 0):
+def plotter_dbm(nm,sim_wind,power_watts,u,U,P0_p,P0_s,which,filename=None,title=None,im = 0):
 	fig = plt.figure(figsize=(20.0, 10.0))
 	for ii in range(nm):
 		plt.plot(sim_wind.lv,np.real(power_watts[:,ii,which]),'-*',label='mode'+str(ii))
@@ -57,18 +57,34 @@ def plotter_dbm(nm,sim_wind,power_watts,u,U,which,filename=None,title=None,im = 
 	    plt.plot(sim_wind.t,np.abs(u[:,ii,which])**2,'*-',label='mode'+str(ii))
 	plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
 	plt.title("time space")
+	plt.ylim([0,160])
+	plt.grid()
+	plt.xlabel(r'$t(ps)$')
+	plt.ylabel(r'$Spectrum$')
 	if type(im) != int:
 		newax = fig.add_axes([0.8, 0.8, 0.2, 0.2], anchor='NE')
 		newax.imshow(im)
 		newax.axis('off')
-	plt.grid()
-	plt.xlabel(r'$t(ps)$')
-	plt.ylabel(r'$Spectrum$')
-	plt.ylim([0,20])
-	plt.savefig("output/figures/time/"+filename)
+
+	
+	if filename == None:
+		plt.show()
+	else:
+
+		plt.savefig("output/figures/time/"+filename)
+
+		try:
+			save_variables('data_large', filename[:-1]+'/'+filename[-1],filepath = 'output/data/',U=U, t = sim_wind.t, u = u,
+		 					fv = sim_wind.fv, lv = sim_wind.lv, power_watts=power_watts,
+		 					 which = which,nm=nm,P0_p = P0_p, P0_s = P0_s)
+		except RuntimeError:
+			os.system('rm output/data/data_large.hdf5')
+			save_variables('data_large', filename[:-1]+'/'+filename[-1],filepath = 'output/data/',U=U, t = sim_wind.t, u = u,
+		 					fv = sim_wind.fv, lv = sim_wind.lv, power_watts=power_watts,
+		 					 which = which,nm=nm,P0_p = P0_p, P0_s = P0_s)
+			pass
 	plt.close(fig)
 
-	save_variables('data/'+filename,U=U, t = sim_wind.t, u = u, fv = sim_wind.fv,lv = sim_wind.lv,power_watts=power_watts,which = which,nm=nm)
 	return 0 
 
 def plotter_dbm_load():
@@ -153,27 +169,30 @@ def animator_pdf_maker(rounds):
 		for i in range(4):
 			os.system('convert -delay 30 '+file_loc+str(i)+'.pdf '+file_loc+str(i)+'.mp4')
 		os.system('convert -delay 30 '+ file_loca +'porta.pdf ' +file_loca+'porta.mp4 ')
-		os.system('convert -delay 30 '+ file_locb +'portb.pdf ' +file_locb+'porta.mp4 ')
+		os.system('convert -delay 30 '+ file_locb +'portb.pdf ' +file_locb+'portb.mp4 ')
 		
 	
 		for i in (file_loc,file_loca,file_locb):
+			print('rm '+ i +'*.png')
 			os.system('rm '+ i +'*.png')
+		os.system('sleep 5')
 	return None
 
 
 
 
 
-def read_variables(filename,filepath=''):
-	with h5py.File(filepath+str(filename)+'.hdf5','r') as ff:
+def read_variables(filename,layer,filepath=''):
+	with h5py.File(filepath+str(filename)+'.hdf5','r') as f:
 		D = {}
-		for i in ff.keys():
-		    D[str(i)] = ff.get(str(i)).value
+
+		for i in f.get(layer).keys():
+			print(layer + '/' + str(i))
+			D[str(i)] = f.get(layer + '/' + str(i)).value
 	return D
 
-
-def save_variables(filename,**variables):
-    with h5py.File('output/'+str(filename)+'.hdf5','w') as f:
+def save_variables(filename, layers,filepath = '',**variables):
+    with h5py.File(filepath + filename +'.hdf5','a') as f:
         for i in (variables):
-            f.create_dataset(str(i), data=variables[i])
+            f.create_dataset(layers+'/'+str(i), data=variables[i])
     return None

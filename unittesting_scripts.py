@@ -329,13 +329,15 @@ class Test_splicer():
 
 
 def test_read_write1():
+	os.system('rm testing_data/hh51_test.hdf5')
 	A = np.random.rand(10,3,5) + 1j* np.random.rand(10,3,5)
 	B  = np.random.rand(10)
 	C = 1
-	save_variables('/.testind_data_export/foor',A = A, B = B, C=C)
+	save_variables('hh51_test','0',filepath = 'testing_data/',
+					A = A, B = B, C=C)
 	A_copy, B_copy, C_copy = np.copy(A), np.copy(B), np.copy(C)
 	del A,B,C
-	D = read_variables('/.testind_data_export/foor')
+	D = read_variables('hh51_test', '0', filepath='testing_data/')
 
 	A,B,C = D['A'], D['B'], D['C']
 	#locals().update(D)
@@ -344,13 +346,16 @@ def test_read_write1():
 
 
 def test_read_write2():
+
+	os.system('rm testing_data/hh52_test.hdf5')
 	A = np.random.rand(10,3,5) + 1j* np.random.rand(10,3,5)
 	B  = np.random.rand(10)
 	C = 1
-	save_variables('/.testind_data_export/foor',A = A, B = B, C=C)
+	save_variables('hh52_test','0',filepath = 'testing_data/',
+					A = A, B = B, C=C)
 	A_copy, B_copy, C_copy = np.copy(A), np.copy(B), np.copy(C)
 	del A,B,C
-	D = read_variables('/.testind_data_export/foor')
+	D = read_variables('hh52_test', '0', filepath='testing_data/')
 	A,B,C = D['A'], D['B'], D['C']
 	#locals().update(D)
 	assert_array_almost_equal(B,B_copy)
@@ -358,13 +363,16 @@ def test_read_write2():
 
 
 def test_read_write3():
+
+	os.system('rm testing_data/hh53_test.hdf5')
 	A = np.random.rand(10,3,5) + 1j* np.random.rand(10,3,5)
 	B  = np.random.rand(10)
 	C = 1
-	save_variables('/.testind_data_export/foor',A = A, B = B, C=C)
+	save_variables('hh53_test','0',filepath = 'testing_data/',
+					A = A, B = B, C=C)
 	A_copy, B_copy, C_copy = np.copy(A), np.copy(B), np.copy(C)
 	del A,B,C
-	D = read_variables('/.testind_data_export/foor')
+	D = read_variables('hh53_test', '0', filepath='testing_data/')
 	A,B,C = D['A'], D['B'], D['C']
 	#locals().update(D)
 	assert C == C_copy

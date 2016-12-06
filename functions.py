@@ -12,6 +12,8 @@ from math import isinf, factorial
 from integrand_and_rk import *
 from data_plotters_animators import *
 import cmath
+#import h5py
+import pandas as pd
 phasor = np.vectorize(cmath.polar)
 try:
     import accelerate
@@ -496,3 +498,75 @@ def check_ft_grid(fv,diff):
         print(np.max(grid_error))
         sys.exit("your grid is not uniform")
     return 0
+
+"""
+class Conversion_efficiency(object):
+    def __init__(self,freq_band,fs,P0_p = None, P0_s = None,fv = None,spec = None,filename = None, filepath=''):
+        self.start = freq_band[0]
+        self.end = freq_band[1]
+        if spec is None:
+            if filename is not None:
+                spec,fv,P0_p, P0_s = self.load_spectrum(filename,filepath)
+            else:
+                sys.exit("No spectrum to look at")
+        self.fs = fs
+        self.P_s = P_s
+        self.P_p = P_p
+        self.fv = fv
+        self.spec = spec
+        self.Ein = spec[len(fv)//2] * fv[len(fv//2)]
+        self.av_power = self.power_signal_output()
+        self.CE = self.av_power/Ein
+        self.which = 0
+        return None
+    
+
+    def load_spectrum(self,filename,filepath=''):
+        D = read_variables(filename,filepath)
+        fv = D['fv']
+        U = D['U']
+        P0_s = D['P0_s']
+        P0_p = D['P0_p']
+        return np.abs(U)**2, fv, P0_p, P0_s
+    
+
+    def load_data(self,var):
+        with h5py.File('output_dump/CE'+'.hdf5','r') as ff:
+            D = {}
+            for i in ff.keys():
+                D[str(i)] = ff.get(str(i)).value
+            #D[var] 
+    return None
+    
+
+    def save_data(self):
+        with h5py.File('output_dump/CE'+'.hdf5','a') as f:
+            D = {'CE': self.CE, 'spectrum': self.spec,
+                 'fv' :self.fv, 'fs': self.fs,
+                 'P_s': self.P_s, 'P_p': self.P_p}
+            for i in (D):
+                f.create_dataset(self.which+'/'+ str(i), data = D[i])
+        return None
+    
+
+    def power_signal_output(self):
+        i = np.where(np.abs(self.fv - self.start) == np.min(np.abs(self.fv - self.start)))[0]
+        j = np.where(np.abs(self.fv - self.end) == np.min(np.abs(self.fv - self.end)))[0]
+        av_power = []
+        for i in range(np.shape(self.spec)[1]):
+            av_power.append(simps(self.spec[i:j,i, -1], fv[i:j]))
+        return np.asanyarray(av_power)
+    
+
+#    def plot_CE(self,var,filename = None):
+#        fig = plt.figure(figsize=(20.0, 10.0))
+#        plt.plot(var, 100*self.CE)
+#        plt.xlabel('variable')
+#        plt.ylabel("CE %")
+#        if filename is None:
+#            plt.show()
+#        else:
+#            plt.savefig(filename+'png',bbox_inches = 'tight')
+#        plt.close(fig)
+#        return None
+"""
