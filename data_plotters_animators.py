@@ -17,17 +17,25 @@ def plotter_dbm(index, nm, sim_wind, Uabs, u, U, P0_p, P0_s, f_p, f_s, which, fi
     plt.ylabel(r'$Spectrum (a.u.)$', fontsize=18)
     plt.ylim([-80, 80])
     plt.xlim([np.min(sim_wind.lv), np.max(sim_wind.lv)])
-    plt.xlim([900, 1250])
+    #plt.xlim([900, 1250])
     plt.title(title)
     plt.grid()
     if type(im) != int:
         newax = fig.add_axes([0.8, 0.8, 0.2, 0.2], anchor='NE')
         newax.imshow(im)
         newax.axis('off')
+    print('..........................')
+    print(np.min(sim_wind.lv), np.max(sim_wind.lv))
+    print(sim_wind.lv)
+    print('..........................')
+    print(np.min(sim_wind.fv), np.max(sim_wind.fv))
+    print(sim_wind.fv)
+    print('..........................')
     if filename == None:
         plt.show()
     else:
         plt.savefig("output/output"+str(index)+"/figures/wavelength/"+filename, bbox_inched='tight')
+
 
     plt.close(fig)
 

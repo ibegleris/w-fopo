@@ -488,7 +488,7 @@ def fv_creator(lam_start, lam_p1, int_fwm):
     diff = fv[1] - fv[0]
 
     for i in range(2**(int_fwm.N - 1)):
-        fv.append(fv[-1]+diff)
+        fv.append(fv[-1]-diff)
     fv = np.asanyarray(fv)
     check_ft_grid(fv, diff)
 

@@ -6,7 +6,7 @@ from scipy.fftpack import fft,ifft,fftshift
 scfft,iscfft = fft,ifft
 import numpy as np
 from scipy.io import loadmat
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal,assert_approx_equal,assert_almost_equal
 from scipy.interpolate import InterpolatedUnivariateSpline
 from data_plotters_animators import *
 "---------------------------------W and dbm conversion tests--------------"
@@ -377,3 +377,16 @@ def test_read_write3():
 	#locals().update(D)
 	assert C == C_copy
 	return None
+
+
+def test_fv_creator():
+	class int_fwm1(object):
+		def __init__(self):
+			self.N =  10
+
+	int_fwm = int_fwm1()
+	lam_start = 1000
+	lam_p1 = 1200
+	fv, where = fv_creator(lam_start, lam_p1, int_fwm)
+	mins = np.min(1e-3*c/fv)
+	assert_almost_equal(lam_start,mins)
