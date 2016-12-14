@@ -172,6 +172,8 @@ class sim_parameters(object):
         return None
 
 
+
+
 class sim_window(object):
 
     def __init__(self, fv, lamda, lamda_c, int_fwm):
@@ -533,4 +535,23 @@ def check_ft_grid(fv, diff):
         sys.exit("your grid is not uniform")
     return 0
 
+class create_destroy(object):
+    """
+    creates and destroys temp folder that is used for computation. Both methods needs to be run
+    before you initiate a new variable
+    """ 
+    def __init__(self, variable):
+        self.variable = variable
+        return None
 
+
+    def cleanup_folder(self):
+        for i in range(len(self.variable)):
+            os.system('rm -r output/output'+str(i))
+        return None
+
+
+    def prepare_folder(self):
+        for i in range(len(self.variable)):
+            os.system('cp -r output/output/ output/output'+str(i))
+        return None

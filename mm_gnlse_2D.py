@@ -355,8 +355,9 @@ def main():
     Power_inputs = (11,12,13,14,15)
     lam_p1 = pump_wavelengths[0]
 
-
-
+    _power = create_destroy(Power_inputs)
+    _power.prepare_folder()
+    
     if num_cores > 1:
         A = Parallel(n_jobs=num_cores)(delayed(lam_p2_vary)(lensig,i,lam_p1,Power_input,Power_signal,int_fwm,1
                             ,gama,fft,ifft,'pump_powers',par = False,grid_only = False,timing= False) for i, Power_input in enumerate(Power_inputs))
@@ -368,18 +369,23 @@ def main():
                 fft, ifft, 'pump_powers',par=False, grid_only=False, timing=False)
             
 
+    _power.cleanup_folder()
     
     print('\a')
-    #sys.exit()
+   
 
+    
+    _wavelength = create_destroy(Power_inputs)
+    
+
+
+    _wavelength.prepare_folder()
+    
     Power_input = 13
     pump_wavelengths = (1047.5, 1047.9, 1048.3, 1048.6,
                         1049.0, 1049.5, 1049.8, 1050.2, 1050.6, 1051.0, 1051.4)
     pump_wavelengths = tuple(np.arange(1047,1052.1,0.2))
-    #pump_wavelengths = (1047,1048, 1049, 1050)
-    for i,p in enumerate(pump_wavelengths):
-        os.system('rm -r output/output'+str(i))
-        os.system('cp -r output/output/ output/output'+str(i))
+
     if num_cores > 1:
         A = Parallel(n_jobs=num_cores)(delayed(lam_p2_vary)(lensig,i,lam_p1,Power_input,Power_signal,int_fwm,1
                             ,gama,fft,ifft,'pump_wavelengths',par = False,grid_only = False,timing= False) for i, lam_p1 in enumerate(pump_wavelengths))
@@ -390,8 +396,7 @@ def main():
         					lam_p2_vary(lensig,i,lam_p1,Power_input,Power_signal,int_fwm,1
         						,gama,fft,ifft,'pump_wavelengths',par = False,grid_only = False,timing= False)
 
-
-
+    _wavelength.cleanup_folder()
 
         
     return None
@@ -399,3 +404,6 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+
