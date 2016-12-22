@@ -360,11 +360,11 @@ def main():
         "The fft method that was found to be faster for your system is:", fft_method)
 
     
-    pump_wavelengths = (1048.885,)
+    pump_wavelengths = (1.0488816316376193e-06,)*1e9
 
     #Power_inputs = (3,3.5,4,4.5,5,5.5,6,6.5,7)
     Power_inputs = (3,4,5,6,7)
-    Power_inputs = (6,)
+    #Power_inputs = (6,)
     #Power_inputs = tuple(np.arange(4,7.1,0.1))
     #Power_inputs = (0,)
     lam_p1 = pump_wavelengths[0]
