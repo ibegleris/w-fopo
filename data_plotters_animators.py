@@ -4,83 +4,80 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import h5py
+import sys
 plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
 plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
-def plotter_dbm(index, nm, sim_wind, Uabs, u, U, P0_p, P0_s, f_p, f_s, which, filename=None, title=None, im=0):
-    fig = plt.figure(figsize=(20.0, 10.0))
-    for ii in range(nm):
-        plt.plot(sim_wind.lv, 
-            np.real(Uabs[:, ii, which]), '-*', label='mode'+str(ii))
-    #plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
-    #plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
-    plt.xlabel(r'$\lambda (nm)$', fontsize=18)
-    plt.ylabel(r'$Spectrum (a.u.)$', fontsize=18)
-    plt.ylim([-80, 80])
-    plt.xlim([np.min(sim_wind.lv), np.max(sim_wind.lv)])
-    #plt.xlim([900, 1250])
-    plt.title(title)
-    plt.grid()
-    if type(im) != int:
-        newax = fig.add_axes([0.8, 0.8, 0.2, 0.2], anchor='NE')
-        newax.imshow(im)
-        newax.axis('off')
-    print('..........................')
-    print(np.min(sim_wind.lv), np.max(sim_wind.lv))
-    print(sim_wind.lv)
-    print('..........................')
-    print(np.min(sim_wind.fv), np.max(sim_wind.fv))
-    print(sim_wind.fv)
-    print('..........................')
-    if filename == None:
-        plt.show()
-    else:
-        plt.savefig("output/output"+str(index)+"/figures/wavelength/"+filename, bbox_inched='tight')
+def plotter_dbm(index, nm, sim_wind, Uabs, u, U, P0_p, P0_s, f_p, f_s, which, filename=None, title=None, im=0, plots = True):
+    if plots == True:
+        fig = plt.figure(figsize=(20.0, 10.0))
+        for ii in range(nm):
+            plt.plot(sim_wind.lv, 
+                np.real(Uabs[:, ii, which]), '-*', label='mode'+str(ii))
+        #plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
+        #plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
+        plt.xlabel(r'$\lambda (nm)$', fontsize=18)
+        plt.ylabel(r'$Spectrum (a.u.)$', fontsize=18)
+        plt.ylim([-80, 80])
+        plt.xlim([np.min(sim_wind.lv), np.max(sim_wind.lv)])
+        #plt.xlim([900, 1250])
+        plt.title(title)
+        plt.grid()
+        if type(im) != int:
+            newax = fig.add_axes([0.8, 0.8, 0.2, 0.2], anchor='NE')
+            newax.imshow(im)
+            newax.axis('off')
+        if filename == None:
+            plt.show()
+        else:
+            plt.savefig("output/output"+str(index)+"/figures/wavelength/"+filename, bbox_inched='tight')
 
+        plt.close(fig)
 
-    plt.close(fig)
+        fig = plt.figure(figsize=(20.0, 10.0))
+        for ii in range(nm):
+            plt.plot(sim_wind.fv, 
+                np.real(Uabs[:, ii, which]), '-*', label='mode'+str(ii))
+        #plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
+        #plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
+        plt.xlabel(r'$f (THz)$', fontsize=18)
+        plt.ylabel(r'$Spectrum (a.u.)$', fontsize=18)
+        plt.xlim([np.min(sim_wind.fv), np.max(sim_wind.fv)])
+        plt.ylim([-80, 80])
+        plt.title(title)
+        plt.grid()
+        if type(im) != int:
+            newax = fig.add_axes([0.8, 0.8, 0.2, 0.2], anchor='NE')
+            newax.imshow(im)
+            newax.axis('off')
+        if filename == None:
+            plt.show()
+        else:
+            plt.savefig("output/output"+str(index)+"/figures/freequency/"+filename, bbox_inched='tight')
+        plt.close(fig)
 
-    fig = plt.figure(figsize=(20.0, 10.0))
-    for ii in range(nm):
-        plt.plot(sim_wind.fv, 
-            np.real(Uabs[:, ii, which]), '-*', label='mode'+str(ii))
-    #plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
-    #plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
-    plt.xlabel(r'$f (THz)$', fontsize=18)
-    plt.ylabel(r'$Spectrum (a.u.)$', fontsize=18)
-    plt.xlim([np.min(sim_wind.fv), np.max(sim_wind.fv)])
-    plt.ylim([-80, 80])
-    plt.title(title)
-    plt.grid()
-    if type(im) != int:
-        newax = fig.add_axes([0.8, 0.8, 0.2, 0.2], anchor='NE')
-        newax.imshow(im)
-        newax.axis('off')
-    if filename == None:
-        plt.show()
-    else:
-        plt.savefig("output/output"+str(index)+"/figures/freequency/"+filename, bbox_inched='tight')
-    plt.close(fig)
+        fig = plt.figure(figsize=(20.0, 10.0))
+        for ii in range(nm):
+            plt.plot(
+                sim_wind.t, np.abs(u[:, ii, which])**2, '*-', label='mode'+str(ii))
+        #plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
+        plt.title("time space")
+        plt.ylim([0, 160])
+        plt.grid()
+        plt.xlabel(r'$t(ps)$')
+        plt.ylabel(r'$Spectrum$')
+        if type(im) != int:
+            newax = fig.add_axes([0.8, 0.8, 0.2, 0.2], anchor='NE')
+            newax.imshow(im)
+            newax.axis('off')
 
-    fig = plt.figure(figsize=(20.0, 10.0))
-    for ii in range(nm):
-        plt.plot(
-            sim_wind.t, np.abs(u[:, ii, which])**2, '*-', label='mode'+str(ii))
-    #plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
-    plt.title("time space")
-    plt.ylim([0, 160])
-    plt.grid()
-    plt.xlabel(r'$t(ps)$')
-    plt.ylabel(r'$Spectrum$')
-    if type(im) != int:
-        newax = fig.add_axes([0.8, 0.8, 0.2, 0.2], anchor='NE')
-        newax.imshow(im)
-        newax.axis('off')
+        if filename == None:
+            plt.show()
+        else:
 
-    if filename == None:
-        plt.show()
-    else:
+            plt.savefig("output/output"+str(index)+"/figures/time/"+filename)
+        plt.close(fig)
 
-        plt.savefig("output/output"+str(index)+"/figures/time/"+filename)
+    if filename != None:
         if filename[:4] != 'port': 
             layer = filename[-1]+'/'+filename[:-1]
         else:
@@ -99,7 +96,6 @@ def plotter_dbm(index, nm, sim_wind, Uabs, u, U, P0_p, P0_s, f_p, f_s, which, fi
                            fv=sim_wind.fv, lv=sim_wind.lv, Uabs=Uabs,
                            which=which, nm=nm, P0_p=P0_p, P0_s=P0_s, f_p=f_p, f_s=f_s)
             pass
-    plt.close(fig)
 
     return 0
 

@@ -23,7 +23,7 @@ except ImportError:
 
 
 def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
-                where, P0_p1, P0_s, Dop, M1, M2, fft, ifft,index):
+                where, P0_p1, P0_s, Dop, M1, M2, fft, ifft,index,plots):
     if from_pump:
         s_pos = where[0] - wave
     else:
@@ -57,8 +57,10 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
     "----------------------Plot the inputs------------------------------------"
     #plotter_dbm(int_fwm.nm,sim_wind.lv,w2dbm(U),sim_wind.xl,sim_wind.t,u,sim_wind.xtlim,0)
     f_p,f_s = sim_wind.fv[int_fwm.nt//2], sim_wind.fv[s_pos]
+    #plotter_dbm(index,int_fwm.nm, sim_wind, w2dbm(Uabs), u, U, P0_p1,
+    #            P0_s, f_p, f_s, 0)
     #plotter_dbm(int_fwm.nm,sim_wind,w2dbm(Uabs),u,U, P0_p1, P0_s, f_p, f_s,0,filename=None,title=None,im = 0)
-    #sys.exit()
+
     "-------------------------------------------------------------------------"
 
     # bring the raman if needed
@@ -111,7 +113,7 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
     u[:, :, 0], U[:, :, 0], Uabs[:, :, 0] = utemp[0], Utemp[0], Uabstemp[0]
 
     plotter_dbm(index,int_fwm.nm, sim_wind, w2dbm(Uabs), u, U, P0_p1,
-                P0_s, f_p, f_s, 0, '00', 'original pump', D_pic[0])
+                P0_s, f_p, f_s, 0, '00', 'original pump', D_pic[0],plots)
 
     U_original_pump = np.copy(U[:, :, 0])
 
@@ -120,32 +122,36 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
         (U[:, :, 0], noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)
     u[:, :, 0], U[:, :, 0], Uabs[:, :, 0] = utemp[1], Utemp[1], Uabstemp[1]
 
-    rounds = 50
+    max_rounds = 200
 
-    for ro in range(rounds):
+    for ro in range(max_rounds):
         print('round', ro)
 
         pulse_pos_dict = [
             'round ' + str(ro)+', ' + i for i in pulse_pos_dict_or]
         plotter_dbm(index,int_fwm.nm, sim_wind, w2dbm(Uabs), u, U, P0_p1,
-                    P0_s, f_p, f_s, 0, str(ro)+'1', pulse_pos_dict[3], D_pic[5])
+                    P0_s, f_p, f_s, 0, str(ro)+'1', pulse_pos_dict[3], D_pic[5],plots)
 
+
+        #print('power_init:', P0_p1,'power_after',np.average((np.abs(u[:,:,0])**2)))
+       
         # Splice4
         utemp, Utemp, Uabstemp = splicer1.pass_through(
             (U[:, :, 0], noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)
         u[:, :, 0], U[:, :, 0], Uabs[:, :, 0] = utemp[0], Utemp[0], Uabstemp[0]
-
+    
         u, U, Uabs = pulse_propagation(
             u, U, Uabs, int_fwm, M1, M2, sim_wind, hf, Dop, dAdzmm, fft, ifft)
         plotter_dbm(index,int_fwm.nm, sim_wind, w2dbm(Uabs), u, U, P0_p1,
-                    P0_s, f_p, f_s, -1, str(ro)+'2', pulse_pos_dict[0], D_pic[2])
+                    P0_s, f_p, f_s, -1, str(ro)+'2', pulse_pos_dict[0], D_pic[2],plots)
 
         # Twice through splices after propagation
         # Splice5
         utemp, Utemp, Uabstemp = splicer1.pass_through(
             (U[:, :, -1], noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)
-        u[:, :, -1], U[:, :, -1], Uabs[:,
-                                       :, -1] = utemp[0], Utemp[0], Uabstemp[0]
+        u[:, :, -1], U[:, :, -1], Uabs[:,:, -1] = utemp[0], Utemp[0], Uabstemp[0]
+
+
 
         # Splice6
         utemp, Utemp, Uabstemp = splicer2.pass_through(
@@ -156,26 +162,26 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
         # pass through WDM2 port 2 continues and port 1 is out of the loop
         utemp, Utemp, Uabstemp = WDM2.pass_through(
             (U[:, :, -1], noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)
-        u[:, :, -1], U[:, :, -1], Uabs[:,
-                                       :, -1] = utemp[1], Utemp[1], Uabstemp[1]
+        
+        u[:, :, -1], U[:, :, -1], Uabs[:,:, -1] = utemp[1], Utemp[1], Uabstemp[1]
         out1, out2, out3 = utemp[0], Utemp[0], Uabstemp[0]
+        
         plotter_dbm(index,int_fwm.nm, sim_wind, w2dbm(Uabs), u, U, P0_p1,
-                    P0_s, f_p, f_s, -1, str(ro)+'3', pulse_pos_dict[1], D_pic[3])
+                    P0_s, f_p, f_s, -1, str(ro)+'3', pulse_pos_dict[1], D_pic[3],plots)
 
         # Splice7 after WDM2 for the signal
         utemp, Utemp, Uabstemp = splicer2.pass_through(
             (U[:, :, -1], noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)
-        u[:, :, -1], U[:, :, -1], Uabs[:,
-                                       :, -1] = utemp[0], Utemp[0], Uabstemp[0]
+        u[:, :, -1], U[:, :, -1], Uabs[:,:, -1] = utemp[0], Utemp[0], Uabstemp[0]
 
         # Pass again through WDM1 with the signal now
         utemp, Utemp, Uabstemp = WDM1.pass_through(
             (U_original_pump, U[:, :, -1]), sim_wind, fft, ifft)
         u[:, :, 0], U[:, :, 0], Uabs[:, :, 0] = utemp[1], Utemp[1], Uabstemp[1]
+        
 
         ################################The outbound stuff#####################
         # Splice8 before WDM3
-
         utemp, Utemp, Uabstemp = splicer2.pass_through(
             (out2, noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)
         out1, out2, out3 = utemp[0], Utemp[0], Uabstemp[0]
@@ -191,7 +197,7 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
         plotter_dbm(index,int_fwm.nm, sim_wind, Uabs_portA , u_portA,
                     U_portA, P0_p1, P0_s, f_p, f_s,
                     -1, 'portA/'+str(ro), 
-                    'round '+str(ro)+', portA')
+                    'round '+str(ro)+', portA',plots=plots)
         # Splice9 before WDM4
         utemp, Utemp, Uabstemp = splicer2.pass_through(
             (out2, noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)
@@ -209,7 +215,8 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 
         plotter_dbm(index,int_fwm.nm, sim_wind, Uabs_portB , u_portB,
                     U_portB, P0_p1, P0_s, f_p, f_s, -1, 'portB/'+str(ro),
-                    'round '+str(ro)+', portB')
+                    'round '+str(ro)+', portB',plots=plots)
+    
 
     u[:, :, -1], U[:, :, -1], Uabs[:, :, -1] = utemp[0], Utemp[0], Uabstemp[0]
 
@@ -217,14 +224,14 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
     power_dbm = np.reshape(w2dbm(np.abs(Uabs_portB[:,0,0])), (len(sim_wind.t), 1))
     max_norm = np.max(power_dbm)
 
-    return power_dbm, s_pos, max_norm, rounds
+    return power_dbm, s_pos, max_norm, max_rounds
 
 
 def sfft(x):
     return scifft.fft(x.T).T
 def isfft(x):
     return scifft.ifft(x.T).T
-def lam_p2_vary(lam_s_max,pump_index, lam_p1, power_pump_input,power_signal_input, int_fwm, plot_conv, gama, fft, ifft, where_save,par=False, grid_only=False, timing=False):
+def lam_p2_vary(lam_s_max,pump_index, lam_p1, power_pump_input,power_signal_input, int_fwm, plot_conv, gama, fft, ifft, where_save,plots,par=False, grid_only=False, timing=False):
 
     P0_p1 = power_pump_input  # [w]
     P0_s = power_signal_input  # [w]
@@ -235,18 +242,22 @@ def lam_p2_vary(lam_s_max,pump_index, lam_p1, power_pump_input,power_signal_inpu
     "----------------------Obtain the Q matrixes------------------------------"
     M1, M2 = Q_matrixes(int_fwm.nm, int_fwm.n2, lamda, gama)
     "-------------------------------------------------------------------------"
+    print(lam_p1)
     fv, where = fv_creator(700, lam_p1, int_fwm)
     sim_wind = sim_window(fv, lamda, lamda_c, int_fwm)
+
     if grid_only:
         return sim_wind
+
+
     #int_fwm.alphadB = 0.0011666666666666668
-    loss = Loss(int_fwm, sim_wind, amax=4, apart_div=(350, 500))
-    print(loss.alpha)
+    slice_from_edge = (sim_wind.fv[-1] - sim_wind.fv[0])/8
+    loss = Loss(int_fwm, sim_wind, amax=int_fwm.alphadB , apart_div=(sim_wind.fv[0] + slice_from_edge, sim_wind.fv[-1] - slice_from_edge))
     #loss.plot(fv)
     int_fwm.alpha = loss.atten_func_full(fv)
     "------------------------------Dispersion operator--------------------------------------"
     # betas at ps/m (given in ps/km)
-    betas = np.array([[0, 0, 0, 6.755e-2, -1.001e-4]])*1e-3
+    betas = np.array([[0, 0, 0, 6.755e-2, -1.001e-4, 3.671e-7]])*1e-3
     Dop = dispersion_operator(betas, lamda_c, int_fwm, sim_wind)
 
     "---------------------------------------------------------------------------------------"
@@ -279,8 +290,8 @@ def lam_p2_vary(lam_s_max,pump_index, lam_p1, power_pump_input,power_signal_inpu
     else:
         for ii, wave in enumerate(waves):
             os.system('cp -r output output_dump/output'+str(ii))
-            UU[ii, :, :], s_pos_vec[ii], mod, rounds = lams_s_vary(
-                wave, where[0], True, int_fwm, sim_wind, where, P0_p1, P0_s, Dop, M1, M2, fft, ifft,pump_index)
+            UU[ii, :, :], s_pos_vec[ii], mod, max_rounds = lams_s_vary(
+                wave, where[0], True, int_fwm, sim_wind, where, P0_p1, P0_s, Dop, M1, M2, fft, ifft,pump_index,plots)
             P0_s_out[ii] = np.real(UU[ii, s_pos_vec[ii], 0])
             # break
             
@@ -288,9 +299,10 @@ def lam_p2_vary(lam_s_max,pump_index, lam_p1, power_pump_input,power_signal_inpu
     lam_p2_nm = sim_wind.lv[-where[-1]]
 
     #plotter_dbm_lams_large([0], sim_wind, UU, -1, lams_vec)
-    animator_pdf_maker(rounds,pump_index)
-    print('cp -r output/output'+ str(pump_index)+' output_dump_'+where_save+'/output'+str(pump_index))
-    os.system('cp -r output/output'+ str(pump_index)+' output_dump_'+where_save+'/output'+str(pump_index))
+    if plots:
+    	animator_pdf_maker(max_rounds,pump_index)
+    print('mv -r output/output'+ str(pump_index)+' output_dump_'+where_save+'/output'+str(pump_index))
+    os.system('mv output/output'+ str(pump_index)+' output_dump_'+where_save+'/output'+str(pump_index))
     return 0
 
 
@@ -302,14 +314,14 @@ def main():
     gama = 10e-3 							# w/m
     Power_input = 13  # [W]
     Power_signal = 0  # [W]
-    num_cores = 4
+    num_cores = 1
     "-----------------------------General options------------------------------"
 
     maxerr = 1e-13            				# maximum tolerable error per step
     ss = 1                      			# includes self steepening term
     ram = 'on'                  			# Raman contribution 'on' if yes
-    # and 'off' if no
-
+                                            # and 'off' if no
+    plots = True 							# Do you want plots, be carefull it makes the code very slow!
     "----------------------------Simulation parameters-------------------------"
     N = 13
     z = 18						# total distance [m]
@@ -318,7 +330,6 @@ def main():
     dzstep = z/nplot            # distance per step
     dz_less = 1e4
     dz = dzstep/dz_less         # starting guess value of the step
-    print(dz)
     wavelength_space = True    	# Set wavelength space for grid calculation
 
     int_fwm = sim_parameters(n2, nm, alphadB)
@@ -336,7 +347,7 @@ def main():
 
     lv = lam_p2_vary(
         2, 0,lam_p1, Power_input,Power_signal,int_fwm, 0, gama, fft, ifft,
-             'pump_wavelengths',par = False,grid_only = True,timing= False).lv[::-1]
+             'pump_wavelengths',False,par = False,grid_only = True,timing= False).lv[::-1]
 
     lv_lams = np.abs(np.asanyarray(lv) - lams_max_asked)
     lams_index = np.where(lv_lams == np.min(lv_lams))[0][0]+1
@@ -348,52 +359,59 @@ def main():
     print(
         "The fft method that was found to be faster for your system is:", fft_method)
 
+    
+    pump_wavelengths = (1048.885,)
 
-    pump_wavelengths = (1048.1,)
-
-
-    Power_inputs = (11,12,13,14,15)
+    #Power_inputs = (3,3.5,4,4.5,5,5.5,6,6.5,7)
+    Power_inputs = (3,4,5,6,7)
+    Power_inputs = (6,)
+    #Power_inputs = tuple(np.arange(4,7.1,0.1))
+    #Power_inputs = (0,)
     lam_p1 = pump_wavelengths[0]
-
+    #Power_input = (13,)
     _power = create_destroy(Power_inputs)
     _power.prepare_folder()
-    
+    #Power_inputs = (6,6.5,7)
+    #iters = (6,7,8)
+    #iters, Power_inputs = ()
     if num_cores > 1:
         A = Parallel(n_jobs=num_cores)(delayed(lam_p2_vary)(lensig,i,lam_p1,Power_input,Power_signal,int_fwm,1
-                            ,gama,fft,ifft,'pump_powers',par = False,grid_only = False,timing= False) for i, Power_input in enumerate(Power_inputs))
+                            ,gama,fft,ifft,'pump_powers',plots,par = False,grid_only = False,timing= False) for i, Power_input in enumerate(Power_inputs))
     else:
 
         for i, Power_input in enumerate(Power_inputs):
-            A = \
-                lam_p2_vary(lensig, i,lam_p1, Power_input,Power_signal, int_fwm, 1, gama,
-                fft, ifft, 'pump_powers',par=False, grid_only=False, timing=False)
+            A = lam_p2_vary(lensig, i,lam_p1, Power_input,Power_signal, int_fwm, 1, gama,
+                fft, ifft, 'pump_powers',plots,par=False, grid_only=False, timing=False)
             
 
+
     _power.cleanup_folder()
-    
+ 
     print('\a')
    
+    sys.exit()
 
     
-    _wavelength = create_destroy(Power_inputs)
     
+    Power_input = 5
+    pump_wavelengths = (1047.5, 1047.9, 1048.3, 1048.6,
+                        1049.0, 1049.5, 1049.8, 1050.2, 1050.6, 1051.0, 1051.4)
+    pump_wavelengths = tuple(np.arange(1045,1052.1,0.2))
+    #pump_wavelengths = (1051.8,1052)
+    #iters = (24,25)
+    _wavelength = create_destroy(pump_wavelengths)
+    #zip(iters, pump_wavelengths)
 
 
     _wavelength.prepare_folder()
-    
-    Power_input = 13
-    pump_wavelengths = (1047.5, 1047.9, 1048.3, 1048.6,
-                        1049.0, 1049.5, 1049.8, 1050.2, 1050.6, 1051.0, 1051.4)
-    pump_wavelengths = tuple(np.arange(1047,1052.1,0.2))
-
+    #print(pump_wavelengths)
     if num_cores > 1:
         A = Parallel(n_jobs=num_cores)(delayed(lam_p2_vary)(lensig,i,lam_p1,Power_input,Power_signal,int_fwm,1
                             ,gama,fft,ifft,'pump_wavelengths',par = False,grid_only = False,timing= False) for i, lam_p1 in enumerate(pump_wavelengths))
     else:
         print('going parrallel')
         for i,lam_p1 in enumerate(pump_wavelengths):
-        	A = \
-        					lam_p2_vary(lensig,i,lam_p1,Power_input,Power_signal,int_fwm,1
+        	A = lam_p2_vary(lensig,i,lam_p1,Power_input,Power_signal,int_fwm,1
         						,gama,fft,ifft,'pump_wavelengths',par = False,grid_only = False,timing= False)
 
     _wavelength.cleanup_folder()

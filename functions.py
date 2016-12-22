@@ -23,7 +23,8 @@ try:
     vectorize, float64, complex128 = numba.vectorize, numba.float64, numba.complex128
 except ImportError:
     print(
-        "install the accelerate packadge from anaconda or change the source code ie remove references to @jit and accelerate imports")
+        "install the accelerate packadge from anaconda or change \
+        the source code ie remove references to @jit and accelerate imports")
     pass
 
 
@@ -94,15 +95,18 @@ def dispersion_operator(betas, lamda_c, int_fwm, sim_wind):
     """
     Calculates the dispersion operator in rad/m units
     INputed are the dispersion operators at the omega0
-    LOcal include the taylor expansion to get these opeators at omegac 
+    Local include the taylor expansion to get these opeators at omegac 
     Returns Dispersion operator
     """
+    #print(betas)
     c_norm = c*1e-12  # Speed of light [m/ps] #Central wavelength [nm]
     wc = 2*pi * c_norm / sim_wind.lamda
     w0 = 2*pi * c_norm / lamda_c
     betap = np.zeros_like(betas)
     for i in range(int_fwm.nm):
         for j in range(len(betas.T)):
+            if j ==0:
+                betap[i,j] = betas[i,j]
             fac = 0
             for k in range(j, len(betas.T)):
                 betap[i, j] += (1/factorial(fac)) * \
@@ -112,7 +116,9 @@ def dispersion_operator(betas, lamda_c, int_fwm, sim_wind):
     w = sim_wind.w
     Dop = np.zeros([int_fwm.nt, int_fwm.nm], dtype=np.complex)
     alpha = np.reshape(int_fwm.alpha, np.shape(Dop))
-
+    
+    #print(betap)
+    #sys.exit()
     Dop[:, :] = -fftshift(alpha/2)
 
     # set the fundemental betas as the one of the first mode
@@ -209,6 +215,7 @@ class sim_window(object):
         # space vector [m]
         self.zv = int_fwm.dzstep*np.asarray(range(0, int_fwm.nplot+1))
         self.xtlim = np.array([-self.T/2, self.T/2])  # time limits (for plots)
+       
 class Loss(object):
 
     def __init__(self, int_fwm, sim_wind, amax=None, apart_div=8):
@@ -356,23 +363,15 @@ class Splicer(WDM):
 
     def U_calc(self, U_in):
         """
-        Operates like a beam splitter that reduces the optical power by the loss given (in dB). 
-        The original idea of this function was for a splice loss hence the idea of the noise object to make sure 
-        that we dont go under quantum noise. Unfortunately it assumes that there is no change in the phase of the complex 
-        number but only to the modulus.
-        NOTE:!
-        MAKE SURE THAT YOU HAVE VECTORIZED cmath.polar with numpy vectorize!!!! 
+        Operates like a beam splitter that reduces the optical power by the loss given (in dB).
+
         """
-        U, noise_obj = U_in
-        temp1 = (U*np.conj(U) * 10**(-0.1*self.loss) + noise_obj *
-                 np.conj(noise_obj) * (1 - 10**(-0.1*self.loss)))**0.5
-        temp2 = (U*np.conj(U) * (1 - 10**(-0.1*self.loss)) +
-                 noise_obj*np.conj(noise_obj) * 10**(-0.1*self.loss))**0.5
 
-        U_1_phasor, U_2_phasor = phasor(U), phasor(noise_obj)
+        c1 = 10**(-0.1*self.loss/2)
+        c2 = (1 - 10**(-0.1*self.loss))**0.5
 
-        U_out1 = temp1 * np.exp(1j*U_1_phasor[1])
-        U_out2 = temp2 * np.exp(1j*U_2_phasor[1])
+        U_out1 = U_in[0] * c1 + U_in[1] * c2
+        U_out2 = U_in[1] * c1 - U_in[0] * c2
         return U_out1, U_out2
 
 
@@ -394,8 +393,6 @@ class Noise(object):
     def noise_func_freq(self, int_fwm, sim_wind, fft):
         noise = self.noise_func(int_fwm)
         noise_freq = fftshift(sim_wind.dt * fft(noise), axes=(0,))
-        # print(np.average(noise_freq))
-        # sys.exit()
         return noise_freq
 
 
@@ -488,12 +485,12 @@ def fv_creator(lam_start, lam_p1, int_fwm):
     diff = fv[1] - fv[0]
 
     for i in range(2**(int_fwm.N - 1)):
-        fv.append(fv[-1]-diff)
+        fv.insert(0,fv[0]-diff)
     fv = np.asanyarray(fv)
     check_ft_grid(fv, diff)
 
     where = [2**(int_fwm.N-1)]
-
+    lv = 1e-3*c/fv
     return fv, where
 
 

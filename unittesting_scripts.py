@@ -6,7 +6,7 @@ from scipy.fftpack import fft,ifft,fftshift
 scfft,iscfft = fft,ifft
 import numpy as np
 from scipy.io import loadmat
-from numpy.testing import assert_array_almost_equal,assert_approx_equal,assert_almost_equal
+from numpy.testing import assert_array_almost_equal,assert_approx_equal,assert_almost_equal,assert_raises
 from scipy.interpolate import InterpolatedUnivariateSpline
 from data_plotters_animators import *
 "---------------------------------W and dbm conversion tests--------------"
@@ -390,3 +390,21 @@ def test_fv_creator():
 	fv, where = fv_creator(lam_start, lam_p1, int_fwm)
 	mins = np.min(1e-3*c/fv)
 	assert_almost_equal(lam_start,mins)
+
+
+def test_noise():
+	class sim_windows(object):
+		def __init__(self):
+			self.w = 10 
+			self.T = 0.1
+			self.w0 = 9
+	class int_fwms(object):
+		def __init__(self):
+			self.nt = 1024
+			self.nm = 1	
+	int_fwm = int_fwms()
+	sim_wind = sim_windows()	
+	noise = Noise(sim_wind)
+	n1 = noise.noise_func(int_fwm)
+	n2 = noise.noise_func(int_fwm)
+	assert_raises(AssertionError, assert_almost_equal, n1, n2)
