@@ -141,7 +141,7 @@ def Q_matrixes(nm, n2, lamda, gama=None):
         M2[:, :] -= 1
         M1[0:4] -= 1
         M1[-1] -= 1
-        if gama != None:
+        if gama is None:
             M1[4] = gama / (3*n2*(2*pi/lamda))
             M1[5] = gama / (3*n2*(2*pi/lamda))
     if nm == 2:
@@ -318,40 +318,54 @@ class WDM(object):
 
         return u_out, U_out, U_true
 
-    def il_port1(self, lamda):
-        return (np.sin(self.fv))**2
+    def il_port1(self, lamda = None):
+        if lamda is not None:
+            return (np.sin(self.omega*lamda+self.phi))**2
+        else:
+            return (np.sin(self.fv))**2
 
-    def il_port2(self, lamda):
-        return (np.cos(self.fv))**2
 
-    def plot(self, lamda):
+    def il_port2(self, lamda = None):
+        if lamda is not None:
+            return (np.cos(self.omega*lamda+self.phi))**2
+        else:
+            return (np.cos(self.fv))**2
+
+    def plot(self, lamda,filename= True):
         fig = plt.figure()
-        plt.plot(lamda, self.il_port1(lamda), label="%0.2f" %
+        plt.plot(lamda, self.il_port1(), label="%0.2f" %
                  (self.x1*1e9) + ' nm port')
-        plt.plot(lamda, self.il_port2(lamda), label="%0.2f" %
+        plt.plot(lamda, self.il_port2(), label="%0.2f" %
                  (self.x2*1e9) + ' nm port')
         plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.13), ncol=2)
         plt.xlabel(r'$\lambda (\mu m)$')
         plt.xlim((900, 1250))
         plt.ylabel(r'$Insertion loss (dB)$')
-        plt.savefig(
-            'output/figures/WDMs&loss/WDM_high_'+str(self.x1)+'_low_'+str(self.x2)+'.png')
+        if filename:
+            plt.savefig(
+                'output/WDMs&loss/WDM_high_'+str(self.x1)+'_low_'+str(self.x2)+'.png')
+        else: 
+            plt.show()
         plt.close(fig)
         return None
 
-    def plot_dB(self, lamda):
+    def plot_dB(self, lamda,filename = True):
         fig = plt.figure()
-        plt.plot(lamda, 10*np.log10(self.il_port1(lamda)),
+        plt.plot(lamda, 10*np.log10(self.il_port1()),
                  label="%0.2f" % (self.x1*1e9) + ' nm port')
-        plt.plot(lamda, 10*np.log10(self.il_port2(lamda)),
+        plt.plot(lamda, 10*np.log10(self.il_port2()),
                  label="%0.2f" % (self.x2*1e9) + ' nm port')
         plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.13), ncol=2)
         plt.xlabel(r'$\lambda (\mu m)$')
         plt.ylabel(r'$Insertion loss (dB)$')
         plt.ylim(-60, 0)
         plt.xlim((900, 1250))
-        plt.savefig('output/figures/WDMs&loss/WDM_dB_high_' +
+        if filename:
+        
+            plt.savefig('output/WDMs&loss/WDM_dB_high_' +
                     str(self.x1)+'_low_'+str(self.x2)+'.png')
+        else:
+            plt.show()
         plt.close(fig)
         return None
 

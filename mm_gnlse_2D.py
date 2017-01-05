@@ -86,15 +86,20 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
     WDM2 = WDM(930, 1200, sim_wind.lv)
     WDM3 = WDM(930, 1050, sim_wind.lv)
     WDM4 = WDM(930, 1200, sim_wind.lv)
-
-    #WDM1.plot(sim_wind.lv)
-    #WDM2.plot(sim_wind.lv)
-    #WDM3.plot(sim_wind.lv)
-    #WDM4.plot(sim_wind.lv)
-
+    """
+    WDM1.plot(sim_wind.lv)
+    WDM2.plot(sim_wind.lv)
+    WDM3.plot(sim_wind.lv)
+    WDM4.plot(sim_wind.lv)
+    WDM1.plot_dB(sim_wind.lv)
+    WDM2.plot_dB(sim_wind.lv)
+    WDM3.plot_dB(sim_wind.lv)
+    WDM4.plot_dB(sim_wind.lv)
+    """
+    
     # Define the splicer object
-    splicer1 = Splicer(loss=0.5)
-    splicer2 = Splicer(loss=0.2)
+    splicer1 = Splicer(loss=0.2)
+    splicer2 = Splicer(loss=0.1)
     # Pass the original pump through its 3 splice losses.
 
     # Splice1
@@ -314,14 +319,14 @@ def main():
     gama = 10e-3 							# w/m
     Power_input = 13  # [W]
     Power_signal = 0  # [W]
-    num_cores = 1
+    num_cores = 4
     "-----------------------------General options------------------------------"
 
     maxerr = 1e-13            				# maximum tolerable error per step
     ss = 1                      			# includes self steepening term
     ram = 'on'                  			# Raman contribution 'on' if yes
                                             # and 'off' if no
-    plots = True 							# Do you want plots, be carefull it makes the code very slow!
+    plots = False  							# Do you want plots, be carefull it makes the code very slow!
     "----------------------------Simulation parameters-------------------------"
     N = 13
     z = 18						# total distance [m]
@@ -360,10 +365,9 @@ def main():
         "The fft method that was found to be faster for your system is:", fft_method)
 
     
-    pump_wavelengths = (1.0488816316376193e-06,)*1e9
-
+    pump_wavelengths = (1.0488816316376193e-06*1e9,)
     #Power_inputs = (3,3.5,4,4.5,5,5.5,6,6.5,7)
-    Power_inputs = (3,4,5,6,7)
+    Power_inputs = (3,4,4.5,5,5.5,6,6.5,7)
     #Power_inputs = (6,)
     #Power_inputs = tuple(np.arange(4,7.1,0.1))
     #Power_inputs = (0,)
