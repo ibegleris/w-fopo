@@ -98,8 +98,8 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
     """
     
     # Define the splicer object
-    splicer1 = Splicer(loss=0.2)
-    splicer2 = Splicer(loss=0.1)
+    splicer1 = Splicer(loss=0.4895)
+    splicer2 = Splicer(loss=0.225630004434)
     # Pass the original pump through its 3 splice losses.
 
     # Splice1
