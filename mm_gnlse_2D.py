@@ -6,7 +6,6 @@ from joblib import Parallel, delayed
 from scipy.fftpack import fftshift, ifftshift
 import multiprocessing
 import sys
-#import dill
 import os
 from functions import *
 from fft_module import *
@@ -127,7 +126,7 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
         (U[:, :, 0], noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)
     u[:, :, 0], U[:, :, 0], Uabs[:, :, 0] = utemp[1], Utemp[1], Uabstemp[1]
 
-    max_rounds = 200
+    max_rounds = 256
 
     for ro in range(max_rounds):
         print('round', ro)
@@ -304,8 +303,8 @@ def lam_p2_vary(lam_s_max,pump_index, lam_p1, power_pump_input,power_signal_inpu
     lam_p2_nm = sim_wind.lv[-where[-1]]
 
     #plotter_dbm_lams_large([0], sim_wind, UU, -1, lams_vec)
-    if plots:
-    	animator_pdf_maker(max_rounds,pump_index)
+    #if plots:
+    #	animator_pdf_maker(max_rounds,pump_index)
     print('mv -r output/output'+ str(pump_index)+' output_dump_'+where_save+'/output'+str(pump_index))
     os.system('mv output/output'+ str(pump_index)+' output_dump_'+where_save+'/output'+str(pump_index))
     return 0
@@ -317,16 +316,16 @@ def main():
     nm = 1                      			# number of modes
     alphadB = 0.0011666666666666668         # loss within fibre[dB/m]
     gama = 10e-3 							# w/m
-    Power_input = 13  # [W]
+    Power_input = 4  # [W]
     Power_signal = 0  # [W]
-    num_cores = 4
+    num_cores = 1
     "-----------------------------General options------------------------------"
 
     maxerr = 1e-13            				# maximum tolerable error per step
     ss = 1                      			# includes self steepening term
     ram = 'on'                  			# Raman contribution 'on' if yes
                                             # and 'off' if no
-    plots = False  							# Do you want plots, be carefull it makes the code very slow!
+    plots = True 							# Do you want plots, be carefull it makes the code very slow!
     "----------------------------Simulation parameters-------------------------"
     N = 13
     z = 18						# total distance [m]
@@ -338,7 +337,7 @@ def main():
     wavelength_space = True    	# Set wavelength space for grid calculation
 
     int_fwm = sim_parameters(n2, nm, alphadB)
-    int_fwm.general_options(maxerr, ss, ram)
+    int_fwm.general_options(maxerr, raman_object, ss, ram)
     int_fwm.propagation_parameters(N, z, nplot, dz_less, wavelength_space)
     if num_cores > 1:
         fft = sfft
@@ -367,7 +366,10 @@ def main():
     
     pump_wavelengths = (1.0488816316376193e-06*1e9,)
     #Power_inputs = (3,3.5,4,4.5,5,5.5,6,6.5,7)
-    Power_inputs = (3,4,4.5,5,5.5,6,6.5,7)
+    Power_inputs = (3.5,4,4.5,5,5.5,6,6.5,7)
+    Power_inputs = (2.5,3.5,4.5,5.5)
+    Power_inputs = (5.5,)
+    #Power_inputs = np.arange(4.4,8.6,0.15)
     #Power_inputs = (6,)
     #Power_inputs = tuple(np.arange(4,7.1,0.1))
     #Power_inputs = (0,)
@@ -379,8 +381,10 @@ def main():
     #iters = (6,7,8)
     #iters, Power_inputs = ()
     if num_cores > 1:
+        os.system("taskset -p 0xff %d" % os.getpid()) # fixes the numpy affinity problem
         A = Parallel(n_jobs=num_cores)(delayed(lam_p2_vary)(lensig,i,lam_p1,Power_input,Power_signal,int_fwm,1
-                            ,gama,fft,ifft,'pump_powers',plots,par = False,grid_only = False,timing= False) for i, Power_input in enumerate(Power_inputs))
+                            ,gama,fft,ifft,'pump_powers',plots,par = False,grid_only = False,timing= False)\
+                             for i, Power_input in enumerate(Power_inputs))
     else:
 
         for i, Power_input in enumerate(Power_inputs):
@@ -393,7 +397,7 @@ def main():
  
     print('\a')
    
-    sys.exit()
+    return None
 
     
     
@@ -423,9 +427,11 @@ def main():
         
     return None
 
-
+from time import time
 if __name__ == '__main__':
+    start = time()
     main()
-
+    dt = time() - start
+    print(dt, 'sec', dt/60, 'min', dt/60/60, 'hours')
 
 

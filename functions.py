@@ -132,7 +132,7 @@ def dispersion_operator(betas, lamda_c, int_fwm, sim_wind):
 
 
 def Q_matrixes(nm, n2, lamda, gama=None):
-    "Calcuylates the Q matrices from importing them from a file. CHnages the gama if given"
+    "Calculates the Q matrices from importing them from a file. CHnages the gama if given"
     if nm == 1:
         # loads M1 and M2 matrices
         mat = loadmat('loading_data/M1_M2_1m_new.mat')
@@ -141,9 +141,14 @@ def Q_matrixes(nm, n2, lamda, gama=None):
         M2[:, :] -= 1
         M1[0:4] -= 1
         M1[-1] -= 1
-        if gama is None:
+        gamma_or = 3*n2*(2*pi/lamda)*M1[4]
+        print(gamma_or)
+        print(M1)
+        if gama is not None:
             M1[4] = gama / (3*n2*(2*pi/lamda))
             M1[5] = gama / (3*n2*(2*pi/lamda))
+        print(3*n2*(2*pi/lamda)*M1[5])
+        print(M1)
     if nm == 2:
         mat = loadmat("loading_data/M1_M2_new_2m.mat")
         M1 = np.real(mat['M1'])
@@ -161,7 +166,7 @@ class sim_parameters(object):
         self.nm = nm
         self.alphadB = alphadB
 
-    def general_options(self, maxerr, ss='1', ram='on', how='load'):
+    def general_options(self, maxerr, raman_object,ss='1', ram='on', how='load'):
         self.maxerr = maxerr
         self.ss = ss
         self.raman = raman_object(ram, how)

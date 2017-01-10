@@ -6,7 +6,7 @@ from scipy.fftpack import fft,ifft,fftshift
 scfft,iscfft = fft,ifft
 import numpy as np
 from scipy.io import loadmat
-from numpy.testing import assert_array_almost_equal,assert_approx_equal,assert_almost_equal,assert_raises
+from numpy.testing import assert_allclose,assert_approx_equal,assert_almost_equal,assert_raises
 from scipy.interpolate import InterpolatedUnivariateSpline
 from data_plotters_animators import *
 "---------------------------------W and dbm conversion tests--------------"
@@ -21,7 +21,7 @@ def test1_w2dbm():
 def test2_w2dbm():
 	a = np.zeros(100)
 	floor = np.random.rand(1)[0]
-	assert_array_almost_equal(w2dbm(a,-floor), -floor*np.ones(len(a)))
+	assert_allclose(w2dbm(a,-floor), -floor*np.ones(len(a)))
 
 
 def test3_w2dbm():
@@ -33,12 +33,12 @@ try:
 	from accelerate.fftpack import fft, ifft
 	def test_fft():
 		x = np.random.rand(11,10)
-		assert_array_almost_equal(fft(x.T).T, scfft(x))
+		assert_allclose(fft(x.T).T, scfft(x))
 
 
 	def test_ifft():
 		x = np.random.rand(10,10)
-		assert_array_almost_equal(ifft(x.T).T, iscfft(x))
+		assert_allclose(ifft(x.T).T, iscfft(x))
 except:
 	from scipy.fftpack import fft, ifft
 	pass
@@ -60,7 +60,7 @@ def test_raman_load():
 	hf_exact = np.asanyarray([hf_exact[i][0] for i in range(hf_exact.shape[0])])
 	hf = ram.raman_load(t,dt,fft,ifft)
 
-	assert_array_almost_equal(hf, hf_exact)
+	assert_allclose(hf, hf_exact)
 
 
 def test_raman_analytic():
@@ -73,7 +73,7 @@ def test_raman_analytic():
 	hf_exact = np.asanyarray([hf_exact[i][0] for i in range(hf_exact.shape[0])])
 	hf = ram.raman_load(t,dt,fft,ifft)
 
-	assert_array_almost_equal(hf, hf_exact)
+	assert_allclose(hf, hf_exact)
 
 
 "----------------------------Dispersion operator--------------"
@@ -119,7 +119,7 @@ def test_dispersion():
 	betas_disp = dispersion_operator(betas,lamdac,int_fwm,sim_wind)
 
 	betas_exact = np.loadtxt('testing_data/exact_dispersion.py').view(complex)
-	assert_array_almost_equal(betas_disp,betas_exact)
+	assert_allclose(betas_disp,betas_exact)
 
 
 
@@ -132,24 +132,24 @@ def test_pulse_propagation():
 
 	n2 = 2.5e-20                				# n2 for silica [m/W]
 	nm = 1                      				# number of modes
-	alphadB = 0.0011666666666666668             # loss [dB/m]
+	alphadB = 0#0.0011666666666666668             # loss [dB/m]
 	gama = 10e-3 								# w/m
 	Power_input = 13                      		#[W]
 	"-----------------------------General options------------------------------"
 
-	maxerr = 1e-13            	# maximum tolerable error per step
-	ss = 0                      # includes self steepening term
+	maxerr = 1e-8            	# maximum tolerable error per step
+	ss = 1                      # includes self steepening term
 	ram = 'on'                  # Raman contribution 'on' if yes and 'off' if no
 	
 	"----------------------------Simulation parameters-------------------------"
-	N = 10
-	z = 10				 	# total distance [m]
-	nplot = 100                  # number of plots
+	N = 12
+	z = 18				 	# total distance [m]
+	nplot = 300                  # number of plots
 	nt = 2**N 					# number of grid points
 	dzstep = z/nplot            # distance per step
 	dz_less = 1e4
-	dz = dzstep/dz_less         # starting guess value of the step
-	
+	dz = dzstep/dz_less/100         # starting guess value of the step
+	print(dz)
 
 	lam_p1 = 500
 	lamda_c = 500e-9
@@ -161,12 +161,13 @@ def test_pulse_propagation():
 	beta2 = -11.83e-3
 	gama = 1
 	T0 = TFWHM/2/(np.log(2)); 
-	P0_p1 =  np.abs(beta2) / (gama * T0)
+	P0_p1 =  np.abs(beta2) / (gama * T0**2)
+
 
 
 
 	int_fwm = sim_parameters(n2,nm,alphadB)
-	int_fwm.general_options(maxerr,ss,ram)
+	int_fwm.general_options(maxerr,raman_object,ss,ram)
 	int_fwm.propagation_parameters(N, z, nplot, dz_less, True)
 
 
@@ -182,11 +183,26 @@ def test_pulse_propagation():
 	betas = np.array([[0,0,beta2,0,0]])*1e-3 # betas at ps/m (given in ps/km)
 	Dop = dispersion_operator(betas,lamda_c,int_fwm,sim_wind)
 
-	dAdzmm = dAdzmm_ron_s1
+	string = "dAdzmm_r"+str(int_fwm.raman.on)+"_s"+str(int_fwm.ss)
+	func_dict = {'dAdzmm_ron_s1': dAdzmm_ron_s1,
+				'dAdzmm_ron_s0': dAdzmm_ron_s0,
+				'dAdzmm_roff_s0': dAdzmm_roff_s0,
+				'dAdzmm_roff_s1': dAdzmm_roff_s1}
+	pulse_pos_dict_or = ('after propagation', "pass WDM2",
+						"pass WDM1 on port2 (remove pump)",
+						'add more pump', 'out')
+
+
+
+	dAdzmm = func_dict[string]
+
+
+
+
 	M1,M2 = Q_matrixes(1,n2,lamda,gama=gama)
 	int_fwm.raman.raman_load(sim_wind.t,sim_wind.dt,fft,ifft)
 	hf = int_fwm.raman.hf
-	
+
 
 	u = np.zeros([len(sim_wind.t),int_fwm.nm,len(sim_wind.zv)],dtype='complex128')
 	U = np.zeros([len(sim_wind.t),int_fwm.nm,len(sim_wind.zv)],dtype='complex128')
@@ -203,10 +219,14 @@ def test_pulse_propagation():
 
 	#plotter_dbm(1, sim_wind, Uabs, u, 0)
 	#plotter_dbm(1, sim_wind, Uabs, u, -1)
-
-	assert_array_almost_equal(np.abs(U[:,0,0])**2,np.abs(U[:,0,-1])**2)
-
-
+	U_start = np.abs(U[:,0,0])**2
+	print(np.max(U_start - np.abs(U[:,0,-1])**2))
+	print(U_start - np.abs(U[:,0,-1])**2)
+	#try:
+	assert_allclose(U_start , np.abs(U[:,0,-1])**2,rtol=1e-03)
+	#except AssertionError:
+	#	print(np.max(U_start - np.abs(U[:,0,-1])**2))
+	#	print(U_start - np.abs(U[:,0,-1])**2)
 
 
 "-------------------------------WDM------------------------------------"
@@ -231,7 +251,7 @@ class Test_WDM(object):
 		U_true_sum = U_true[0] + U_true[1]
 			
 
-		assert_array_almost_equal(np.abs(U_out[0])**2 + np.abs(U_out[1])**2, U_true_sum)
+		assert_allclose(np.abs(U_out[0])**2 + np.abs(U_out[1])**2, U_true_sum)
 		
 	def test2_WDM(self):
 
@@ -250,7 +270,7 @@ class Test_WDM(object):
 		U_true_sum = U_true[0] + U_true[1]
 			
 
-		assert_array_almost_equal(U_in_sum, U_true_sum)
+		assert_allclose(U_in_sum, U_true_sum)
 
 
 		
@@ -269,7 +289,7 @@ class Test_loss:
 		int_fwm =  int_fwmss(alphadB)
 		loss = Loss(int_fwm, sim_wind, amax = alphadB)
 		alpha_func = loss.atten_func_full(sim_wind.fv)
-		assert_array_almost_equal(alpha_func, np.ones_like(alpha_func)*alphadB/4.343)
+		assert_allclose(alpha_func, np.ones_like(alpha_func)*alphadB/4.343)
 	def test_loss2(a):
 		fv = np.linspace(200, 600,1024)
 		alphadB = 1
@@ -302,7 +322,7 @@ class Test_splicer():
 		U_out1,U_out2 = splicer.U_calc((U1,U2))
 		Power_in = np.abs(U1)**2 + np.abs(U2)**2
 		Power_out = np.abs(U_out1)**2 + np.abs(U_out2)**2
-		assert_array_almost_equal(Power_in,Power_out)
+		assert_allclose(Power_in,Power_out)
 
 	def test_splicer2(self):
 		self.x1 = 1550
@@ -324,7 +344,7 @@ class Test_splicer():
 
 		Power_in = np.abs(U1)**2 + np.abs(U2)**2
 		Power_out = np.abs(U_out1)**2 + np.abs(U_out2)**2
-		assert_array_almost_equal(Power_in,Power_out)
+		assert_allclose(Power_in,Power_out)
 
 
 
@@ -341,7 +361,7 @@ def test_read_write1():
 
 	A,B,C = D['A'], D['B'], D['C']
 	#locals().update(D)
-	assert_array_almost_equal(A,A_copy)
+	assert_allclose(A,A_copy)
 	return None
 
 
@@ -358,7 +378,7 @@ def test_read_write2():
 	D = read_variables('hh52_test', '0', filepath='testing_data/')
 	A,B,C = D['A'], D['B'], D['C']
 	#locals().update(D)
-	assert_array_almost_equal(B,B_copy)
+	assert_allclose(B,B_copy)
 	return None
 
 
