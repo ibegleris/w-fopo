@@ -123,43 +123,42 @@ def test_dispersion():
 
 
 
-
 "-----------------------Full soliton--------------------------------------------"	
-def test_pulse_propagation():
+def pulse_propagations(ram,ss):
 	"SOLITON TEST. IF THIS FAILS GOD HELP YOU!"
 	
 
 
-	n2 = 2.5e-20                				# n2 for silica [m/W]
-	nm = 1                      				# number of modes
-	alphadB = 0#0.0011666666666666668             # loss [dB/m]
+	n2 = 2.5e-20								# n2 for silica [m/W]
+	nm = 1					  				# number of modes
+	alphadB = 0#0.0011666666666666668			 # loss [dB/m]
 	gama = 10e-3 								# w/m
-	Power_input = 13                      		#[W]
+	Power_input = 13					  		#[W]
 	"-----------------------------General options------------------------------"
 
-	maxerr = 1e-8            	# maximum tolerable error per step
-	ss = 1                      # includes self steepening term
-	ram = 'on'                  # Raman contribution 'on' if yes and 'off' if no
+	maxerr = 1e-13				# maximum tolerable error per step
+	#ss = 1					  # includes self steepening term
+	#ram = 'off'				  # Raman contribution 'on' if yes and 'off' if no
 	
 	"----------------------------Simulation parameters-------------------------"
-	N = 12
+	N = 13
 	z = 18				 	# total distance [m]
-	nplot = 300                  # number of plots
+	nplot = 1				  # number of plots
 	nt = 2**N 					# number of grid points
-	dzstep = z/nplot            # distance per step
-	dz_less = 1e4
-	dz = dzstep/dz_less/100         # starting guess value of the step
+	dzstep = z/nplot			# distance per step
+	dz_less = 1e2
+	dz = dzstep/dz_less		 # starting guess value of the step
 	print(dz)
 
-	lam_p1 = 500
-	lamda_c = 500e-9
+	lam_p1 = 900
+	lamda_c = 900e-9
 	lamda = lam_p1*1e-9
 	
 	N_sol = 1 
 	TFWHM = 0.03
 	
-	beta2 = -11.83e-3
-	gama = 1
+	beta2 = -11.83e-5
+	#gama = 1
 	T0 = TFWHM/2/(np.log(2)); 
 	P0_p1 =  np.abs(beta2) / (gama * T0**2)
 
@@ -173,7 +172,7 @@ def test_pulse_propagation():
 
 	#print(lam_p1)
 	fv,where = fv_creator(lam_p1 - 100,lam_p1,int_fwm)
-	sim_wind = sim_window(fv,lamda,lamda_c,int_fwm)
+	sim_wind = sim_window(fv,lamda,lamda_c,int_fwm,fv_idler_int = 1)
 
 
 	loss = Loss(int_fwm, sim_wind, amax =	int_fwm.alphadB)
@@ -183,7 +182,7 @@ def test_pulse_propagation():
 	betas = np.array([[0,0,beta2,0,0]])*1e-3 # betas at ps/m (given in ps/km)
 	Dop = dispersion_operator(betas,lamda_c,int_fwm,sim_wind)
 
-	string = "dAdzmm_r"+str(int_fwm.raman.on)+"_s"+str(int_fwm.ss)
+	string = "dAdzmm_r"+str(ram)+"_s"+str(ss)
 	func_dict = {'dAdzmm_ron_s1': dAdzmm_ron_s1,
 				'dAdzmm_ron_s0': dAdzmm_ron_s0,
 				'dAdzmm_roff_s0': dAdzmm_roff_s0,
@@ -200,14 +199,16 @@ def test_pulse_propagation():
 
 
 	M1,M2 = Q_matrixes(1,n2,lamda,gama=gama)
-	int_fwm.raman.raman_load(sim_wind.t,sim_wind.dt,fft,ifft)
-	hf = int_fwm.raman.hf
+	raman = raman_object(int_fwm.ram, int_fwm.how)
+	raman.raman_load(sim_wind.t, sim_wind.dt, fft, ifft)
+	hf = raman.hf
+
 
 
 	u = np.zeros([len(sim_wind.t),int_fwm.nm,len(sim_wind.zv)],dtype='complex128')
 	U = np.zeros([len(sim_wind.t),int_fwm.nm,len(sim_wind.zv)],dtype='complex128')
 	Uabs = np.copy(U)
-	
+
 
 
 
@@ -223,10 +224,25 @@ def test_pulse_propagation():
 	print(np.max(U_start - np.abs(U[:,0,-1])**2))
 	print(U_start - np.abs(U[:,0,-1])**2)
 	#try:
-	assert_allclose(U_start , np.abs(U[:,0,-1])**2,rtol=1e-03)
+	assert_allclose(U_start , np.abs(U[:,0,-1])**2)
 	#except AssertionError:
 	#	print(np.max(U_start - np.abs(U[:,0,-1])**2))
 	#	print(U_start - np.abs(U[:,0,-1])**2)
+
+def test_r0_ss0():
+	pulse_propagations('off', 0)
+
+
+def test_r0_ss1():
+	pulse_propagations('off', 1)
+
+def test_r1_ss0():
+	pulse_propagations('on', 0)
+
+
+def test_r1_ss1():
+	pulse_propagations('on', 1)
+
 
 
 "-------------------------------WDM------------------------------------"
