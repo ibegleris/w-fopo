@@ -201,8 +201,12 @@ def pulse_propagations(ram,ss):
 	M1,M2 = Q_matrixes(1,n2,lamda,gama=gama)
 	raman = raman_object(int_fwm.ram, int_fwm.how)
 	raman.raman_load(sim_wind.t, sim_wind.dt, fft, ifft)
-	hf = raman.hf
-
+	#hf = raman.hf
+	if raman.on == 'on':	
+		hf = raman.hf[:,np.newaxis]
+		hf = np.tile(hf,(1,len(M2[0,:])))
+	else:
+		hf = None
 
 
 	u = np.zeros([len(sim_wind.t),int_fwm.nm,len(sim_wind.zv)],dtype='complex128')
