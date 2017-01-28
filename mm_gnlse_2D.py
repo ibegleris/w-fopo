@@ -392,16 +392,16 @@ def main():
 
 	print(
 		"The fft method that was found to be faster for your system is:", fft_method)
-	lamdaP_vec = np.linspace(1048.8816316376193e-9 - 0.1e-9, 1048.8816316376193e-9 + 0.1e-9,10)
+	lamdaP_vec = np.linspace(1048.8816316376193e-9 - 0.5e-9, 1048.8816316376193e-9 + 0.5e-9,32)
 	for kk,pp in enumerate(lamdaP_vec):
 		#pump_wavelengths = (1.0488816316376193e-06*1e9,)
 		pump_wavelengths = (pp*1e9,)
 		print(pump_wavelengths)
 		#Power_inputs = (3,3.5,4,4.5,5,5.5,6,6.5,7)
-		Power_inputs = (4,4.5,5,5.5,6)
+		Power_inputs = (4,4.5,5,5.5,6,6.5,7)
 		#Power_inputs = tuple(np.arange(4,7,0.1))
 		#print(np.shape(Power_inputs))
-
+	
 		#Power_inputs = (2.5,3.5,4.5,5.5)
 		#Power_inputs = (10.5,)
 		#Power_inputs = np.arange(4.4,8.6,0.15)
@@ -409,12 +409,14 @@ def main():
 		#Power_inputs = tuple(np.arange(4,7.1,0.1))
 		#Power_inputs = (0,)
 		lam_p1 = pump_wavelengths[0]
+
 		#Power_input = (13,)
 		_power = create_destroy(Power_inputs)
 		_power.prepare_folder()
 		#Power_inputs = (6,6.5,7)
 		#iters = (6,7,8)
 		#iters, Power_inputs = ()
+
 		if num_cores > 1:
 			os.system("taskset -p 0xff %d" % os.getpid()) # fixes the numpy affinity problem
 			A = Parallel(n_jobs=num_cores)(delayed(lam_p2_vary)(lensig,i,lam_p1,Power_input,Power_signal,int_fwm,1
@@ -430,7 +432,7 @@ def main():
 		_power.cleanup_folder()
 		os.system('mkdir output_dump_pump_powers/'+str(kk))
 		os.system('mv output_dump_pump_powers/output* output_dump_pump_powers/'+str(kk) )
-
+	
  
 	print('\a')
    
