@@ -116,7 +116,7 @@ def dispersion_operator(betas, lamda_c, int_fwm, sim_wind):
 
 	#betap = betas
 	#sys.exit()
-	w = sim_wind.w# - wc + w0
+	w = sim_wind.w # - wc + w0
 	Dop = np.zeros([int_fwm.nt, int_fwm.nm], dtype=np.complex)
 	alpha = np.reshape(int_fwm.alpha, np.shape(Dop))
 	
@@ -302,17 +302,22 @@ class WDM(object):
 			given and then the object represents the class with WDM_pass the calculation
 			done.
 		"""
-		self.x1 = x2  # High part of port 1
-		self.x2 = x1  # Low wavelength of port 1
+		self.x1 = x1  # High part of port 1
+		self.x2 = x2  # Low wavelength of port 1
 		self.omega = 0.5*pi/np.abs(self.x1 - self.x2)
 		self.phi = pi - self.omega*self.x2
 		self.lv = lv
 		self.fv = self.omega*self.lv+self.phi
 
-		self.A = A = np.array([[np.reshape(np.cos(self.fv), (len(self.fv), modes)),
-								np.reshape(np.sin(self.fv), (len(self.fv), modes))],
-							   [-np.reshape(np.sin(self.fv), (len(self.fv), modes)),
-								np.reshape(np.cos(self.fv), (len(self.fv), modes))]])
+		#self.A = np.array([[np.reshape(np.cos(self.fv), (len(self.fv), modes)),
+		#						np.reshape(np.sin(self.fv), (len(self.fv), modes))],
+		#					   [-np.reshape(np.sin(self.fv), (len(self.fv), modes)),
+		#						np.reshape(np.cos(self.fv), (len(self.fv), modes))]])
+		
+		eps = np.reshape(np.sin(self.fv), (len(self.fv), modes))
+		eps2 = 1j*np.reshape(np.cos(self.fv), (len(self.fv), modes))
+		self.A = np.array([[eps ,eps2],
+						   [eps2,eps]])
 		return None
 
 	def U_calc(self, U_in):
@@ -321,8 +326,8 @@ class WDM(object):
 		the outputed amplitude in arbitary units
 
 		"""
-		Uout = (self.A[0][0] * U_in[0] + self.A[0][1] * U_in[1],)
-		Uout += (self.A[1][0] * U_in[0] + self.A[1][1] * U_in[1],)
+		Uout = (self.A[0,0] * U_in[0] + self.A[0,1] * U_in[1],)
+		Uout += (self.A[1,0] * U_in[0] + self.A[1,1] * U_in[1],)
 
 		return Uout
 
@@ -357,13 +362,13 @@ class WDM(object):
 	def plot(self, lamda,filename= False,xlim = (900, 1250)):
 		fig = plt.figure()
 		plt.plot(lamda, self.il_port1(), label="%0.2f" %
-				 (self.x1*1e9) + ' nm port')
+				 (self.x1) + ' nm port')
 		plt.plot(lamda, self.il_port2(), label="%0.2f" %
-				 (self.x2*1e9) + ' nm port')
+				 (self.x2) + ' nm port')
 		plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.13), ncol=2)
 		plt.xlabel(r'$\lambda (\mu m)$')
 		plt.xlim()
-		plt.ylabel(r'$Insertion loss (dB)$')
+		#plt.ylabel(r'$Insertion loss (dB)$')
 		if filename:
 			plt.savefig(
 				'output/WDMs&loss/WDM_high_'+str(self.x1)+'_low_'+str(self.x2)+'.png')
@@ -407,8 +412,8 @@ class Splicer(WDM):
 		c1 = 10**(-0.1*self.loss/2)
 		c2 = (1 - 10**(-0.1*self.loss))**0.5
 
-		U_out1 = U_in[0] * c1 + U_in[1] * c2
-		U_out2 = U_in[1] * c1 - U_in[0] * c2
+		U_out1 = U_in[0] * c1 + 1j* U_in[1] * c2
+		U_out2 = 1j* U_in[0] * c2 + U_in[1] * c1 
 		return U_out1, U_out2
 
 

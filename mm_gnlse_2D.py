@@ -93,7 +93,7 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 
 
 	# Define te WDM objects
-	WDM1 = WDM(1200, 1050, sim_wind.lv)
+	WDM1 = WDM(1050, 1200, sim_wind.lv)
 	WDM2 = WDM(930, 1200, sim_wind.lv)
 	WDM3 = WDM(930, 1050, sim_wind.lv)
 	WDM4 = WDM(930, 1200, sim_wind.lv)
@@ -136,7 +136,7 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 	# Pass the original pump through the WDM1 port1
 	utemp, Utemp, Uabstemp = WDM1.pass_through(
 		(U[:, :, 0], noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)
-	u[:, :, 0], U[:, :, 0], Uabs[:, :, 0] = utemp[1], Utemp[1], Uabstemp[1]
+	u[:, :, 0], U[:, :, 0], Uabs[:, :, 0] = utemp[0], Utemp[0], Uabstemp[0]
 
 	max_rounds = 512
 	ro = -1
@@ -200,7 +200,8 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 		# Pass again through WDM1 with the signal now
 		utemp, Utemp, Uabstemp = WDM1.pass_through(
 			(U_original_pump, U[:, :, -1]), sim_wind, fft, ifft)
-		u[:, :, 0], U[:, :, 0], Uabs[:, :, 0] = utemp[1], Utemp[1], Uabstemp[1]
+		u[:, :, 0], U[:, :, 0], Uabs[:, :, 0] = utemp[1], Utemp[1], Uabstemp[1] ##### MAYBE P1?
+
 		
 		
 		################################The outbound stuff#####################
@@ -348,14 +349,14 @@ def main():
 	gama = 10e-3 							# w/m
 	Power_input = 4  # [W]
 	Power_signal = 0  # [W]
-	num_cores = 5
+	num_cores = 4
 	"-----------------------------General options------------------------------"
 
 	maxerr = 1e-13							# maximum tolerable error per step
 	ss = 1					  			# includes self steepening term
 	ram = 'on'				  			# Raman contribution 'on' if yes
 											# and 'off' if no
-	plots = False 							# Do you want plots, be carefull it makes the code very slow!
+	plots = True 							# Do you want plots, be carefull it makes the code very slow!
 	"----------------------------Simulation parameters-------------------------"
 	N = 14
 	z = 18						# total distance [m]
@@ -389,16 +390,18 @@ def main():
 		  'With this grid the best I can do is: ', lv[lams_index])
 	lensig = np.shape(range(1, lams_index))[0]
 	"----------------------------------------------------------------------------"
-
+	
 	print(
 		"The fft method that was found to be faster for your system is:", fft_method)
-	lamdaP_vec = np.linspace(1048.8816316376193e-9 - 0.5e-9, 1048.8816316376193e-9 + 0.5e-9,32)
+	lamdaP_vec = np.linspace(1048.8816316376193e-9 - 0.5e-9, 1048.8816316376193e-9 + 0.5e-9,4)
+	#lamdaP_vec = (1048.8816316376193e-9 ,)
+	lamdaP_vec = (1050e-9 ,)
 	for kk,pp in enumerate(lamdaP_vec):
 		#pump_wavelengths = (1.0488816316376193e-06*1e9,)
 		pump_wavelengths = (pp*1e9,)
 		print(pump_wavelengths)
 		#Power_inputs = (3,3.5,4,4.5,5,5.5,6,6.5,7)
-		Power_inputs = (4,4.5,5,5.5,6,6.5,7)
+		Power_inputs = (13,)
 		#Power_inputs = tuple(np.arange(4,7,0.1))
 		#print(np.shape(Power_inputs))
 	
@@ -435,16 +438,16 @@ def main():
 	
  
 	print('\a')
-   
-	return None
-
+   	
+	#return None
 	
 	
-	Power_input = 13.5
+	
+	Power_input = 7
 	pump_wavelengths = (1047.5, 1047.9, 1048.3, 1048.6,
 						1049.0, 1049.5, 1049.8, 1050.2, 1050.6, 1051.0, 1051.4,1051.8)
 	#pump_wavelengths =(1051.4,)
-	pump_wavelengths = tuple(np.arange(1045,1052.6,0.2))
+	pump_wavelengths = tuple(np.arange(1047,1052.6,0.2))
 	#lamp_centr = 1.0488816316376193e-06*1e9
 	#pump_wavelengths = np.linspace(lamp_centr - lamp_centr*0.001,lamp_centr + lamp_centr*0.001, 10 )
 

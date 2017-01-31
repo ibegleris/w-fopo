@@ -259,14 +259,17 @@ class Test_WDM(object):
 		self.x1 = 1550
 		self.x2 = 1555
 		self.nt = 3
-		self.lv = np.linspace(1000, 2000,2**self.nt)
-		self.lmax, self.lmin = 1000, 2000
+
+		self.lv = np.linspace(900, 1250,2**self.nt)
+
 		WDMS = WDM(self.x1, self.x2,self.lv)
-		sim_wind = sim_windows(self.lv,self.lv,self.lmax, self.lmin)
-		U_in = (np.random.rand(2**self.nt,1)+ 1j * np.random.rand(2**self.nt,1),np.random.rand(2**self.nt,1) + 1j * np.random.rand(2**self.nt,1))
+		sim_wind = sim_windows(self.lv,self.lv,900, 1250)
+		
+		U1 = 10*(np.random.randn(2**self.nt,1) + 1j * np.random.randn(2**self.nt,1))
+		U2 = 10 *(np.random.randn(2**self.nt,1) + 1j * np.random.randn(2**self.nt,1))
+		U_in = (U1, U2)
 		u_out,U_out,U_true = WDMS.pass_through(U_in,sim_wind,fft,ifft)
 		
-
 		U_in_sum = np.abs(U_in[0])**2 + np.abs(U_in[1])**2
 		U_true_sum = U_true[0] + U_true[1]
 			
@@ -275,21 +278,24 @@ class Test_WDM(object):
 		
 	def test2_WDM(self):
 
-		self.x1 = 1550
-		self.x2 = 1555
+		self.x1 = 1050
+		self.x2 = 1200
 		self.nt = 3
-		self.lv = np.linspace(1000, 2000,2**self.nt)
-		self.lmax, self.lmin = 1000, 2000
+		self.lv = np.linspace(900,1250,2**self.nt)
+
 		WDMS = WDM(self.x1, self.x2,self.lv)
-		sim_wind = sim_windows(self.lv,self.lv,self.lmax, self.lmin)
-		U_in = (np.random.rand(2**self.nt,1)+ 1j * np.random.rand(2**self.nt,1),np.random.rand(2**self.nt,1) + 1j * np.random.rand(2**self.nt,1))
+		sim_wind = sim_windows(self.lv,self.lv,900, 1250)
+		U1 = 10*(np.random.randn(2**self.nt,1) + 1j * np.random.randn(2**self.nt,1))
+		U2 = 10*(np.random.randn(2**self.nt,1) + 1j * np.random.randn(2**self.nt,1))
+		U_in = (U1, U2)
+		U_in_sum = np.abs(U_in[0])**2 + np.abs(U_in[1])**2
 		u_out,U_out,U_true = WDMS.pass_through(U_in,sim_wind,fft,ifft)
 		
 
-		U_in_sum = np.abs(U_in[0])**2 + np.abs(U_in[1])**2
-		U_true_sum = U_true[0] + U_true[1]
-			
 
+		U_true_sum = U_true[0] + U_true[1]
+		#print(U_true_sum, U_in_sum)
+		#assert 0 == 1
 		assert_allclose(U_in_sum, U_true_sum)
 
 
@@ -335,7 +341,7 @@ class Test_splicer():
 	
 
 	def test_splicer1(self):
-		splicer = Splicer()
+		splicer = Splicer(loss = np.random.rand()*10)
 
 		U1 = 10*(np.random.randn(10) + 1j * np.random.randn(10))
 		U2 = 10 *(np.random.randn(10) + 1j * np.random.randn(10))
@@ -352,7 +358,7 @@ class Test_splicer():
 		self.lmax, self.lmin = 1000, 2000
 		WDMS = WDM(self.x1, self.x2,self.lv)
 		sim_wind = sim_windows(self.lv,self.lv,self.lmax, self.lmin)
-		splicer = Splicer()
+		splicer = Splicer(loss = np.random.rand()*10)
 		U1 = 10*(np.random.randn(10) + 1j * np.random.randn(10))
 		U2 = 10 *(np.random.randn(10) + 1j * np.random.randn(10))
 		U_in = (U1,U2)
