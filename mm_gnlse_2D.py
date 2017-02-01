@@ -133,7 +133,7 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 
 	U_original_pump = np.copy(U[:, :, 0])
 
-	# Pass the original pump through the WDM1 port1
+	# Pass the original pump through the WDM1, port1 is in to the loop, port2 junk
 	utemp, Utemp, Uabstemp = WDM1.pass_through(
 		(U[:, :, 0], noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)
 	u[:, :, 0], U[:, :, 0], Uabs[:, :, 0] = utemp[0], Utemp[0], Uabstemp[0]
@@ -144,7 +144,7 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 	P_portb,P_portb_prev = 3*min_circ_error ,min_circ_error
 
 	rel_error = 100*np.abs(P_portb - P_portb_prev)/P_portb_prev
-	
+
 	while ro <= max_rounds:# and rel_error  > min_circ_error:
 		print(P_portb, 100*np.abs(P_portb - P_portb_prev)/P_portb_prev)
 		P_portb_prev = P_portb
@@ -200,7 +200,7 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 		# Pass again through WDM1 with the signal now
 		utemp, Utemp, Uabstemp = WDM1.pass_through(
 			(U_original_pump, U[:, :, -1]), sim_wind, fft, ifft)
-		u[:, :, 0], U[:, :, 0], Uabs[:, :, 0] = utemp[1], Utemp[1], Uabstemp[1] ##### MAYBE P1?
+		u[:, :, 0], U[:, :, 0], Uabs[:, :, 0] = utemp[0], Utemp[0], Uabstemp[0] ##### MAYBE P1?
 
 		
 		
@@ -210,6 +210,7 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 			(out2, noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)
 		out1, out2, out3 = utemp[0], Utemp[0], Uabstemp[0]
 
+		# WDM3 port 1 continues and port 2 is portA in experiment
 		utemp, Utemp, Uabstemp = WDM3.pass_through(
 			(out2, noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)
 		out1, out2, out3 = utemp[0], Utemp[0], Uabstemp[0]
@@ -228,6 +229,7 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 			(out2, noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)
 		out1, out2, out3 = utemp[0], Utemp[0], Uabstemp[0]
 
+		# WDM4 port 1 goes to port B and port 2 to junk
 		utemp, Utemp, Uabstemp = WDM4.pass_through(
 			(out2, noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)
 		u_portB, U_portB, Uabs_portB = utemp[0], Utemp[0], Uabstemp[0]
