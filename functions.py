@@ -51,6 +51,7 @@ def w2dbm(W, floor=-100):
 		elif W == 0:
 			return floor
 		else:
+			print(W)
 			raise(ZeroDivisionError)
 	a = 10. * (np.ma.log10(W)).filled(floor/10-3) + 30
 	return a
@@ -340,12 +341,12 @@ class WDM(object):
 
 		u_out, U_true = (), ()
 		for i, UU in enumerate(U_out):
-			u_out += (ifft(ifftshift(UU, axes=(0,))/sim_wind.dt),)
+			u_out += (ifftshift(ifft(UU)/sim_wind.dt, axes=(0,)),)
 			U_true += (fftshift(np.abs(sim_wind.dt *
 									   fft(u_out[i]))**2, axes=(0,)),)
+		return (u_out[0], U_out[0],U_true[0]), (u_out[1], U_out[1],U_true[1])
 
-		return u_out, U_out, U_true
-
+		
 	def il_port1(self, lamda = None):
 		if lamda is not None:
 			return (np.sin(self.omega*lamda+self.phi))**2
