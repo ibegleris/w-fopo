@@ -263,9 +263,9 @@ class Test_WDM(object):
 		self.nt = 3
 
 		self.lv = np.linspace(900, 1250,2**self.nt)
+		self.fv = 1e3 * c/ self.lv
 
-
-		WDMS = WDM(self.x1, self.x2,self.lv)
+		WDMS = WDM(self.x1, self.x2,self.fv, c)
 		sim_wind = sim_windows(self.lv,self.lv,900, 1250)
 		
 		U1 = 10*(np.random.randn(2**self.nt,1) + 1j * np.random.randn(2**self.nt,1))
@@ -288,8 +288,9 @@ class Test_WDM(object):
 		self.nt = 3
 
 		self.lv = np.linspace(900, 1250,2**self.nt)
+		self.fv = 1e3 * c/ self.lv
 
-		WDMS = WDM(self.x1, self.x2,self.lv)
+		WDMS = WDM(self.x1, self.x2,self.fv, c)
 		sim_wind = sim_windows(self.lv,self.lv,900, 1250)
 		
 		U1 = 10*(np.random.randn(2**self.nt,1) + 1j * np.random.randn(2**self.nt,1))
@@ -316,8 +317,9 @@ class Test_WDM(object):
 		self.nt = 3
 
 		self.lv = np.linspace(900, 1250,2**self.nt)
+		self.fv = 1e3 * c/ self.lv
 
-		WDMS = WDM(self.x1, self.x2,self.lv)
+		WDMS = WDM(self.x1, self.x2,self.fv, c)
 		sim_wind = sim_windows(self.lv,self.lv,900, 1250)
 		
 		U1 = 10*(np.random.randn(2**self.nt,1) + 1j * np.random.randn(2**self.nt,1))

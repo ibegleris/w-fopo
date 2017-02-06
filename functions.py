@@ -297,26 +297,29 @@ class Loss(object):
 
 class WDM(object):
 
-	def __init__(self, x1, x2, lv, modes=1):
+	def __init__(self, x1, x2, fv,c, modes=1):
 		"""
 			This class represents a 2x2 WDM coupler. The minimum and maximums are
 			given and then the object represents the class with WDM_pass the calculation
 			done.
 		"""
-		self.x1 = x1  # High part of port 1
-		self.x2 = x2  # Low wavelength of port 1
-		self.omega = 0.5*pi/np.abs(self.x1 - self.x2)
-		self.phi = pi - self.omega*self.x2
-		self.lv = lv
-		self.fv = self.omega*self.lv+self.phi
+		self.l1 =  x1   # High part of port 1
+		self.l2 =  x2  # Low wavelength of port 1
+		self.f1 = 1e3 * c / self.l1   # High part of port 1
+		self.f2 = 1e3 * c / self.l2  # Low wavelength of port 1
+		
+		self.omega = 0.5*pi/np.abs(self.f1 - self.f2)
+		self.phi = pi - self.omega*self.f2
+		#self.fv = fv
+		self.fv_wdm = self.omega*fv+self.phi
 
 		#self.A = np.array([[np.reshape(np.cos(self.fv), (len(self.fv), modes)),
 		#						np.reshape(np.sin(self.fv), (len(self.fv), modes))],
 		#					   [-np.reshape(np.sin(self.fv), (len(self.fv), modes)),
 		#						np.reshape(np.cos(self.fv), (len(self.fv), modes))]])
 		
-		eps = np.reshape(np.sin(self.fv), (len(self.fv), modes))
-		eps2 = 1j*np.reshape(np.cos(self.fv), (len(self.fv), modes))
+		eps = np.reshape(np.sin(self.fv_wdm), (len(self.fv_wdm), modes))
+		eps2 = 1j*np.reshape(np.cos(self.fv_wdm), (len(self.fv_wdm), modes))
 		self.A = np.array([[eps ,eps2],
 						   [eps2,eps]])
 		return None
@@ -348,28 +351,26 @@ class WDM(object):
 
 		
 	def il_port1(self, lamda = None):
-		if lamda is not None:
-			return (np.sin(self.omega*lamda+self.phi))**2
-		else:
-			return (np.sin(self.fv))**2
+		freq = 1e3 * c / lamda
+		return (np.sin(self.omega*freq+self.phi))**2
+
 			
 
-	def il_port2(self, lamda = None):
-		if lamda is not None:
-			return (np.cos(self.omega*lamda+self.phi))**2
-		else:
-			return (np.cos(self.fv))**2
+	def il_port2(self, lamda):
+		freq = 1e3 * c / lamda
+		return (np.cos(self.omega*freq+self.phi))**2
+
 
 	def plot(self, lamda,filename= False,xlim = (900, 1250)):
 		fig = plt.figure()
-		plt.plot(lamda, self.il_port1(), label="%0.2f" %
-				 (self.x1) + ' nm port')
-		plt.plot(lamda, self.il_port2(), label="%0.2f" %
-				 (self.x2) + ' nm port')
+		plt.plot(lamda, self.il_port1(lamda), label="%0.2f" %
+				 (self.l1) + ' nm port')
+		plt.plot(lamda, self.il_port2(lamda), label="%0.2f" %
+				 (self.l2) + ' nm port')
 		plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.13), ncol=2)
 		plt.xlabel(r'$\lambda (\mu m)$')
 		plt.xlim()
-		#plt.ylabel(r'$Insertion loss (dB)$')
+		plt.ylabel('Power Ratio')
 		if filename:
 			plt.savefig(
 				'output/WDMs&loss/WDM_high_'+str(self.x1)+'_low_'+str(self.x2)+'.png')
@@ -380,10 +381,10 @@ class WDM(object):
 
 	def plot_dB(self, lamda,filename = False):
 		fig = plt.figure()
-		plt.plot(lamda, 10*np.log10(self.il_port1()),
-				 label="%0.2f" % (self.x1*1e9) + ' nm port')
-		plt.plot(lamda, 10*np.log10(self.il_port2()),
-				 label="%0.2f" % (self.x2*1e9) + ' nm port')
+		plt.plot(lamda, 10*np.log10(self.il_port1(lamda)),
+				 label="%0.2f" % (self.l1*1e9) + ' nm port')
+		plt.plot(lamda, 10*np.log10(self.il_port2(lamda)),
+				 label="%0.2f" % (self.l2*1e9) + ' nm port')
 		plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.13), ncol=2)
 		plt.xlabel(r'$\lambda (\mu m)$')
 		plt.ylabel(r'$Insertion loss (dB)$')
@@ -392,7 +393,7 @@ class WDM(object):
 		if filename:
 		
 			plt.savefig('output/WDMs&loss/WDM_dB_high_' +
-					str(self.x1)+'_low_'+str(self.x2)+'.png')
+					str(self.l1)+'_low_'+str(self.l2)+'.png')
 		else:
 			plt.show()
 		plt.close(fig)
