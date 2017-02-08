@@ -23,7 +23,7 @@ try:
 	autojit = accelerate.numba.autojit
 	from accelerate import numba
 	vectorize, float64, complex128 = numba.vectorize, numba.float64, numba.complex128
-except AttributeError:
+except AttributeError, ImportError:
 	print(
 		"install the accelerate packadge from anaconda or change \
 		the source code ie remove references to @jit and accelerate imports")
