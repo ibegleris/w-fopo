@@ -3,6 +3,8 @@ from __future__ import division, print_function
 import sys
 import os
 import numpy as np
+import matplotlib as mpl
+mpl.use('Agg')
 from scipy.linalg import norm
 from scipy.constants import pi, c
 from scipy.io import loadmat, savemat

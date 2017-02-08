@@ -1,5 +1,7 @@
 from __future__ import division, print_function
 import numpy as np
+import matplotlib as mpl
+mpl.use('Agg')
 from scipy.constants import c, pi
 from scipy.io import savemat
 from joblib import Parallel, delayed
