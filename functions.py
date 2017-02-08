@@ -21,7 +21,7 @@ try:
 	autojit = accelerate.numba.autojit
 	from accelerate import numba
 	vectorize, float64, complex128 = numba.vectorize, numba.float64, numba.complex128
-except ImportError:
+except AttributeError:
 	print(
 		"install the accelerate packadge from anaconda or change \
 		the source code ie remove references to @jit and accelerate imports")
@@ -305,9 +305,8 @@ class WDM(object):
 		"""
 		self.l1 =  x1   # High part of port 1
 		self.l2 =  x2  # Low wavelength of port 1
-		self.f1 = 1e3 * c / self.l1   # High part of port 1
-		self.f2 = 1e3 * c / self.l2  # Low wavelength of port 1
-		
+		self.f1 = 1e-3 * c / self.l1   # High part of port 1
+		self.f2 = 1e-3 * c / self.l2  # Low wavelength of port 1
 		self.omega = 0.5*pi/np.abs(self.f1 - self.f2)
 		self.phi = pi - self.omega*self.f2
 		#self.fv = fv
@@ -344,20 +343,20 @@ class WDM(object):
 
 		u_out, U_true = (), ()
 		for i, UU in enumerate(U_out):
-			u_out += (ifftshift(ifft(UU)/sim_wind.dt, axes=(0,)),)
-			U_true += (fftshift(np.abs(sim_wind.dt *
-									   fft(u_out[i]))**2, axes=(0,)),)
-		return (u_out[0], U_out[0],U_true[0]), (u_out[1], U_out[1],U_true[1])
+			u_out += (ifft(ifftshift(UU, axes=(0,))/sim_wind.dt),)
+			#U_true += (fftshift(np.abs(sim_wind.dt *
+			#						   fft(u_out[i]))**2, axes = (0,)),)
+		return ((u_out[0], U_out[0]), (u_out[1], U_out[1]))
 
 		
 	def il_port1(self, lamda = None):
-		freq = 1e3 * c / lamda
+		freq = 1e-3 * c / lamda
 		return (np.sin(self.omega*freq+self.phi))**2
 
 			
 
 	def il_port2(self, lamda):
-		freq = 1e3 * c / lamda
+		freq = 1e-3 * c / lamda
 		return (np.cos(self.omega*freq+self.phi))**2
 
 
@@ -371,9 +370,11 @@ class WDM(object):
 		plt.xlabel(r'$\lambda (\mu m)$')
 		plt.xlim()
 		plt.ylabel('Power Ratio')
+		plt.xlim(xlim)
 		if filename:
+			os.system('mkdir output/WDMs_loss')
 			plt.savefig(
-				'output/WDMs&loss/WDM_high_'+str(self.x1)+'_low_'+str(self.x2)+'.png')
+				'output/WDMs_loss/WDM_high_'+str(self.l1)+'_low_'+str(self.l2)+'.png')
 		else: 
 			plt.show()
 		plt.close(fig)
@@ -389,7 +390,7 @@ class WDM(object):
 		plt.xlabel(r'$\lambda (\mu m)$')
 		plt.ylabel(r'$Insertion loss (dB)$')
 		plt.ylim(-60, 0)
-		plt.xlim((900, 1250))
+		#plt.xlim((900, 1250))
 		if filename:
 		
 			plt.savefig('output/WDMs&loss/WDM_dB_high_' +
@@ -398,6 +399,28 @@ class WDM(object):
 			plt.show()
 		plt.close(fig)
 		return None
+
+def create_file_structure():
+	"""
+	Is set to create and destroy the filestructure needed 
+	to run the program so that the files are not needed in the repo
+	"""
+	folders_large = ('output_dump_pump_powers', 'output_dump_pump_wavelengths', 'output_final', 'output')
+	folders_large += (folders_large[-1] + '/output',)
+	folders_large += (folders_large[-1] + '/data',)
+	folders_large += (folders_large[-2] + '/figures',)
+	
+	outs = folders_large[-1]
+	folders_figures = ('/freequency', '/time', '/wavelength')
+	for i in folders_figures:
+		folders_figures +=(i+'/portA',i+'/portB')
+	for i in folders_figures:
+		folders_large += (outs + i,)
+	folders_large += (outs+'/WDMs',)
+	for i in folders_large:
+		if not os.path.isdir(i):
+			os.system('mkdir ' + i)
+	return None
 
 
 class Splicer(WDM):
@@ -440,21 +463,21 @@ class Noise(object):
 		return noise_freq
 
 
-def pulse_propagation(u, U, Uabs, int_fwm, M1, M2, sim_wind, hf, Dop, dAdzmm, fft, ifft):
+def pulse_propagation(u, U, int_fwm, M1, M2, sim_wind, hf, Dop, dAdzmm, fft, ifft):
 	"--------------------------Pulse propagation--------------------------------"
 	badz = 0  # counter for bad steps
-	goodz = 0  # counter for good steps
+	#goodz = 0  # counter for good steps
 	dztot = 0  # total distance traveled
 	dzv = np.zeros(1)
 	dzv[0] = int_fwm.dz
 	u1 = np.copy(u[:, :, 0])
-	energy = np.NaN*np.ones([int_fwm.nm, int_fwm.nplot+1])
-	entot = np.NaN*np.ones(int_fwm.nplot+1)
-	for ii in range(int_fwm.nm):
-		energy[ii, 0] = np.linalg.norm(u1[:, ii], 2)**2  # energy per mode
+
+	#energy = np.NaN*np.ones([int_fwm.nm, int_fwm.nplot+1])
+	#entot = np.NaN*np.ones(int_fwm.nplot+1)
+	#for ii in range(int_fwm.nm):
+	#	energy[ii, 0] = np.linalg.norm(u1[:, ii], 2)**2  # energy per mode
 	dz = int_fwm.dz * 1
 	# total energy (must be conserved)
-	entot[0, ] = np.sum(energy[:, 0]**1)
 	for jj in range(int_fwm.nplot):
 		exitt = False
 		while not(exitt):
@@ -463,7 +486,7 @@ def pulse_propagation(u, U, Uabs, int_fwm, M1, M2, sim_wind, hf, Dop, dAdzmm, ff
 			while delta > int_fwm.maxerr:
 				u1new = ifft(np.exp(Dop*dz/2)*fft(u1))
 				A, delta = RK5mm(dAdzmm, u1new, dz, M1, M2, sim_wind.t, int_fwm.n2, sim_wind.lamda, sim_wind.tsh,
-								 sim_wind.w, sim_wind.woffset, sim_wind.dt, hf, fft, ifft)  # calls a 5th order Runge Kutta routine
+								 sim_wind.w, sim_wind.woffset, sim_wind.dt, hf,sim_wind.w_tiled, fft, ifft)  # calls a 5th order Runge Kutta routine
 				if (delta > int_fwm.maxerr):
 					# calculate the step (shorter) to redo
 					dz *= (int_fwm.maxerr/delta)**0.25
@@ -474,7 +497,7 @@ def pulse_propagation(u, U, Uabs, int_fwm, M1, M2, sim_wind, hf, Dop, dAdzmm, ff
 			# update the propagated distance
 			dztot += dz
 			# update the number of steps taken
-			goodz += 1
+			#goodz += 1
 			# store the dz just taken
 			dzv = np.append(dzv, dz)
 			# calculate the next step (longer)
@@ -493,13 +516,14 @@ def pulse_propagation(u, U, Uabs, int_fwm, M1, M2, sim_wind, hf, Dop, dAdzmm, ff
 
 		u[:, :, jj+1] = u1
 		U[:, :, jj+1] = fftshift(sim_wind.dt*fft(u[:, :, jj+1]), axes=(0,))
-		Uabs[
-			:, :, jj+1] = fftshift(np.abs(sim_wind.dt*fft(u[:, :, jj+1]))**2, axes=(0,))
-		for ii in range(int_fwm.nm):
-			energy[ii, jj+1] = norm(u1[:, ii], 2)**2  # energy per mode
-		entot[jj+1] = np.sum(energy[:, jj+1])			 # total energy
+		#Uabs[
+		#	:, :, jj+1] = fftshift(np.abs(sim_wind.dt*fft(u[:, :, jj+1]))**2, axes=(0,))
+		#for ii in range(int_fwm.nm):
+		#	energy[ii, jj+1] = norm(u1[:, ii], 2)**2  # energy per mode
+		#entot[jj+1] = np.sum(energy[:, jj+1])			 # total energy
+	int_fwm.dz  = dz*1
 	print(badz)
-	return u, U, Uabs
+	return u, U
 
 
 def dbm_nm(U, sim_wind, int_fwm):
@@ -535,7 +559,6 @@ def fv_creator(lam_start, lam_p1, int_fwm):
 	check_ft_grid(fv, diff)
 
 	where = [2**(int_fwm.N-1)]
-	lv = 1e-3*c/fv
 	return fv, where
 
 

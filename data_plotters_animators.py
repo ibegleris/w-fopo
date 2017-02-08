@@ -3,16 +3,36 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+
 import h5py
 import sys
+
+def w2dbm(W, floor=-100):
+	"""This function converts a power given in W to a power given in dBm.
+	   Inputs::
+		   W(float): power in units of W
+	   Returns::
+		   Power in units of dBm(float)
+	"""
+	if type(W) != np.ndarray:
+		if W > 0:
+			return 10. * np.log10(W) + 30
+		elif W == 0:
+			return floor
+		else:
+			print(W)
+			raise(ZeroDivisionError)
+	a = 10. * (np.ma.log10(W)).filled(floor/10-3) + 30
+	return a
+
 plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
 plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
-def plotter_dbm(index, nm, sim_wind, Uabs, u, U, P0_p, P0_s, f_p, f_s, which,ro,P_portb,rel_error, filename=None, title=None, im=0, plots = True):
+def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro,P_portb,rel_error, filename=None, title=None, im=0, plots = True):
 	if plots == True:
 		fig = plt.figure(figsize=(20.0, 10.0))
 		for ii in range(nm):
 			plt.plot(sim_wind.lv, 
-				np.real(Uabs[:, ii, which]), '-*', label='mode'+str(ii))
+				w2dbm(np.abs(U[:,ii,which])**2), '-*', label='mode'+str(ii))
 		#plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
 		#plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
 		plt.xlabel(r'$\lambda (nm)$', fontsize=18)
@@ -36,7 +56,7 @@ def plotter_dbm(index, nm, sim_wind, Uabs, u, U, P0_p, P0_s, f_p, f_s, which,ro,
 		fig = plt.figure(figsize=(20.0, 10.0))
 		for ii in range(nm):
 			plt.plot(sim_wind.fv, 
-				np.real(Uabs[:, ii, which]), '-*', label='mode'+str(ii))
+				w2dbm(np.abs(U[:,ii,which])**2), '-*', label='mode'+str(ii))
 		#plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
 		#plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
 		plt.xlabel(r'$f (THz)$', fontsize=18)
@@ -86,12 +106,12 @@ def plotter_dbm(index, nm, sim_wind, Uabs, u, U, P0_p, P0_s, f_p, f_s, which,ro,
 		try:
 			
 			save_variables('data_large', layer, filepath='output/output'+str(index)+'/data/', U = U[:,:,which], t=sim_wind.t, u=u[:,:,which],
-						   fv=sim_wind.fv, lv=sim_wind.lv, Uabs = Uabs[:,:,which],
+						   fv=sim_wind.fv, lv=sim_wind.lv,
 						   which=which, nm=nm, P0_p=P0_p, P0_s=P0_s, f_p=f_p, f_s=f_s, ro = ro,P_portb = P_portb,rel_error = rel_error)
 		except RuntimeError:
 			os.system('rm output/output'+str(index)+'/data/data_large.hdf5')
 			save_variables('data_large', layer, filepath='output/output'+str(index)+'/data/', U=U[:,:,which], t=sim_wind.t, u=u[:,:,which],
-						   fv=sim_wind.fv, lv=sim_wind.lv, Uabs=Uabs[:,:,which],
+						   fv=sim_wind.fv, lv=sim_wind.lv,
 						   which=which, nm=nm, P0_p=P0_p, P0_s=P0_s, f_p=f_p, f_s=f_s, ro = ro, P_portb = P_portb, rel_error = rel_error)
 			pass
 
