@@ -212,26 +212,22 @@ def pulse_propagations(ram,ss):
 	u = np.zeros([len(sim_wind.t),int_fwm.nm,len(sim_wind.zv)],dtype='complex128')
 	U = np.zeros([len(sim_wind.t),int_fwm.nm,len(sim_wind.zv)],dtype='complex128')
 	Uabs = np.copy(U)
-
+	sim_wind.w_tiled = np.tile(sim_wind.w,(len(u[0,:,0]),1)).T
 
 
 
 	u[:,0,0] = (P0_p1)**0.5/ np.cosh(sim_wind.t/T0)*np.exp(-1j*(sim_wind.woffset)*sim_wind.t);
 
 	U[:,:,0] = fftshift(sim_wind.dt*fft(u[:,:,0]),axes=(0,))
-	Uabs[:,:,0] = fftshift(np.abs(sim_wind.dt*fft(u[:,:,0]))**2,axes=(0,))
-	u,U,Uabs  = pulse_propagation(u,U,Uabs,int_fwm,M1,M2,sim_wind,hf,Dop,dAdzmm,fft,ifft)
+	
+	u,U  = pulse_propagation(u,U,int_fwm,M1,M2,sim_wind,hf,Dop,dAdzmm,fft,ifft)
 
-	#plotter_dbm(1, sim_wind, Uabs, u, 0)
-	#plotter_dbm(1, sim_wind, Uabs, u, -1)
 	U_start = np.abs(U[:,0,0])**2
 	print(np.max(U_start - np.abs(U[:,0,-1])**2))
 	print(U_start - np.abs(U[:,0,-1])**2)
-	#try:
+
 	assert_allclose(U_start , np.abs(U[:,0,-1])**2)
-	#except AssertionError:
-	#	print(np.max(U_start - np.abs(U[:,0,-1])**2))
-	#	print(U_start - np.abs(U[:,0,-1])**2)
+
 
 def test_r0_ss0():
 	pulse_propagations('off', 0)
@@ -310,34 +306,7 @@ class Test_WDM(object):
 		u_out_tot = np.abs(u_out1)**2 + np.abs(u_out2)**2
 
 		assert_allclose( u_in_tot, u_out_tot)
-	
-	def test3_WDM_abs(self):
-		self.x1 = 930
-		self.x2 = 1050
-		self.nt = 3
 
-		self.lv = np.linspace(900, 1250,2**self.nt)
-		self.fv = 1e3 * c/ self.lv
-
-		WDMS = WDM(self.x1, self.x2,self.fv, c)
-		sim_wind = sim_windows(self.lv,self.lv,900, 1250)
-		
-		U1 = 10*(np.random.randn(2**self.nt,1) + 1j * np.random.randn(2**self.nt,1))
-		U2 = 10 *(np.random.randn(2**self.nt,1) + 1j * np.random.randn(2**self.nt,1))
-		
-
-		U_in = (U1, U2)
-		U_in_tot = np.abs(U1)**2 + np.abs(U2)**2
-		a,b = WDMS.pass_through(U_in,sim_wind,fft,ifft)
-		U_out1,U_out2 = a[2], b[2]
-		print(a)
-		print(b)
-		print('netx')
-		print(U_out1 + U_out2)
-		
-		U_out_tot =U_out1 + U_out2
-
-		assert_allclose(U_in_tot, U_out_tot)
 
 		
 
@@ -431,32 +400,6 @@ class Test_splicer():
 
 		assert_allclose( u_in_tot, u_out_tot)
 	
-	def test3_WDM_abs(self):
-		self.x1 = 930
-		self.x2 = 1050
-		self.nt = 3
-
-		self.lv = np.linspace(900, 1250,2**self.nt)
-
-		splicer = Splicer(loss = np.random.rand()*10)
-		sim_wind = sim_windows(self.lv,self.lv,900, 1250)
-		
-		U1 = 10*(np.random.randn(2**self.nt,1) + 1j * np.random.randn(2**self.nt,1))
-		U2 = 10 *(np.random.randn(2**self.nt,1) + 1j * np.random.randn(2**self.nt,1))
-		
-
-		U_in = (U1, U2)
-		U_in_tot = np.abs(U1)**2 + np.abs(U2)**2
-		a,b = splicer.pass_through(U_in,sim_wind,fft,ifft)
-		U_out1,U_out2 = a[2], b[2]
-		print(a)
-		print(b)
-		print('netx')
-		print(U_out1 + U_out2)
-		
-		U_out_tot =U_out1 + U_out2
-
-		assert_allclose(U_in_tot, U_out_tot)
 
 
 
@@ -474,7 +417,6 @@ def test_read_write1():
 	A,B,C = D['A'], D['B'], D['C']
 	#locals().update(D)
 	assert_allclose(A,A_copy)
-	return None
 
 
 def test_read_write2():

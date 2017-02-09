@@ -27,7 +27,7 @@ def w2dbm(W, floor=-100):
 
 plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
 plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
-def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro,P_portb,rel_error, filename=None, title=None, im=0, plots = True):
+def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro,P_portb,rel_error, pump_wave = '',filename=None, title=None, im=0, plots = True):
 	if plots == True:
 		fig = plt.figure(figsize=(20.0, 10.0))
 		for ii in range(nm):
@@ -49,7 +49,7 @@ def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro,P_port
 		if filename == None:
 			plt.show()
 		else:
-			plt.savefig("output/output"+str(index)+"/figures/wavelength/"+filename, bbox_inched='tight')
+			plt.savefig('output'+pump_wave+'/output'+str(index)+'/figures/wavelength/'+filename, bbox_inched='tight')
 
 		plt.close(fig)
 
@@ -72,7 +72,7 @@ def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro,P_port
 		if filename == None:
 			plt.show()
 		else:
-			plt.savefig("output/output"+str(index)+"/figures/freequency/"+filename, bbox_inched='tight')
+			plt.savefig('output'+pump_wave+'/output'+str(index)+'/figures/freequency/'+filename, bbox_inched='tight')
 		plt.close(fig)
 
 		fig = plt.figure(figsize=(20.0, 10.0))
@@ -80,7 +80,7 @@ def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro,P_port
 			plt.plot(
 				sim_wind.t, np.abs(u[:, ii, which])**2, '*-', label='mode'+str(ii))
 		#plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
-		plt.title("time space")
+		plt.title('time space')
 		plt.ylim([0, 160])
 		plt.grid()
 		plt.xlabel(r'$t(ps)$')
@@ -94,7 +94,7 @@ def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro,P_port
 			plt.show()
 		else:
 
-			plt.savefig("output/output"+str(index)+"/figures/time/"+filename)
+			plt.savefig('output'+pump_wave+'/output'+str(index)+'/figures/time/'+filename)
 		plt.close(fig)
 			
 
@@ -105,12 +105,12 @@ def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro,P_port
 			layer = filename
 		try:
 			
-			save_variables('data_large', layer, filepath='output/output'+str(index)+'/data/', U = U[:,:,which], t=sim_wind.t, u=u[:,:,which],
+			save_variables('data_large', layer, filepath='output'+pump_wave+'/output'+str(index)+'/data/', U = U[:,:,which], t=sim_wind.t, u=u[:,:,which],
 						   fv=sim_wind.fv, lv=sim_wind.lv,
 						   which=which, nm=nm, P0_p=P0_p, P0_s=P0_s, f_p=f_p, f_s=f_s, ro = ro,P_portb = P_portb,rel_error = rel_error)
 		except RuntimeError:
-			os.system('rm output/output'+str(index)+'/data/data_large.hdf5')
-			save_variables('data_large', layer, filepath='output/output'+str(index)+'/data/', U=U[:,:,which], t=sim_wind.t, u=u[:,:,which],
+			os.system('rm output'+pump_wave+'/output'+str(index)+'/data/data_large.hdf5')
+			save_variables('data_large', layer, filepath='output'+pump_wave+'/output'+str(index)+'/data/', U=U[:,:,which], t=sim_wind.t, u=u[:,:,which],
 						   fv=sim_wind.fv, lv=sim_wind.lv,
 						   which=which, nm=nm, P0_p=P0_p, P0_s=P0_s, f_p=f_p, f_s=f_s, ro = ro, P_portb = P_portb, rel_error = rel_error)
 			pass
@@ -123,42 +123,6 @@ def plotter_dbm_load():
 	plotter_dbm(nm, sim_wind, Uabs, u, which)
 	return None
 
-
-def plotter_dbm_lams_large(modes, sim_wind, U, which, lams_vec):
-	fig = plt.figure(figsize=(20.0, 10.0))
-	for mode in modes:
-		for lamm, lamda in enumerate(lams_vec):
-			plt.plot(
-				sim_wind.lv, np.real(U[lamm, :, mode]), '-*', label=str(mode))
-	plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
-	plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
-	plt.xlabel(r'$\lambda (nm)$', fontsize=18)
-	plt.ylabel(r'$Spectrum (a.u.)$', fontsize=18)
-	plt.grid()
-	# plt.ylim([-70,0])
-	plt.xlim([900, 1250])
-	plt.xlim([np.min(sim_wind.lv), np.max(sim_wind.lv)])
-	plt.savefig(
-		"output/figures/wavelength/wavelength_space_final.png", bbox_inched='tight')
-
-	# plt.close('all')
-
-	fig = plt.figure(figsize=(20.0, 10.0))
-	for mode in modes:
-		for lamm, lamda in enumerate(lams_vec):
-			plt.plot(
-				sim_wind.fv, np.real(U[lamm, :, mode]), '-*', label=str(mode))
-	plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
-	plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
-	plt.xlabel(r'$f (THz)$', fontsize=18)
-	plt.ylabel(r'$Spectrum (a.u.)$', fontsize=18)
-	plt.xlim([np.min(sim_wind.fv), np.max(sim_wind.fv)])
-	plt.grid()
-	plt.savefig(
-		"output/figures/freequency/freequency_space_final.png", bbox_inched='tight')
-
-	plt.close(fig)
-	return 0
 
 
 def animator_pdf_maker(rounds, pump_index):
@@ -173,7 +137,7 @@ def animator_pdf_maker(rounds, pump_index):
 		file_loc = 'output/output'+str(pump_index)+'/figures/'+sp+'/'
 		strings_large = ['convert '+file_loc+'00.png ']
 		for i in range(4):
-			strings_large.append("convert ")
+			strings_large.append('convert ')
 		for ro in range(rounds):
 			for i in range(4):
 				strings_large[i+1] += file_loc+str(ro)+str(i+1)+'.png '

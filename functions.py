@@ -17,18 +17,19 @@ from data_plotters_animators import *
 import cmath
 import pandas as pd
 phasor = np.vectorize(cmath.polar)
+"""
 try:
 	import accelerate
 	jit = accelerate.numba.jit
 	autojit = accelerate.numba.autojit
 	from accelerate import numba
 	vectorize, float64, complex128 = numba.vectorize, numba.float64, numba.complex128
-except AttributeError, ImportError:
+except AttributeError:
 	print(
 		"install the accelerate packadge from anaconda or change \
 		the source code ie remove references to @jit and accelerate imports")
 	pass
-
+"""
 
 def dbm2w(dBm):
 	"""This function converts a power given in dBm to a power given in W.
@@ -131,6 +132,7 @@ def dispersion_operator(betas, lamda_c, int_fwm, sim_wind):
 	beta0, beta1 = betap[0, 0], betap[0, 1]
 	betap[:, 0] -= beta0
 	betap[:, 1] -= beta1
+	print(betap)
 	for i in range(int_fwm.nm):
 		for j, bb in enumerate(betap[i, :]):
 			Dop[:, i] -= 1j*(w**j * bb / factorial(j))
@@ -402,12 +404,12 @@ class WDM(object):
 		plt.close(fig)
 		return None
 
-def create_file_structure():
+def create_file_structure(kk=''):
 	"""
 	Is set to create and destroy the filestructure needed 
 	to run the program so that the files are not needed in the repo
 	"""
-	folders_large = ('output_dump_pump_powers', 'output_dump_pump_wavelengths', 'output_final', 'output')
+	folders_large = ('output_dump_pump_powers', 'output_dump_pump_wavelengths', 'output_final', 'output'+str(kk))
 	folders_large += (folders_large[-1] + '/output',)
 	folders_large += (folders_large[-1] + '/data',)
 	folders_large += (folders_large[-2] + '/figures',)
@@ -429,18 +431,15 @@ class Splicer(WDM):
 
 	def __init__(self, loss=1):
 		self.loss = loss
-
+		self.c1 = 10**(-0.1*self.loss/2)
+		self.c2 = (1 - 10**(-0.1*self.loss))**0.5
 	def U_calc(self, U_in):
 		"""
 		Operates like a beam splitter that reduces the optical power by the loss given (in dB).
 
 		"""
-
-		c1 = 10**(-0.1*self.loss/2)
-		c2 = (1 - 10**(-0.1*self.loss))**0.5
-
-		U_out1 = U_in[0] * c1 + 1j* U_in[1] * c2
-		U_out2 = 1j* U_in[0] * c2 + U_in[1] * c1 
+		U_out1 = U_in[0] * self.c1 + 1j* U_in[1] * self.c2
+		U_out2 = 1j* U_in[0] * self.c2 + U_in[1] * self.c1 
 		return U_out1, U_out2
 
 
@@ -607,20 +606,21 @@ class create_destroy(object):
 	creates and destroys temp folder that is used for computation. Both methods needs to be run
 	before you initiate a new variable
 	""" 
-	def __init__(self, variable):
+	def __init__(self,variable, pump_wave = ''):
 		self.variable = variable
+		self.pump_wave = pump_wave
 		return None
 
 
 	def cleanup_folder(self):
 		for i in range(len(self.variable)):
-			os.system('rm -r output/output'+str(i))
+			os.system('rm -r output'+self.pump_wave)
 		return None
 
 
 	def prepare_folder(self):
 		for i in range(len(self.variable)):
-			os.system('cp -r output/output/ output/output'+str(i))
+			os.system('cp -r output'+self.pump_wave+'/output/ output'+self.pump_wave+'/output'+str(i))
 		return None
 
 
