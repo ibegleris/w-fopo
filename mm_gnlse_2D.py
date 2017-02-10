@@ -141,7 +141,7 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 	#from scipy.integrate import simps
 	#power = simps(np.abs(U_original_pump[:,0])**2, sim_wind.fv)/(2*np.max(sim_wind.t))
 	#print(power)
-	max_rounds = 0
+	max_rounds = 512
 	ro = -1
 	min_circ_error = 0.01 # relative percentage error in power
 	P_portb,P_portb_prev = 3*min_circ_error ,min_circ_error
@@ -267,8 +267,8 @@ def lam_p2_vary(lam_s_max,pump_index, lam_p1, power_pump_input,power_signal_inpu
 	lamda = lam_p1*1e-9  # central wavelength of the grid[m]
 	# 1052.95e-9		  #central freequency of the dispersion
 	#lamda_c = 1052.95e-9	#fast axis
-	lamda_c = 1052.44e-9	#average axis
-	#lamda_c = 1051.85e-9	#slow axis
+	#lamda_c = 1052.44e-9	#average axis
+	lamda_c = 1051.85e-9	#slow axis
 	"----------------------Obtain the Q matrixes------------------------------"
 	M1, M2 = Q_matrixes(int_fwm.nm, int_fwm.n2, lamda, gama)
 	"-------------------------------------------------------------------------"
@@ -287,9 +287,9 @@ def lam_p2_vary(lam_s_max,pump_index, lam_p1, power_pump_input,power_signal_inpu
 	int_fwm.alpha = loss.atten_func_full(fv)
 	"------------------------------Dispersion operator--------------------------------------"
 	# betas at ps/m (given in ps^n/km)
-	betas = np.array([[0, 0, 0, 6.753e-2, -1.001e-4, 2.753e-7]])*1e-3
-	betas = np.array([[0, 0, 0, 6.755e-2, -1.001e-4, 2.673e-7]])*1e-3
-	#betas = np.array([[0, 0, 0, 6.756e-2, -1.002e-4, 3.671e-7]])*1e-3
+	#betas = np.array([[0, 0, 0, 6.753e-2, -1.001e-4, 2.753e-7]])*1e-3
+	#betas = np.array([[0, 0, 0, 6.755e-2, -1.001e-4, 2.673e-7]])*1e-3
+	betas = np.array([[0, 0, 0, 6.756e-2, -1.002e-4, 3.671e-7]])*1e-3
 	
 	Dop = dispersion_operator(betas, lamda_c, int_fwm, sim_wind)
 
@@ -341,26 +341,21 @@ def lam_p2_vary(lam_s_max,pump_index, lam_p1, power_pump_input,power_signal_inpu
 def main():
 	"-----------------------------Stable parameters----------------------------"
 	n2 = 2.5e-20							# n2 for silica [m/W]
-	nm = 1					  			# number of modes
-	alphadB = 0.0011666666666666668		 # loss within fibre[dB/m]
+	nm = 1					  				# number of modes
+	alphadB = 0.0011666666666666668			# loss within fibre[dB/m]
 	gama = 10e-3 							# w/m
-	Power_input = 4  # [W]
-	Power_signal = 0  # [W]
-	num_cores = 1
-	 			# creates the filestructure needed for saving figures and data
+	num_cores = 6
 	"-----------------------------General options------------------------------"
-
 	maxerr = 1e-13							# maximum tolerable error per step
-	ss = 1					  			# includes self steepening term
-	ram = 'on'				  			# Raman contribution 'on' if yes
-											# and 'off' if no
-	plots = True 							# Do you want plots, be carefull it makes the code very slow!
+	ss = 1					  				# includes self steepening term
+	ram = 'on'				  				# Raman contribution 'on' if yes and 'off' if no
+	plots = False 							# Do you want plots, be carefull it makes the code very slow!
 	"----------------------------Simulation parameters-------------------------"
-	N = 14
-	z = 18						# total distance [m]
-	nplot = 1				# number of plots
-	nt = 2**N 					# number of grid points
-	dzstep = z/nplot			# distance per step
+	N = 14									# 2**N grid points 
+	z = 18									# total distance [m]
+	nplot = 1								# number of plots within fibre
+	nt = 2**N 								# number of grid points
+	dzstep = z/nplot						# distance per step
 	dz_less = 1e2
 	dz = dzstep/dz_less		 # starting guess value of the step
 	wavelength_space = True		# Set wavelength space for grid calculation
@@ -371,15 +366,14 @@ def main():
 	if num_cores > 1:
 		fft = sfft
 		ifft = isfft
-		fft_method = 'scipy sinc eyou are using cores for scanning.'
+		fft_method = 'scipy since you are using cores for scanning.'
 	else:
 		fft, ifft, fft_method = pick(N, nm, 100)
 	"---------------------FWM wavelengths----------------------------------------"
 	lam_p1 = 1051.4  # [nm]
 	lams_max_asked = 1250  # [nm]
 
-	lv = lam_p2_vary(
-		2, 0,lam_p1, Power_input,Power_signal,int_fwm, 0, gama, fft, ifft,
+	lv = lam_p2_vary(2, 0,lam_p1, 1,1,int_fwm, 0, gama, fft, ifft,
 			 'pump_wavelengths',fv_idler_int,False,par = False,grid_only = True,timing= False).lv[::-1]
 
 	lv_lams = np.abs(np.asanyarray(lv) - lams_max_asked)
@@ -391,7 +385,7 @@ def main():
 	
 	print(
 		"The fft method that was found to be faster for your system is:", fft_method)
-
+	"""
 	lamdaP_vec = np.linspace(1048.8816316376193e-9 - 0.5e-9, 1048.8816316376193e-9 + 0.5e-9,6)
 	lamdaP_vec = (1048.16488268e-9, 1048.90830318e-9,1048.82032844e-9,1048.25632956e-9,1047.84861016e-9,
 		1047.45289893e-9)
@@ -445,12 +439,13 @@ def main():
  
 	print('\a')
    	
-	#return None
-
+	return None
+	"""
 
 	
-	Power_input = 7
-	#pump_wavelengths = (1047.5, 1047.9, 1048.3, 1048.6,
+	Power_input = 15
+	Power_signal = 0
+	#pump_wavelengths = (1047, 1047.5, 1047.9, 1048.3, 1048.6,
 	#					1049.0, 1049.5, 1049.8, 1050.2, 1050.6, 1051.0, 1051.4)
 	pump_wavelengths = (1047,1047.6,1047.8,1048.5,1048.9,1049.6)
 	#pump_wavelengths = (1049.6,)
