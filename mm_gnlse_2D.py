@@ -120,12 +120,12 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 
 
 	# Splice1
-	(u[:, :, 0], U[:, :, 0]) = splicer2.pass_through(
-		(U[:, :, 0],noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)[0]
+	#(u[:, :, 0], U[:, :, 0]) = splicer2.pass_through(
+	#	(U[:, :, 0],noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)[0]
 
 	# Splice2
-	(u[:, :, 0], U[:, :, 0])  = splicer2.pass_through(
-		(U[:, :, 0], noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)[0]
+	#(u[:, :, 0], U[:, :, 0])  = splicer2.pass_through(
+	#	(U[:, :, 0], noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)[0]
 
 	# Splice3
 	#(u[:, :, 0], U[:, :, 0]) = splicer2.pass_through(
@@ -141,7 +141,7 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 	#from scipy.integrate import simps
 	#power = simps(np.abs(U_original_pump[:,0])**2, sim_wind.fv)/(2*np.max(sim_wind.t))
 	#print(power)
-	max_rounds = 512
+	max_rounds = 1024
 	ro = -1
 	min_circ_error = 0.01 # relative percentage error in power
 	P_portb,P_portb_prev = 3*min_circ_error ,min_circ_error
@@ -344,7 +344,7 @@ def main():
 	nm = 1					  				# number of modes
 	alphadB = 0.0011666666666666668			# loss within fibre[dB/m]
 	gama = 10e-3 							# w/m
-	num_cores = 6
+	num_cores = 4
 	"-----------------------------General options------------------------------"
 	maxerr = 1e-13							# maximum tolerable error per step
 	ss = 1					  				# includes self steepening term
@@ -385,19 +385,23 @@ def main():
 	
 	print(
 		"The fft method that was found to be faster for your system is:", fft_method)
-	"""
+
 	lamdaP_vec = np.linspace(1048.8816316376193e-9 - 0.5e-9, 1048.8816316376193e-9 + 0.5e-9,6)
 	lamdaP_vec = (1048.16488268e-9, 1048.90830318e-9,1048.82032844e-9,1048.25632956e-9,1047.84861016e-9,
 		1047.45289893e-9)
-	lamdaP_vec = (sys.argv[2]*1e-9,)
+	lamdaP_vec = (1048.16488268e-9, 1048.90830318e-9)
+	
+	#lamdaP_vec = (sys.argv[2]*1e-9,)
 	#lamdaP_vec = (float(sys.argv[1])*1e-9,)
 	for kk,pp in enumerate(lamdaP_vec):
-		kk = sys.argv[1]
+
+		#kk = sys.argv[1]
 		create_file_structure(kk)
 		#pump_wavelengths = (1.0488816316376193e-06*1e9,)
 		pump_wavelengths = (pp*1e9,)
 		print(pump_wavelengths)
-		Power_inputs = (4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10,10.5,11,11.5)
+		Power_inputs = np.arange(3,5.3,0.2)
+		Power_signal = 0
 		#Power_inputs = (4.5,5)
 		#Power_inputs = (13,)
 		#Power_inputs = tuple(np.arange(4,7,0.1))
@@ -436,11 +440,57 @@ def main():
 		moved = os.system('mv output_dump_pump_powers/output* output_dump_pump_powers/'+str(kk) )
 		while moved != 0: 
 			timeit.sleep(2)
- 
+		"""
+		if kk !=0:
+			#kk = sys.argv[1]
+			create_file_structure(kk)
+			#pump_wavelengths = (1.0488816316376193e-06*1e9,)
+			pump_wavelengths = (pp*1e9,)
+			print(pump_wavelengths)
+			Power_inputs = (4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10,10.5,11,11.5)
+			Power_signal = 0
+			#Power_inputs = (4.5,5)
+			#Power_inputs = (13,)
+			#Power_inputs = tuple(np.arange(4,7,0.1))
+			#print(np.shape(Power_inputs))
+		
+			#Power_inputs = (2.5,3.5,4.5,5.5)
+			#Power_inputs = (10.5,)
+			#Power_inputs = np.arange(4.4,8.6,0.15)
+			#Power_inputs = (6,)
+			#Power_inputs = tuple(np.arange(4,7.1,0.1))
+			#Power_inputs = (0,)
+			lam_p1 = pump_wavelengths[0]
+
+			#Power_input = (13,)
+			_power = create_destroy(Power_inputs,str(kk))
+			_power.prepare_folder()
+			#Power_inputs = (6,6.5,7)
+			#iters = (6,7,8)
+			#iters, Power_inputs = ()
+
+			if num_cores > 1:
+				os.system("taskset -p 0xff %d" % os.getpid()) # fixes the numpy affinity problem
+				A = Parallel(n_jobs=num_cores)(delayed(lam_p2_vary)(lensig,i,lam_p1,Power_input,Power_signal,int_fwm,1
+									,gama,fft,ifft,'pump_powers',fv_idler_int,plots,par = False,grid_only = False,timing= False,pump_wave = str(kk))\
+									 for i, Power_input in enumerate(Power_inputs))
+			else:
+
+				for i, Power_input in enumerate(Power_inputs):
+					A = lam_p2_vary(lensig, i,lam_p1, Power_input,Power_signal, int_fwm, 1, gama,
+						fft, ifft, 'pump_powers',fv_idler_int,plots,par=False, grid_only=False, timing=False,pump_wave=str(kk))
+			
+
+			_power.cleanup_folder()
+			moved = 256
+			os.system('mkdir output_dump_pump_powers/'+str(kk))
+			moved = os.system('mv output_dump_pump_powers/output* output_dump_pump_powers/'+str(kk) )
+			while moved != 0: 
+				timeit.sleep(2)
+ 			"""
 	print('\a')
    	
 	return None
-	"""
 
 	
 	Power_input = 15

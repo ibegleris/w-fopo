@@ -9,3 +9,5 @@ __pycache__
 *foo*
 *.hdf5
 *png
+0*
+output*
