@@ -9,6 +9,7 @@ from scipy.io import loadmat
 from numpy.testing import assert_allclose,assert_approx_equal,assert_almost_equal,assert_raises
 from scipy.interpolate import InterpolatedUnivariateSpline
 from data_plotters_animators import *
+import matplotlib.pyplot as plt
 "---------------------------------W and dbm conversion tests--------------"
 def test_dbm2w():
 	assert dbm2w(30) == 1
@@ -113,18 +114,17 @@ def test_dispersion():
 	alpha_func = loss.atten_func_full(sim_wind.fv)
 	int_fwm.alphadB = alpha_func
 	int_fwm.alpha = int_fwm.alphadB
-	#print(np.shape(int_fwm.alphadB))
-	betas = np.array([[0,0,0,6.755e-2,-1.001e-4]])*1e-3
+
+	betas = np.array([0,0,0,6.755e-2,-1.001e-4])*1e-3
 
 	betas_disp = dispersion_operator(betas,lamdac,int_fwm,sim_wind)
 
 	betas_exact = np.loadtxt('testing_data/exact_dispersion.py').view(complex)
-	assert_allclose(betas_disp,betas_exact)
-
+	assert_allclose(betas_disp,betas_exact[:,0])
 
 
 "-----------------------Full soliton--------------------------------------------"	
-def pulse_propagations(ram,ss):
+def pulse_propagations(ram,ss,N_sol = 1):
 	"SOLITON TEST. IF THIS FAILS GOD HELP YOU!"
 	
 
@@ -132,54 +132,40 @@ def pulse_propagations(ram,ss):
 	n2 = 2.5e-20								# n2 for silica [m/W]
 	nm = 1					  				# number of modes
 	alphadB = 0#0.0011666666666666668			 # loss [dB/m]
-	gama = 10e-3 								# w/m
-	Power_input = 13					  		#[W]
+	gama = 3e-3 								# w/m
 	"-----------------------------General options------------------------------"
-
-	maxerr = 1e-13				# maximum tolerable error per step
-	#ss = 1					  # includes self steepening term
-	#ram = 'off'				  # Raman contribution 'on' if yes and 'off' if no
-	
+	maxerr = 1e-15				# maximum tolerable error per step
 	"----------------------------Simulation parameters-------------------------"
 	N = 13
 	z = 18				 	# total distance [m]
 	nplot = 1				  # number of plots
 	nt = 2**N 					# number of grid points
 	dzstep = z/nplot			# distance per step
-	dz_less = 1e2
+	dz_less = 1e10
 	dz = dzstep/dz_less		 # starting guess value of the step
-	print(dz)
 
 	lam_p1 = 900
 	lamda_c = 900e-9
 	lamda = lam_p1*1e-9
 	
-	N_sol = 1 
-	TFWHM = 0.03
-	
-	beta2 = -11.83e-5
-	#gama = 1
-	T0 = TFWHM/2/(np.log(2)); 
-	P0_p1 =  np.abs(beta2) / (gama * T0**2)
+	beta2 = 11.83e-5
+	P0_p1 = 1
 
-
-
+	T0 =  (N_sol**2 * np.abs(beta2) / (gama * P0_p1))**0.5
+	TFWHM = (2*np.log(1+2**0.5)) * T0
 
 	int_fwm = sim_parameters(n2,nm,alphadB)
 	int_fwm.general_options(maxerr,raman_object,ss,ram)
 	int_fwm.propagation_parameters(N, z, nplot, dz_less, True)
 
-
-	#print(lam_p1)
-	fv,where = fv_creator(lam_p1 - 100,lam_p1,int_fwm)
+	fv,where = fv_creator(lam_p1 - 10,lam_p1,int_fwm)
 	sim_wind = sim_window(fv,lamda,lamda_c,int_fwm,fv_idler_int = 1)
-
-
+	
 	loss = Loss(int_fwm, sim_wind, amax =	int_fwm.alphadB)
 	alpha_func = loss.atten_func_full(sim_wind.fv)
 	int_fwm.alphadB = alpha_func
 	int_fwm.alpha = int_fwm.alphadB
-	betas = np.array([[0,0,beta2,0,0]])*1e-3 # betas at ps/m (given in ps/km)
+	betas = np.array([0,0,beta2]) # betas at ps/m
 	Dop = dispersion_operator(betas,lamda_c,int_fwm,sim_wind)
 
 	string = "dAdzmm_r"+str(ram)+"_s"+str(ss)
@@ -191,58 +177,89 @@ def pulse_propagations(ram,ss):
 						"pass WDM1 on port2 (remove pump)",
 						'add more pump', 'out')
 
-
-
 	dAdzmm = func_dict[string]
 
-
-
-
-	M1,M2 = Q_matrixes(1,n2,lamda,gama=gama)
+	M = Q_matrixes(1,n2,lamda,gama=gama)
 	raman = raman_object(int_fwm.ram, int_fwm.how)
 	raman.raman_load(sim_wind.t, sim_wind.dt, fft, ifft)
-	#hf = raman.hf
+	
 	if raman.on == 'on':	
-		hf = raman.hf[:,np.newaxis]
-		hf = np.tile(hf,(1,len(M2[0,:])))
+		hf = raman.hf
 	else:
 		hf = None
 
 
-	u = np.zeros([len(sim_wind.t),int_fwm.nm,len(sim_wind.zv)],dtype='complex128')
-	U = np.zeros([len(sim_wind.t),int_fwm.nm,len(sim_wind.zv)],dtype='complex128')
-	Uabs = np.copy(U)
-	sim_wind.w_tiled = np.tile(sim_wind.w,(len(u[0,:,0]),1)).T
+	u = np.zeros([len(sim_wind.t),len(sim_wind.zv)],dtype='complex128')
+	U = np.zeros([len(sim_wind.t),len(sim_wind.zv)],dtype='complex128')
+
+	sim_wind.w_tiled = sim_wind.w
 
 
 
-	u[:,0,0] = (P0_p1)**0.5/ np.cosh(sim_wind.t/T0)*np.exp(-1j*(sim_wind.woffset)*sim_wind.t);
-
-	U[:,:,0] = fftshift(sim_wind.dt*fft(u[:,:,0]),axes=(0,))
+	u[:,0] = (P0_p1)**0.5 / np.cosh(sim_wind.t/T0)*np.exp(-1j*(sim_wind.woffset)*sim_wind.t)
+	U[:,0] = fftshift(sim_wind.dt*fft(u[:,0]))
 	
-	u,U  = pulse_propagation(u,U,int_fwm,M1,M2,sim_wind,hf,Dop,dAdzmm,fft,ifft)
+	u,U  = pulse_propagation(u,U,int_fwm,M,sim_wind,hf,Dop,dAdzmm,fft,ifft)
 
-	U_start = np.abs(U[:,0,0])**2
-	print(np.max(U_start - np.abs(U[:,0,-1])**2))
-	print(U_start - np.abs(U[:,0,-1])**2)
+	U_start = np.abs(U[:,0])**2
+	
 
-	assert_allclose(U_start , np.abs(U[:,0,-1])**2)
+	fig1 = plt.figure()
+	plt.plot(sim_wind.fv,U_start)
+	plt.savefig('1.png')
+	fig2 = plt.figure()
+	plt.plot(sim_wind.fv,np.abs(U[:,-1])**2)
+	plt.savefig('2.png')	
+	fig3 = plt.figure()
+	plt.plot(sim_wind.t,np.abs(u[:,0])**2)
+	plt.savefig('3.png')
+	fig4 = plt.figure()
+	plt.plot(sim_wind.t,np.abs(u[:,-1])**2)
+	plt.savefig('4.png')	
+	fig5 = plt.figure()
+	plt.plot(fftshift(sim_wind.w),(np.abs(U[:,-1])**2 - U_start))
+	plt.savefig('error.png')
+	fig6 = plt.figure()
+	plt.plot(sim_wind.t,np.abs(u[:,-1])**2 - np.abs(u[:,0])**2)
+	plt.savefig('error2.png')
+	return u,U
 
 
-def test_r0_ss0():
-	pulse_propagations('off', 0)
+def test_energy_r0_ss0():
+	u,U = pulse_propagations('off', 0,N_sol=np.abs(np.random.randn()))
+	E = []
+	for i in range(np.shape(u)[1]):
+		E.append(np.linalg.norm(u[:,i], 2)**2)
+	assert np.all(x == E[0] for x in E)
 
 
-def test_r0_ss1():
-	pulse_propagations('off', 1)
+def test_energy_r0_ss1():
+	u,U = pulse_propagations('off', 1,N_sol=np.abs(np.random.randn()))
+	E = []
+	for i in range(np.shape(u)[1]):
+		E.append(np.linalg.norm(u[:,i], 2)**2)
+	assert np.all(x == E[0] for x in E)
 
-def test_r1_ss0():
-	pulse_propagations('on', 0)
+
+def test_energy_r1_ss0():
+	u,U = pulse_propagations('on', 0,N_sol=np.abs(np.random.randn()))
+	E = []
+	for i in range(np.shape(u)[1]):
+		E.append(np.linalg.norm(u[:,i], 2)**2)
+	assert np.all(x == E[0] for x in E)
 
 
-def test_r1_ss1():
-	pulse_propagations('on', 1)
+def test_energy_r1_ss1():
+	u,U = pulse_propagations('on', 1,N_sol=np.abs(np.random.randn()))
+	E = []
+	for i in range(np.shape(u)[1]):
+		E.append(np.linalg.norm(u[:,i], 2)**2)
+	assert np.all(x == E[0] for x in E)
 
+
+def test_solit_r0_ss0():
+	u,U = pulse_propagations('off', 0)
+	assert_allclose(np.abs(u[:,0])**2 , np.abs(u[:,-1])**2)
 
 
 "-------------------------------WDM------------------------------------"
@@ -251,8 +268,6 @@ class Test_WDM(object):
 	Tests conservation of energy in freequency and time space as well as the 
 	absolute square value I cary around in the code.
 	"""
-
-
 	def test1_WDM_freq(self):
 		self.x1 = 930
 		self.x2 = 1050

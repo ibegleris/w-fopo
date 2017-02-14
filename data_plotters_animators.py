@@ -54,9 +54,7 @@ def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro,P_port
 		plt.close(fig)
 
 		fig = plt.figure(figsize=(20.0, 10.0))
-		for ii in range(nm):
-			plt.plot(sim_wind.fv, 
-				w2dbm(np.abs(U[:,ii,which])**2), '-*', label='mode'+str(ii))
+		plt.plot(sim_wind.fv, w2dbm(np.abs(U[:,which])**2), '-*', label='mode'+str(ii))
 		#plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
 		#plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
 		plt.xlabel(r'$f (THz)$', fontsize=18)
@@ -76,9 +74,8 @@ def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro,P_port
 		plt.close(fig)
 
 		fig = plt.figure(figsize=(20.0, 10.0))
-		for ii in range(nm):
-			plt.plot(
-				sim_wind.t, np.abs(u[:, ii, which])**2, '*-', label='mode'+str(ii))
+		
+		plt.plot(sim_wind.t,np.abs(u[:, which])**2, '*-', label='mode'+str(ii))
 		#plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
 		plt.title('time space')
 		plt.ylim([0, 160])
@@ -105,12 +102,12 @@ def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro,P_port
 			layer = filename
 		try:
 			
-			save_variables('data_large', layer, filepath='output'+pump_wave+'/output'+str(index)+'/data/', U = U[:,:,which], t=sim_wind.t, u=u[:,:,which],
+			save_variables('data_large', layer, filepath='output'+pump_wave+'/output'+str(index)+'/data/', U = U[:,which], t=sim_wind.t, u=u[:,which],
 						   fv=sim_wind.fv, lv=sim_wind.lv,
 						   which=which, nm=nm, P0_p=P0_p, P0_s=P0_s, f_p=f_p, f_s=f_s, ro = ro,P_portb = P_portb,rel_error = rel_error)
 		except RuntimeError:
 			os.system('rm output'+pump_wave+'/output'+str(index)+'/data/data_large.hdf5')
-			save_variables('data_large', layer, filepath='output'+pump_wave+'/output'+str(index)+'/data/', U=U[:,:,which], t=sim_wind.t, u=u[:,:,which],
+			save_variables('data_large', layer, filepath='output'+pump_wave+'/output'+str(index)+'/data/', U=U[:,which], t=sim_wind.t, u=u[:,which],
 						   fv=sim_wind.fv, lv=sim_wind.lv,
 						   which=which, nm=nm, P0_p=P0_p, P0_s=P0_s, f_p=f_p, f_s=f_s, ro = ro, P_portb = P_portb, rel_error = rel_error)
 			pass

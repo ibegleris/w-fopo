@@ -69,7 +69,7 @@ class raman_object(object):
 
 	def raman_load(self, t, dt, fft, ifft):
 		if self.on == 'on':
-			print('Raman on')
+			#print('Raman on')
 			if self.how == 'analytic':
 				print(self.how)
 				t11 = 12.2e-3	  # [ps]
@@ -108,34 +108,26 @@ def dispersion_operator(betas, lamda_c, int_fwm, sim_wind):
 	wc = 2*pi * c_norm / sim_wind.lamda
 	w0 = 2*pi * c_norm / lamda_c
 	betap = np.zeros_like(betas)
-	for i in range(int_fwm.nm):
-		for j in range(len(betas.T)):
-			if j ==0:
-				betap[i,j] = betas[i,j]
-			fac = 0
-			for k in range(j, len(betas.T)):
-				betap[i, j] += (1/factorial(fac)) * \
-					betas[i, k] * (wc - w0)**(fac)
-				fac += 1
 
-	#betap = betas
-	#sys.exit()
-	w = sim_wind.w # - wc + w0
-	Dop = np.zeros([int_fwm.nt, int_fwm.nm], dtype=np.complex)
+	for j in range(len(betas.T)):
+		if j ==0:
+			betap[j] = betas[j]
+		fac = 0
+		for k in range(j, len(betas.T)):
+			betap[j] += (1/factorial(fac)) * \
+				betas[k] * (wc - w0)**(fac)
+			fac += 1
+	w = sim_wind.w
+	Dop = np.zeros(int_fwm.nt, dtype=np.complex)
 	alpha = np.reshape(int_fwm.alpha, np.shape(Dop))
-	
-	#print(betap)
-	#sys.exit()
-	Dop[:, :] = -fftshift(alpha/2)
+	Dop -= fftshift(alpha/2)
 
-	# set the fundemental betas as the one of the first mode
-	beta0, beta1 = betap[0, 0], betap[0, 1]
-	betap[:, 0] -= beta0
-	betap[:, 1] -= beta1
-	print(betap)
-	for i in range(int_fwm.nm):
-		for j, bb in enumerate(betap[i, :]):
-			Dop[:, i] -= 1j*(w**j * bb / factorial(j))
+	betap[0] -= betap[0]
+	betap[1] -= betap[1]
+
+
+	for j, bb in enumerate(betap):
+		Dop -= 1j*(w**j * bb / factorial(j))
 	return Dop
 
 
@@ -151,8 +143,9 @@ def Q_matrixes(nm, n2, lamda, gama=None):
 		M1[-1] -= 1
 		gamma_or = 3*n2*(2*pi/lamda)*M1[4]
 		if gama is not None:
-			M1[4] = gama / (3*n2*(2*pi/lamda))
-			M1[5] = gama / (3*n2*(2*pi/lamda))
+			M1[4] = gama / (n2*(2*pi/lamda))
+			M1[5] = gama / (n2*(2*pi/lamda))
+		M = M1[4,0]
 
 	if nm == 2:
 		mat = loadmat("loading_data/M1_M2_new_2m.mat")
@@ -161,7 +154,7 @@ def Q_matrixes(nm, n2, lamda, gama=None):
 		M2[:] -= 1
 		M1[:4, :] -= 1
 		M1[6, :] -= 1
-	return M1, M2
+	return M
 
 
 class sim_parameters(object):
@@ -189,19 +182,20 @@ class sim_parameters(object):
 		return None
 
 
-
-
 class sim_window(object):
 
     def __init__(self, fv, lamda, lamda_c, int_fwm,fv_idler_int):
         self.lamda = lamda
         self.lmin = 1e-3*c/np.max(fv)  # [nm]
         self.lmax = 1e-3*c/np.min(fv)  # [nm]
+
         self.lv = 1e-3*c/fv  # [nm]
         self.fmed = c/(lamda)  # [Hz]
         self.deltaf = 1e-3*(c/self.lmin - c/self.lmax)  # [THz]
         self.df = self.deltaf/int_fwm.nt  # [THz]
         self.T = 1/self.df  # Time window (period)[ps]
+
+
         self.woffset = 2*pi*(self.fmed - c/lamda)*1e-12  # [rad/ps]
         # [rad/ps] Offset of central freequency and that of the experiment
         self.woffset2 = 2*pi*(self.fmed - c/lamda_c)*1e-12
@@ -216,8 +210,7 @@ class sim_window(object):
         # time vector	   [ps]
         self.t = (range(int_fwm.nt)-np.ones(int_fwm.nt)*int_fwm.nt/2)*self.dt
         # angular frequency vector [rad/ps]
-        self.w = 2*pi * \
-        	np.append(
+        self.w = 2*pi *np.append(
         		range(0, int(int_fwm.nt/2)), range(int(-int_fwm.nt/2), 0, 1))/self.T
         # frequency vector[THz] (shifted for plotting)
         self.vs = fftshift(self.w/(2*pi))
@@ -232,10 +225,10 @@ class sim_window(object):
 
 def idler_limits(sim_wind, U):
     
-    size = len(U[:,0,0])
+    size = len(U[:,0])
     max_int = np.argsort(U[(size//2 + 1):,0,0])[0]
     max_int += size//2
-    print(sim_wind.fv[max_int])
+    #print(sim_wind.fv[max_int])
     
     sim_wind.fv_idler_tuple = (sim_wind.fv[max_int] - sim_wind.fv_idler_int, sim_wind.fv[max_int] + sim_wind.fv_idler_int)
     fv_id = (np.where(np.abs(sim_wind.fv - sim_wind.fv_idler_tuple[0]) == \
@@ -243,6 +236,7 @@ def idler_limits(sim_wind, U):
     np.where(np.abs(sim_wind.fv - sim_wind.fv_idler_tuple[1])
     == np.min(np.abs(sim_wind.fv - sim_wind.fv_idler_tuple[1])))[0][0])
     return fv_id
+
 
 class Loss(object):
 
@@ -298,6 +292,7 @@ class Loss(object):
 		plt.savefig(
 			"output/output0/figures/WDMs&loss/loss_function_fibre.png", bbox_inches='tight')
 		plt.close(fig)
+
 
 class WDM(object):
 
@@ -404,6 +399,7 @@ class WDM(object):
 		plt.close(fig)
 		return None
 
+
 def create_file_structure(kk=''):
 	"""
 	Is set to create and destroy the filestructure needed 
@@ -452,8 +448,8 @@ class Noise(object):
 		return None
 
 	def noise_func(self, int_fwm):
-		noise = self.pquant * (np.random.randn(int_fwm.nt, int_fwm.nm)
-							   + 1j*np.random.randn(int_fwm.nt, int_fwm.nm))
+		noise = self.pquant * (np.random.randn(int_fwm.nt)
+							   + 1j*np.random.randn(int_fwm.nt))
 
 		#noise = self.pquant *np.ones([int_fwm.nt,int_fwm.nm])
 		return noise
@@ -464,30 +460,27 @@ class Noise(object):
 		return noise_freq
 
 
-def pulse_propagation(u, U, int_fwm, M1, M2, sim_wind, hf, Dop, dAdzmm, fft, ifft):
+def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm, fft, ifft):
 	"--------------------------Pulse propagation--------------------------------"
 	badz = 0  # counter for bad steps
 	#goodz = 0  # counter for good steps
 	dztot = 0  # total distance traveled
 	dzv = np.zeros(1)
 	dzv[0] = int_fwm.dz
-	u1 = np.copy(u[:, :, 0])
+	u1 = np.copy(u[:, 0])
 
-	#energy = np.NaN*np.ones([int_fwm.nm, int_fwm.nplot+1])
-	#entot = np.NaN*np.ones(int_fwm.nplot+1)
-	#for ii in range(int_fwm.nm):
-	#	energy[ii, 0] = np.linalg.norm(u1[:, ii], 2)**2  # energy per mode
+
 	dz = int_fwm.dz * 1
-	# total energy (must be conserved)
 	for jj in range(int_fwm.nplot):
 		exitt = False
 		while not(exitt):
 			# trick to do the first iteration
 			delta = 2*int_fwm.maxerr
 			while delta > int_fwm.maxerr:
+
 				u1new = ifft(np.exp(Dop*dz/2)*fft(u1))
-				A, delta = RK5mm(dAdzmm, u1new, dz, M1, M2, sim_wind.t, int_fwm.n2, sim_wind.lamda, sim_wind.tsh,
-								 sim_wind.w, sim_wind.woffset, sim_wind.dt, hf,sim_wind.w_tiled, fft, ifft)  # calls a 5th order Runge Kutta routine
+				A, delta = RK5mm(dAdzmm, u1new, dz, M, int_fwm.n2, sim_wind.lamda, sim_wind.tsh,
+								sim_wind.dt, hf,sim_wind.w_tiled, fft, ifft)  # calls a 5th order Runge Kutta routine
 				if (delta > int_fwm.maxerr):
 					# calculate the step (shorter) to redo
 					dz *= (int_fwm.maxerr/delta)**0.25
@@ -498,7 +491,7 @@ def pulse_propagation(u, U, int_fwm, M1, M2, sim_wind, hf, Dop, dAdzmm, fft, iff
 			# update the propagated distance
 			dztot += dz
 			# update the number of steps taken
-			#goodz += 1
+
 			# store the dz just taken
 			dzv = np.append(dzv, dz)
 			# calculate the next step (longer)
@@ -515,15 +508,9 @@ def pulse_propagation(u, U, int_fwm, M1, M2, sim_wind, hf, Dop, dAdzmm, fft, iff
 			dz = np.copy(dz2)
 			###################################################################
 
-		u[:, :, jj+1] = u1
-		U[:, :, jj+1] = fftshift(sim_wind.dt*fft(u[:, :, jj+1]), axes=(0,))
-		#Uabs[
-		#	:, :, jj+1] = fftshift(np.abs(sim_wind.dt*fft(u[:, :, jj+1]))**2, axes=(0,))
-		#for ii in range(int_fwm.nm):
-		#	energy[ii, jj+1] = norm(u1[:, ii], 2)**2  # energy per mode
-		#entot[jj+1] = np.sum(energy[:, jj+1])			 # total energy
+		u[:, jj+1] = u1
+		U[:, jj+1] = fftshift(sim_wind.dt*fft(u[:, jj+1]))
 	int_fwm.dz  = dz*1
-	print(badz)
 	return u, U
 
 
@@ -633,7 +620,6 @@ def power_idler(spec,fv,T,fv_id):
     T: time window
     fv_id: tuple of the starting and
     ending index at which the idler is calculated
-
     """
     P_bef = simps(np.abs(spec[fv_id[0]:fv_id[1],0,0])**2,fv[fv_id[0]:fv_id[1]])
     P_bef /= 2*T
