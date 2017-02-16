@@ -282,7 +282,7 @@ def lam_p2_vary(lam_s_max,pump_index, lam_p1, power_pump_input,power_signal_inpu
 	# betas at ps/m (given in ps^n/km)
 	#betas = np.array([[0, 0, 0, 6.753e-2, -1.001e-4, 2.753e-7]])*1e-3
 	#betas = np.array([[0, 0, 0, 6.755e-2, -1.001e-4, 2.673e-7]])*1e-3
-	betas = np.array([[0, 0, 0, 6.756e-2, -1.002e-4, 3.671e-7]])*1e-3
+	betas = np.array([0, 0, 0, 6.756e-2, -1.002e-4, 3.671e-7])*1e-3
 	
 	Dop = dispersion_operator(betas, lamda_c, int_fwm, sim_wind)
 
@@ -488,7 +488,7 @@ def main():
 	return None
 
 	
-	Power_input = 15
+	Power_input = 7
 	Power_signal = 0
 	#pump_wavelengths = (1047, 1047.5, 1047.9, 1048.3, 1048.6,
 	#					1049.0, 1049.5, 1049.8, 1050.2, 1050.6, 1051.0, 1051.4)

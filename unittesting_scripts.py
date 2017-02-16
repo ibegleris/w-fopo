@@ -28,7 +28,16 @@ def test2_w2dbm():
 def test3_w2dbm():
 	with pytest.raises(ZeroDivisionError):
 		w2dbm(-1)
-
+def FWHM_fun(X,Y):
+    half_max = np.max(Y) / 2.
+    #find when function crosses line half_max (when sign of diff flips)
+    #take the 'derivative' of signum(half_max - Y[])
+    d = np.sign(half_max - np.array(Y[0:-1])) - np.sign(half_max - np.array(Y[1:]))
+    #plot(X,d) #if you are interested
+    #find the left and right most indexes
+    left_idx = np.where(d > 0)[0]
+    right_idx = np.where(d < 0)[-1]
+    return X[right_idx] - X[left_idx] #return the difference (full width)
 "------------------------------------------------------fft test--------------"
 try: 
 	from accelerate.fftpack import fft, ifft
@@ -132,33 +141,34 @@ def pulse_propagations(ram,ss,N_sol = 1):
 	n2 = 2.5e-20								# n2 for silica [m/W]
 	nm = 1					  				# number of modes
 	alphadB = 0#0.0011666666666666668			 # loss [dB/m]
-	gama = 3e-3 								# w/m
+	gama = 1e-3 								# w/m
 	"-----------------------------General options------------------------------"
-	maxerr = 1e-15				# maximum tolerable error per step
+	maxerr = 1e-13				# maximum tolerable error per step
 	"----------------------------Simulation parameters-------------------------"
-	N = 13
-	z = 18				 	# total distance [m]
+	N = 14
+	z =2				 	# total distance [m]
 	nplot = 1				  # number of plots
 	nt = 2**N 					# number of grid points
 	dzstep = z/nplot			# distance per step
 	dz_less = 1e10
 	dz = dzstep/dz_less		 # starting guess value of the step
 
-	lam_p1 = 900
-	lamda_c = 900e-9
+	lam_p1 = 835
+	lamda_c = 835e-9
 	lamda = lam_p1*1e-9
 	
-	beta2 = 11.83e-5
+	beta2 = -1e-3
 	P0_p1 = 1
 
 	T0 =  (N_sol**2 * np.abs(beta2) / (gama * P0_p1))**0.5
 	TFWHM = (2*np.log(1+2**0.5)) * T0
+	print(TFWHM)
 
 	int_fwm = sim_parameters(n2,nm,alphadB)
 	int_fwm.general_options(maxerr,raman_object,ss,ram)
 	int_fwm.propagation_parameters(N, z, nplot, dz_less, True)
 
-	fv,where = fv_creator(lam_p1 - 10,lam_p1,int_fwm)
+	fv,where = fv_creator(lam_p1 - 25,lam_p1,int_fwm)
 	sim_wind = sim_window(fv,lamda,lamda_c,int_fwm,fv_idler_int = 1)
 	
 	loss = Loss(int_fwm, sim_wind, amax =	int_fwm.alphadB)
@@ -194,34 +204,45 @@ def pulse_propagations(ram,ss,N_sol = 1):
 
 	sim_wind.w_tiled = sim_wind.w
 
-
+	print(T0, 'tooo')
 
 	u[:,0] = (P0_p1)**0.5 / np.cosh(sim_wind.t/T0)*np.exp(-1j*(sim_wind.woffset)*sim_wind.t)
 	U[:,0] = fftshift(sim_wind.dt*fft(u[:,0]))
-	
+	fwhm2 = FWHM_fun(sim_wind.t, np.abs(u)**2)
+	print(fwhm2)
 	u,U  = pulse_propagation(u,U,int_fwm,M,sim_wind,hf,Dop,dAdzmm,fft,ifft)
 
 	U_start = np.abs(U[:,0])**2
 	
-
+	"""
 	fig1 = plt.figure()
 	plt.plot(sim_wind.fv,U_start)
 	plt.savefig('1.png')
+
 	fig2 = plt.figure()
 	plt.plot(sim_wind.fv,np.abs(U[:,-1])**2)
 	plt.savefig('2.png')	
+
 	fig3 = plt.figure()
 	plt.plot(sim_wind.t,np.abs(u[:,0])**2)
+	plt.xlim(-3*T0, 3*T0)
 	plt.savefig('3.png')
+
 	fig4 = plt.figure()
 	plt.plot(sim_wind.t,np.abs(u[:,-1])**2)
+	plt.xlim(-3*T0, 3*T0)
 	plt.savefig('4.png')	
+
 	fig5 = plt.figure()
 	plt.plot(fftshift(sim_wind.w),(np.abs(U[:,-1])**2 - U_start))
 	plt.savefig('error.png')
+
 	fig6 = plt.figure()
 	plt.plot(sim_wind.t,np.abs(u[:,-1])**2 - np.abs(u[:,0])**2)
+	plt.xlim(-3*T0, 3*T0)
 	plt.savefig('error2.png')
+	plt.show()
+	"""
 	return u,U
 
 
@@ -259,7 +280,7 @@ def test_energy_r1_ss1():
 
 def test_solit_r0_ss0():
 	u,U = pulse_propagations('off', 0)
-	assert_allclose(np.abs(u[:,0])**2 , np.abs(u[:,-1])**2)
+	assert_allclose(np.abs(U[:,0])**2 , np.abs(U[:,-1])**2,atol = 1e-13)
 
 
 "-------------------------------WDM------------------------------------"

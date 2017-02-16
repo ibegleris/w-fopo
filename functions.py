@@ -3,8 +3,8 @@ from __future__ import division, print_function
 import sys
 import os
 import numpy as np
-import matplotlib as mpl
-mpl.use('Agg')
+#import matplotlib as mpl
+#mpl.use('Agg')
 from scipy.linalg import norm
 from scipy.constants import pi, c
 from scipy.io import loadmat, savemat
@@ -117,7 +117,7 @@ def dispersion_operator(betas, lamda_c, int_fwm, sim_wind):
 			betap[j] += (1/factorial(fac)) * \
 				betas[k] * (wc - w0)**(fac)
 			fac += 1
-	w = sim_wind.w
+	w = sim_wind.w# + sim_wind.woffset2 
 	Dop = np.zeros(int_fwm.nt, dtype=np.complex)
 	alpha = np.reshape(int_fwm.alpha, np.shape(Dop))
 	Dop -= fftshift(alpha/2)
@@ -184,44 +184,41 @@ class sim_parameters(object):
 
 class sim_window(object):
 
-    def __init__(self, fv, lamda, lamda_c, int_fwm,fv_idler_int):
-        self.lamda = lamda
-        self.lmin = 1e-3*c/np.max(fv)  # [nm]
-        self.lmax = 1e-3*c/np.min(fv)  # [nm]
+	def __init__(self, fv, lamda, lamda_c, int_fwm,fv_idler_int):
+		self.fv = fv
+		self.lamda = lamda
+		#self.lmin = 1e-3*c/np.max(fv)  # [nm]
+		#self.lmax = 1e-3*c/np.min(fv)  # [nm]
 
-        self.lv = 1e-3*c/fv  # [nm]
-        self.fmed = c/(lamda)  # [Hz]
-        self.deltaf = 1e-3*(c/self.lmin - c/self.lmax)  # [THz]
-        self.df = self.deltaf/int_fwm.nt  # [THz]
-        self.T = 1/self.df  # Time window (period)[ps]
+		self.fmed = 1e12*fv[len(fv)//2]  # [Hz]
+		self.deltaf = np.max(self.fv) - np.min(self.fv)  # [THz]
+		self.df = self.deltaf/int_fwm.nt  # [THz]
+		self.T = 1/self.df  # Time window (period)[ps]
+		self.woffset = 2*pi*(self.fmed - c/lamda)*1e-12  # [rad/ps]
+		# [rad/ps] Offset of central freequency and that of the experiment
+		self.woffset2 = 2*pi*(self.fmed - c/lamda_c)*1e-12
+		# wavelength limits (for plots) (nm)
+		#self.fv = fv
+		self.w0 = 2*pi*self.fmed # central angular frequency [rad/s]
 
+		self.tsh = 1/self.w0*1e12 # shock time [ps]
+		self.dt = self.T/int_fwm.nt  # timestep (dt)	 [ps]
+		# time vector	   [ps]
+		self.t = (range(int_fwm.nt)-np.ones(int_fwm.nt)*int_fwm.nt/2)*self.dt
+		# angular frequency vector [rad/ps]
+		self.w = 2*pi *np.append(
+				range(0, int(int_fwm.nt/2)), range(int(-int_fwm.nt/2), 0, 1))/self.T
 
-        self.woffset = 2*pi*(self.fmed - c/lamda)*1e-12  # [rad/ps]
-        # [rad/ps] Offset of central freequency and that of the experiment
-        self.woffset2 = 2*pi*(self.fmed - c/lamda_c)*1e-12
-        # wavelength limits (for plots) (nm)
-        self.xl = np.array([self.lmin, self.lmax])
-        self.fv = fv
-        # central angular frequency [rad/s]
-        self.w0 = 2*pi*self.fmed
-        # shock time [ps]
-        self.tsh = 1/self.w0*1e12
-        self.dt = self.T/int_fwm.nt  # timestep (dt)	 [ps]
-        # time vector	   [ps]
-        self.t = (range(int_fwm.nt)-np.ones(int_fwm.nt)*int_fwm.nt/2)*self.dt
-        # angular frequency vector [rad/ps]
-        self.w = 2*pi *np.append(
-        		range(0, int(int_fwm.nt/2)), range(int(-int_fwm.nt/2), 0, 1))/self.T
-        # frequency vector[THz] (shifted for plotting)
-        self.vs = fftshift(self.w/(2*pi))
-        # wavelength vector [nm]
-        self.lv = c/(self.fmed+self.vs*1e12)*1e9
-        # space vector [m]
-        self.zv = int_fwm.dzstep*np.asarray(range(0, int_fwm.nplot+1))
-        self.xtlim = np.array([-self.T/2, self.T/2])  # time limits (for plots)
-        self.fv_idler_int = fv_idler_int
-        self.fv_idler_tuple = (self.fmed*1e-12 - fv_idler_int, self.fmed*1e-12 + fv_idler_int)
+		# frequency vector[THz] (shifted for plotting)
+		# wavelength vector [nm]
+		self.lv = 1e-3*c/self.fv
+		# space vector [m]
+		self.zv = int_fwm.dzstep*np.asarray(range(0, int_fwm.nplot+1))
+		self.fv_idler_int = fv_idler_int
+		self.fv_idler_tuple = (self.fmed*1e-12 - fv_idler_int, self.fmed*1e-12 + fv_idler_int)
 
+		#for i in (self.fv,self.t, fftshift(self.w)):
+		#	check_ft_grid(i, np.abs(i[1] - i[0]))	
 
 def idler_limits(sim_wind, U):
     
@@ -316,10 +313,11 @@ class WDM(object):
 		#					   [-np.reshape(np.sin(self.fv), (len(self.fv), modes)),
 		#						np.reshape(np.cos(self.fv), (len(self.fv), modes))]])
 		
-		eps = np.reshape(np.sin(self.fv_wdm), (len(self.fv_wdm), modes))
-		eps2 = 1j*np.reshape(np.cos(self.fv_wdm), (len(self.fv_wdm), modes))
+		eps = np.reshape(np.sin(self.fv_wdm), (len(self.fv_wdm)))
+		eps2 = 1j*np.reshape(np.cos(self.fv_wdm), (len(self.fv_wdm)))
 		self.A = np.array([[eps ,eps2],
 						   [eps2,eps]])
+		
 		return None
 
 	def U_calc(self, U_in):
@@ -328,6 +326,7 @@ class WDM(object):
 		the outputed amplitude in arbitary units
 
 		"""
+
 		Uout = (self.A[0,0] * U_in[0] + self.A[0,1] * U_in[1],)
 		Uout += (self.A[1,0] * U_in[0] + self.A[1,1] * U_in[1],)
 
@@ -339,12 +338,12 @@ class WDM(object):
 		in a form of a tuple of (port1,port2)
 		"""
 		U_out = self.U_calc(U_in)
-
+		#print(np.shape(U_out[0]))
+		#print(np.shape(U_in[0]))
 		u_out, U_true = (), ()
 		for i, UU in enumerate(U_out):
 			u_out += (ifft(ifftshift(UU, axes=(0,))/sim_wind.dt),)
-			#U_true += (fftshift(np.abs(sim_wind.dt *
-			#						   fft(u_out[i]))**2, axes = (0,)),)
+
 		return ((u_out[0], U_out[0]), (u_out[1], U_out[1]))
 
 		
@@ -569,9 +568,6 @@ def check_ft_grid(fv, diff):
 		sys.exit("some of your grid is negative")
 
 	if np.log2(np.shape(fv)[0]) == int(np.log2(np.shape(fv)[0])):
-		print(
-			"------------------------------------------------------------------------------------")
-		print("All is good with the grid for fft's:", np.shape(fv)[0])
 		nt = np.shape(fv)[0]
 	else:
 		print(" ")
