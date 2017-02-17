@@ -3,8 +3,8 @@ from __future__ import division, print_function
 import sys
 import os
 import numpy as np
-#import matplotlib as mpl
-#mpl.use('Agg')
+import matplotlib as mpl
+mpl.use('Agg')
 from scipy.linalg import norm
 from scipy.constants import pi, c
 from scipy.io import loadmat, savemat
@@ -313,8 +313,8 @@ class WDM(object):
 		#					   [-np.reshape(np.sin(self.fv), (len(self.fv), modes)),
 		#						np.reshape(np.cos(self.fv), (len(self.fv), modes))]])
 		
-		eps = np.reshape(np.sin(self.fv_wdm), (len(self.fv_wdm)))
-		eps2 = 1j*np.reshape(np.cos(self.fv_wdm), (len(self.fv_wdm)))
+		eps =  np.reshape(np.sin(self.fv_wdm),(len(self.fv_wdm),1))
+		eps2 = 1j*np.reshape(np.cos(self.fv_wdm),(len(self.fv_wdm),1))
 		self.A = np.array([[eps ,eps2],
 						   [eps2,eps]])
 		
@@ -327,8 +327,8 @@ class WDM(object):
 
 		"""
 
-		Uout = (self.A[0,0] * U_in[0] + self.A[0,1] * U_in[1],)
-		Uout += (self.A[1,0] * U_in[0] + self.A[1,1] * U_in[1],)
+		Uout = (self.A[0,0] * U_in[0][:,np.newaxis] + self.A[0,1] * U_in[1][:,np.newaxis],)
+		Uout += (self.A[1,0] * U_in[0][:,np.newaxis] + self.A[1,1] * U_in[1][:,np.newaxis],)
 
 		return Uout
 
@@ -337,14 +337,14 @@ class WDM(object):
 		Passes the amplitudes through the object. returns the u, U and Uabs
 		in a form of a tuple of (port1,port2)
 		"""
-		U_out = self.U_calc(U_in)
-		#print(np.shape(U_out[0]))
 		#print(np.shape(U_in[0]))
-		u_out, U_true = (), ()
+		#U_in[0],U_in[1] = U_in[0][:,np.newaxis],U_in[1][:,np.newaxis]
+		U_out = self.U_calc(U_in)
+		u_out = ()
 		for i, UU in enumerate(U_out):
-			u_out += (ifft(ifftshift(UU, axes=(0,))/sim_wind.dt),)
+			u_out += (ifft(ifftshift(UU)/sim_wind.dt),)
 
-		return ((u_out[0], U_out[0]), (u_out[1], U_out[1]))
+		return ((u_out[0][:,0], U_out[0][:,0]), (u_out[1][:,0], U_out[1][:,0]))
 
 		
 	def il_port1(self, lamda = None):
@@ -428,13 +428,15 @@ class Splicer(WDM):
 		self.loss = loss
 		self.c1 = 10**(-0.1*self.loss/2)
 		self.c2 = (1 - 10**(-0.1*self.loss))**0.5
+
+
 	def U_calc(self, U_in):
 		"""
 		Operates like a beam splitter that reduces the optical power by the loss given (in dB).
 
 		"""
-		U_out1 = U_in[0] * self.c1 + 1j* U_in[1] * self.c2
-		U_out2 = 1j* U_in[0] * self.c2 + U_in[1] * self.c1 
+		U_out1 = U_in[0][:,np.newaxis] * self.c1 + 1j* U_in[1][:,np.newaxis] * self.c2
+		U_out2 = 1j* U_in[0][:,np.newaxis] * self.c2 + U_in[1][:,np.newaxis] * self.c1 
 		return U_out1, U_out2
 
 

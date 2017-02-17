@@ -32,9 +32,9 @@ plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
 def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro,P_portb,rel_error, pump_wave = '',filename=None, title=None, im=0, plots = True):
 	if plots == True:
 		fig = plt.figure(figsize=(20.0, 10.0))
-		for ii in range(nm):
-			plt.plot(sim_wind.lv, 
-				w2dbm(np.abs(U[:,ii,which])**2), '-*', label='mode'+str(ii))
+
+		plt.plot(sim_wind.lv, 
+				w2dbm(np.abs(U[:,which])**2), '-*')
 		#plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
 		#plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
 		plt.xlabel(r'$\lambda (nm)$', fontsize=18)
@@ -56,7 +56,7 @@ def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro,P_port
 		plt.close(fig)
 
 		fig = plt.figure(figsize=(20.0, 10.0))
-		plt.plot(sim_wind.fv, w2dbm(np.abs(U[:,which])**2), '-*', label='mode'+str(ii))
+		plt.plot(sim_wind.fv, w2dbm(np.abs(U[:,which])**2), '-*')
 		#plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
 		#plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
 		plt.xlabel(r'$f (THz)$', fontsize=18)
@@ -77,7 +77,7 @@ def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro,P_port
 
 		fig = plt.figure(figsize=(20.0, 10.0))
 		
-		plt.plot(sim_wind.t,np.abs(u[:, which])**2, '*-', label='mode'+str(ii))
+		plt.plot(sim_wind.t,np.abs(u[:, which])**2, '*-')
 		#plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
 		plt.title('time space')
 		plt.ylim([0, 160])

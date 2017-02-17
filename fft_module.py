@@ -1,9 +1,11 @@
 import numpy as np
 import scipy.fftpack as scifft
 from time import time
-
 try:
 	import accelerate.mkl.fftpack as mklfft
+	import accelerate
+	complex128 = accelerate.numba.complex128
+	vectorize = accelerate.numba.vectorize
 	def timing(N, nm,times):
 		a = np.random.rand(2**N, nm)*100 + 1j*np.random.rand(2**N, nm)*100
 		dt = []
@@ -27,11 +29,16 @@ try:
 		return method_sorted ,dt_average_sorted
 
 
-	def pick(N,nm,times):
-		a = timing(N, nm, times)[0][0]
+	def pick(N,nm,times,num_cores):
+		if num_cores >1:
+			a = timing(N, nm, times)[0][0]
+		else:
+			a = 'scipy'
 		if a == 'scipy':
+			#@vectorize(['complex128(complex128)'])
 			def mfft(x):
 				return scifft.fft(x.T).T
+			#@vectorize(['complex128(complex128)'])
 			def imfft(x):
 				return scifft.ifft(x.T).T
 
@@ -40,9 +47,11 @@ try:
 				return mklfft.fft(x.T).T
 			def imfft(x):
 				return mklfft.ifft(x.T).T
-		else: 
+		else:
+			#@vectorize(['complex128(complex128)'])
 			def mfft(x):
 				return np.fft.fft(x.T).T
+			#@vectorize(['complex128(complex128)'])
 			def imfft(x):
 				return np.fft.ifft(x.T).T
 		return mfft,imfft,a
@@ -53,10 +62,10 @@ except ImportError:
 	def pick(N,nm,times):
 		
 		def mfft(x):
-			return scifft.fft(x.T).T
+			return scifft.fft(x)
 		
 		def imfft(x):
-			return scifft.ifft(x.T).T
+			return scifft.ifft(x)
 		
 		return mfft,imfft,'scipy'
 

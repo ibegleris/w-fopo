@@ -4,6 +4,12 @@ import scipy.fftpack
 from scipy.constants import pi, c
 from scipy.fftpack import fftshift
 
+import accelerate
+jit = accelerate.numba.jit
+autojit = accelerate.numba.autojit
+complex128 = accelerate.numba.complex128
+float64 = accelerate.numba.float64
+vectorize = accelerate.numba.vectorize
 def RK5mm(dAdzmm,u1,dz,M,n2,lamda,tsh,dt,hf, w_tiled, fft,ifft):
 	"""
 	Propagates the nonlinear operator for 1 step using a 5th order Runge
@@ -75,11 +81,23 @@ def dAdzmm_ron_s1(u0,M,n2,lamda,tsh,dt,hf, w_tiled,fft,ifft):
 	calculates the nonlinear operator for a given field u0
 	use: dA = dAdzmm(u0)
 	"""
-	M3 =  np.abs(u0)**2
-	N = 2.46*M *u0*M3 + 0.54*M*u0*dt*fftshift(ifft(fft(M3)*hf))
-	N = -1j*n2*2*pi/lamda*(N + tsh*ifft((w_tiled)*fft(N)))
+	#M3 =  np.abs(u0)**2
+	M3 =  uabs(u0)
+	N = nonlin(M, u0,M3, dt, fftshift(ifft(fft(M3)*hf)))
+	N = -1j*n2*2*pi/lamda*(N + tsh*ifft(w_tiled*fft(N)))
+	#N = self_step(n2, lamda,N, tsh, ifft(w_tiled*fft(N)) )
 	return N
+@vectorize(['float64(complex128)']) # default to 'cpu'
+def uabs(u0):
+    return np.abs(u0)**2
 
+@vectorize(['complex128(float64,complex128,float64,float64,complex128)']) # default to 'cpu'
+def nonlin(M, u0,M3, dt, ra ):
+    return M*u0*(2.46*M3 + 0.54*dt*ra)
+
+@vectorize(['complex128(float64,float64,complex128,float64,complex128)']) # default to 'cpu'
+def self_step(n2, lamda,N, tsh, ra ):
+    return -1j*n2*2*pi/lamda*(N + tsh*ra)
 
 
 """
