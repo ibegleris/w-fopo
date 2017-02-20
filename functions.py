@@ -24,6 +24,9 @@ try:
 	autojit = accelerate.numba.autojit
 	from accelerate import numba
 	vectorize, float64, complex128 = numba.vectorize, numba.float64, numba.complex128
+	import mkl
+        max_threads = mkl.get_max_threads()
+        mkl.set_num_threads(1)
 except AttributeError:
 	print(
 		"install the accelerate packadge from anaconda or change \
@@ -313,8 +316,8 @@ class WDM(object):
 		#					   [-np.reshape(np.sin(self.fv), (len(self.fv), modes)),
 		#						np.reshape(np.cos(self.fv), (len(self.fv), modes))]])
 		
-		eps =  np.reshape(np.sin(self.fv_wdm),(len(self.fv_wdm),1))
-		eps2 = 1j*np.reshape(np.cos(self.fv_wdm),(len(self.fv_wdm),1))
+		eps =  np.reshape(np.sin(self.fv_wdm),(len(self.fv_wdm)))
+		eps2 = 1j*np.reshape(np.cos(self.fv_wdm),(len(self.fv_wdm)))
 		self.A = np.array([[eps ,eps2],
 						   [eps2,eps]])
 		
@@ -327,8 +330,8 @@ class WDM(object):
 
 		"""
 
-		Uout = (self.A[0,0] * U_in[0][:,np.newaxis] + self.A[0,1] * U_in[1][:,np.newaxis],)
-		Uout += (self.A[1,0] * U_in[0][:,np.newaxis] + self.A[1,1] * U_in[1][:,np.newaxis],)
+		Uout = (self.A[0,0] * U_in[0] + self.A[0,1] * U_in[1],)
+		Uout += (self.A[1,0] * U_in[0] + self.A[1,1] * U_in[1],)
 
 		return Uout
 
@@ -342,9 +345,9 @@ class WDM(object):
 		U_out = self.U_calc(U_in)
 		u_out = ()
 		for i, UU in enumerate(U_out):
-			u_out += (ifft(ifftshift(UU)/sim_wind.dt),)
-
-		return ((u_out[0][:,0], U_out[0][:,0]), (u_out[1][:,0], U_out[1][:,0]))
+			u_out += (ifft(fftshift(UU)/sim_wind.dt),)
+			#u_out += (UU,)
+		return ((u_out[0], U_out[0]), (u_out[1], U_out[1]))
 
 		
 	def il_port1(self, lamda = None):
@@ -435,8 +438,8 @@ class Splicer(WDM):
 		Operates like a beam splitter that reduces the optical power by the loss given (in dB).
 
 		"""
-		U_out1 = U_in[0][:,np.newaxis] * self.c1 + 1j* U_in[1][:,np.newaxis] * self.c2
-		U_out2 = 1j* U_in[0][:,np.newaxis] * self.c2 + U_in[1][:,np.newaxis] * self.c1 
+		U_out1 = U_in[0] * self.c1 + 1j* U_in[1] * self.c2
+		U_out2 = 1j* U_in[0] * self.c2 + U_in[1] * self.c1 
 		return U_out1, U_out2
 
 

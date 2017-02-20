@@ -1,8 +1,11 @@
 import numpy as np
 import scipy.fftpack as scifft
+sfft, isfft = scifft.fft, scifft.ifft
+nfft,infft = np.fft.fft, np.fft.ifft
 from time import time
 try:
 	import accelerate.mkl.fftpack as mklfft
+	mfft, imfft = mklfft.fft, mklfft.ifft
 	import accelerate
 	complex128 = accelerate.numba.complex128
 	vectorize = accelerate.numba.vectorize
@@ -34,40 +37,23 @@ try:
 			a = timing(N, nm, times)[0][0]
 		else:
 			a = 'scipy'
-		if a == 'scipy':
-			#@vectorize(['complex128(complex128)'])
-			def mfft(x):
-				return scifft.fft(x.T).T
-			#@vectorize(['complex128(complex128)'])
-			def imfft(x):
-				return scifft.ifft(x.T).T
 
+		if a == 'scipy':
+			fft, ifft = sfft, isfft 
 		elif a == 'mklfft':
-			def mfft(x):
-				return mklfft.fft(x.T).T
-			def imfft(x):
-				return mklfft.ifft(x.T).T
+			fft, ifft = mfft, imfft
 		else:
-			#@vectorize(['complex128(complex128)'])
-			def mfft(x):
-				return np.fft.fft(x.T).T
-			#@vectorize(['complex128(complex128)'])
-			def imfft(x):
-				return np.fft.ifft(x.T).T
-		return mfft,imfft,a
+			fft, ifft = nfft,infft
+		return fft,ifft,a
 
 
 except ImportError:
 	print("You dont have accelerate on this system, defaulting to scipy")
-	def pick(N,nm,times):
+	def pick(N,nm,times,num_cores):
 		
-		def mfft(x):
-			return scifft.fft(x)
+		fft, ifft = sfft, isfft 
 		
-		def imfft(x):
-			return scifft.ifft(x)
-		
-		return mfft,imfft,'scipy'
+		return fft, ifft,'scipy'
 
 
 

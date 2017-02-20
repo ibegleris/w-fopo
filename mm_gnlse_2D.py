@@ -16,7 +16,7 @@ from fft_module import *
 try:
 	import mkl
 	max_threads = mkl.get_max_threads()
-	mkl.set_num_threads(max_threads)
+	mkl.set_num_threads(1)
 except ImportError:
 	print(
 		"MKL libaries help when you are not running in paralel.\
@@ -135,7 +135,7 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 	#from scipy.integrate import simps
 	#power = simps(np.abs(U_original_pump[:,0])**2, sim_wind.fv)/(2*np.max(sim_wind.t))
 	#print(power)
-	max_rounds = 512
+	max_rounds = 1
 	ro = -1
 	min_circ_error = 0.01 # relative percentage error in power
 	P_portb,P_portb_prev = 3*min_circ_error ,min_circ_error
@@ -244,13 +244,6 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 	return None
 
 
-def sfft(x):
-	return scifft.fft(x.T).T
-
-
-def isfft(x):
-	return scifft.ifft(x.T).T
-
 
 def lam_p2_vary(lam_s_max,pump_index, lam_p1, power_pump_input,power_signal_input, int_fwm, plot_conv, gama, fft, ifft, where_save,fv_idler_int,plots,par=False, grid_only=False, timing=False,pump_wave=''):
 
@@ -337,14 +330,14 @@ def main():
 	nm = 1					  				# number of modes
 	alphadB = 0.0011666666666666668			# loss within fibre[dB/m]
 	gama = 10e-3 							# w/m
-	num_cores = 4
+	num_cores = 6
 	"-----------------------------General options------------------------------"
 	maxerr = 1e-13							# maximum tolerable error per step
 	ss = 1					  				# includes self steepening term
 	ram = 'on'				  				# Raman contribution 'on' if yes and 'off' if no
-	plots = False 							# Do you want plots, be carefull it makes the code very slow!
+	plots = True 							# Do you want plots, be carefull it makes the code very slow!
 	"----------------------------Simulation parameters-------------------------"
-	N = 13									# 2**N grid points 
+	N = 10									# 2**N grid points 
 	z = 18									# total distance [m]
 	nplot = 1								# number of plots within fibre
 	nt = 2**N 								# number of grid points
@@ -358,7 +351,7 @@ def main():
 	int_fwm.propagation_parameters(N, z, nplot, dz_less, wavelength_space)
 
 	fft, ifft, fft_method = pick(N, nm, 100,num_cores)
-	fft, ifft, fft_method = sfft,isfft,'scipy'
+
 	"---------------------FWM wavelengths----------------------------------------"
 	lam_p1 = 1051.4  # [nm]
 	lams_max_asked = 1250  # [nm]
@@ -377,9 +370,9 @@ def main():
 	#	"The fft method that was found to be faster for your system is:", fft_method)
 
 	lamdaP_vec = np.linspace(1048.8816316376193e-9 - 0.5e-9, 1048.8816316376193e-9 + 0.5e-9,6)
-	lamdaP_vec = (1048.82032844e-9,1048.25632956e-9,1047.84861016e-9,
+	lamdaP_vec = (1048.16488268e-9,1048.90830318e-9, 1048.82032844e-9,1048.25632956e-9,1047.84861016e-9,
 		1047.45289893e-9)
-	#lamdaP_vec = (1048.16488268e-9,)# 1048.90830318e-9)
+	#lamdaP_vec = (,)# )
 	#lamdaP_vec = (1048.16488268e-9,)# 1048.90830318e-9)
 	#lamdaP_vec = (sys.argv[2]*1e-9,)
 	#lamdaP_vec = (float(sys.argv[1])*1e-9,)
@@ -390,7 +383,7 @@ def main():
 		#pump_wavelengths = (1.0488816316376193e-06*1e9,)
 		pump_wavelengths = (pp*1e9,)
 		#print(pump_wavelengths)
-		Power_inputs = np.arange(4.4,8.6,0.5)
+		Power_inputs = np.arange(3.4,8.2,0.4)#np.arange(4.4,8.4,0.5)
 		#Power_inputs = (8.6,)
 		Power_signal = 0
 		lam_p1 = pump_wavelengths[0]

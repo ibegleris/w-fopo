@@ -2,8 +2,10 @@ from __future__ import division
 from math import factorial
 from functions import *
 import pytest
-from scipy.fftpack import fft,ifft,fftshift
-scfft,iscfft = fft,ifft
+from scipy.fftpack import fft,ifft,fftshift, ifftshift
+from fft_module import *
+fft, ifft, method = pick(10, 1, 100,1)
+print('method for ffts', method)
 import numpy as np
 from scipy.io import loadmat
 from numpy.testing import assert_allclose,assert_approx_equal,assert_almost_equal,assert_raises
@@ -40,19 +42,21 @@ def FWHM_fun(X,Y):
     right_idx = np.where(d < 0)[-1]
     return X[right_idx] - X[left_idx] #return the difference (full width)
 "------------------------------------------------------fft test--------------"
-try: 
-	from accelerate.fftpack import fft, ifft
-	def test_fft():
-		x = np.random.rand(11,10)
-		assert_allclose(fft(x.T).T, scfft(x))
+#try:
+fft, ifft, method = pick(10, 1, 100,1)
+print('method for ffts', method) 
+import accelerate.mkl.fftpack as mklfft
+mfft, imfft = mklfft.fft, mklfft.ifft
+def test_fft():
+	x = np.random.rand(11,10)
+	assert_allclose(mfft(x), fft(x))
 
 
-	def test_ifft():
-		x = np.random.rand(10,10)
-		assert_allclose(ifft(x.T).T, iscfft(x))
-except:
-	from scipy.fftpack import fft, ifft
-	pass
+def test_ifft():
+	x = np.random.rand(10,10)
+	assert_allclose(imfft(x), imfft(x))
+#except ImportError:
+
 
 "--------------------------------------------Raman response--------------"
 def test_raman_off():
@@ -302,57 +306,56 @@ class Test_WDM(object):
 		self.x1 = 950
 		self.x2 = 1050
 		self.nt = 2**10
+		l1, l2 = 900, 1250
+		f1, f2 = 1e-3 * c /l1, 1e-3 *c /l2
 
-		self.lv = np.linspace(900, 1250,self.nt)
-		self.fv = 1e-3 * c/ self.lv
+		self.fv = np.linspace(f1, f2, self.nt)
+		self.lv = 1e3 * c /self.fv
+
 		lamda = (self.lv[-1] + self.lv[0])/2
 		sim_wind = sim_windows(lamda,self.lv,900, 1250,self.nt)
 		WDMS = WDM(self.x1, self.x2,self.fv, c)
 		
 		U1 = 10*(np.random.randn(self.nt) + 1j * np.random.randn(self.nt))
-		U2 = 10 *(np.random.randn(self.nt) + 1j * np.random.randn(self.nt))
+		U2 = 0 *(np.random.randn(self.nt) + 1j * np.random.randn(self.nt))
 		U_in = (U1, U2)
-		U1 = U1[:,np.newaxis]
-		U2 = U2[:,np.newaxis]
+
 
 		a,b = WDMS.pass_through(U_in,sim_wind,fft,ifft)
 		U_out1,U_out2 = a[1], b[1]
 
 		U_in_tot = np.abs(U1)**2 + np.abs(U2)**2
 		U_out_tot = np.abs(U_out1)**2 + np.abs(U_out2)**2
+		assert_allclose(U_in_tot,U_out_tot)
 
-		assert_allclose(U_in_tot[:,0],U_out_tot)
 
 	def test2_WDM_time(self):
-		self.x1 = 930
+		self.x1 = 950
 		self.x2 = 1050
-		self.nt = 10
+		self.nt = 2**5
+		l1, l2 = 900, 1250
+		f1, f2 = 1e-3 * c /l1, 1e-3 *c /l2
 
-		self.lv = np.linspace(900, 1250,2**self.nt)
-		self.fv = 1e3 * c/ self.lv
+		self.fv = np.linspace(f1, f2, self.nt)
+		self.lv = 1e3 * c /self.fv
 
+		lamda = (self.lv[-1] + self.lv[0])/2
+		sim_wind = sim_windows(lamda,self.lv,900, 1250,self.nt)
 		WDMS = WDM(self.x1, self.x2,self.fv, c)
-		sim_wind = sim_windows(self.lv,self.lv,900, 1250,2**self.nt)
-
-		U1 = 10*(np.random.randn(2**self.nt) + 1j * np.random.randn(2**self.nt))
-		U2 = 10 *(np.random.randn(2**self.nt) + 1j * np.random.randn(2**self.nt))
-
-
-
-
+		
+		U1 = 10*(np.random.randn(self.nt) + 1j * np.random.randn(self.nt))
+		U2 = 10*(np.random.randn(self.nt) + 1j * np.random.randn(self.nt))
 		U_in = (U1, U2)
-		U1 = U1[:,np.newaxis]
-		U2 = U2[:,np.newaxis]
-		u_in1 = ifftshift(ifft(U1)/sim_wind.dt, axes=(0,))
-		u_in2 = ifftshift(ifft(U2)/sim_wind.dt, axes=(0,))
-		u_in_tot = np.abs(u_in1)**2 + np.abs(u_in2)**2
+
+		u_in1 = ifft(fftshift(U1)/sim_wind.dt)
+		u_in2 = ifft(fftshift(U2)/sim_wind.dt)
+		u_in_tot = simps(np.abs(u_in1)**2, sim_wind.t) + simps(np.abs(u_in2)**2,sim_wind.t)
+
 		a,b = WDMS.pass_through(U_in,sim_wind,fft,ifft)
 		u_out1,u_out2 = a[0], b[0]
 
-
-		u_out_tot = np.abs(u_out1)**2 + np.abs(u_out2)**2
-
-		assert_allclose(u_in_tot[:,0], u_out_tot)
+		u_out_tot =  simps(np.abs(u_out1)**2, sim_wind.t) + simps(np.abs(u_out2)**2,sim_wind.t)
+		assert_allclose(u_in_tot, u_out_tot)
 	
 
 		
@@ -360,9 +363,11 @@ class Test_WDM(object):
 class int_fwmss(object):
 	def __init__(self, alphadB):
 		self.alphadB = alphadB
+
 class sim_windowss(object):
 	def __init__(self, fv):
 		self.fv  = fv
+
 class Test_loss:
 	def test_loss1(a):
 		fv = np.linspace(200, 600,1024)
@@ -439,8 +444,8 @@ class Test_splicer():
 
 
 		U_in = (U1, U2)
-		U1 = U1[:,np.newaxis]
-		U2 = U2[:,np.newaxis]
+		U1 = U1#[:,np.newaxis]
+		U2 = U2#[:,np.newaxis]
 		u_in1 = ifft(ifftshift(U1)/sim_wind.dt)
 		u_in2 = ifft(ifftshift(U2)/sim_wind.dt)
 		u_in_tot = np.abs(u_in1)**2 + np.abs(u_in2)**2
@@ -451,7 +456,7 @@ class Test_splicer():
 		
 		u_out_tot = np.abs(u_out1)**2 + np.abs(u_out2)**2
 
-		assert_allclose(u_in_tot[:,0], u_out_tot)
+		assert_allclose(u_in_tot, u_out_tot)
 	
 
 
@@ -535,3 +540,5 @@ def test_noise():
 	n1 = noise.noise_func(int_fwm)
 	n2 = noise.noise_func(int_fwm)
 	assert_raises(AssertionError, assert_almost_equal, n1, n2)
+
+
