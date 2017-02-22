@@ -3,8 +3,8 @@ from __future__ import division, print_function
 import sys
 import os
 import numpy as np
-import matplotlib as mpl
-mpl.use('Agg')
+#import matplotlib as mpl
+#mpl.use('Agg')
 from scipy.linalg import norm
 from scipy.constants import pi, c
 from scipy.io import loadmat, savemat
@@ -124,7 +124,7 @@ def dispersion_operator(betas, lamda_c, int_fwm, sim_wind):
 	Dop = np.zeros(int_fwm.nt, dtype=np.complex)
 	alpha = np.reshape(int_fwm.alpha, np.shape(Dop))
 	Dop -= fftshift(alpha/2)
-
+	#Dop -=alpha/2
 	betap[0] -= betap[0]
 	betap[1] -= betap[1]
 
@@ -226,7 +226,7 @@ class sim_window(object):
 def idler_limits(sim_wind, U):
     
     size = len(U[:,0])
-    max_int = np.argsort(U[(size//2 + 1):,0,0])[0]
+    max_int = np.argsort(U[(size//2 + 1):,0])[0]
     max_int += size//2
     #print(sim_wind.fv[max_int])
     
@@ -290,7 +290,7 @@ class Loss(object):
 		plt.xlabel("Frequency (Thz)")
 		plt.ylabel("Attenuation (cm -1 )")
 		plt.savefig(
-			"output/output0/figures/WDMs&loss/loss_function_fibre.png", bbox_inches='tight')
+			"loss_function_fibre.png", bbox_inches='tight')
 		plt.close(fig)
 
 
@@ -307,7 +307,7 @@ class WDM(object):
 		self.f1 = 1e-3 * c / self.l1   # High part of port 1
 		self.f2 = 1e-3 * c / self.l2  # Low wavelength of port 1
 		self.omega = 0.5*pi/np.abs(self.f1 - self.f2)
-		self.phi = pi - self.omega*self.f2
+		self.phi = 2*pi - self.omega*self.f2
 		#self.fv = fv
 		self.fv_wdm = self.omega*fv+self.phi
 
@@ -316,8 +316,8 @@ class WDM(object):
 		#					   [-np.reshape(np.sin(self.fv), (len(self.fv), modes)),
 		#						np.reshape(np.cos(self.fv), (len(self.fv), modes))]])
 		
-		eps =  np.reshape(np.sin(self.fv_wdm),(len(self.fv_wdm)))
-		eps2 = 1j*np.reshape(np.cos(self.fv_wdm),(len(self.fv_wdm)))
+		eps =  np.sin(self.fv_wdm)
+		eps2 = 1j*np.cos(self.fv_wdm)
 		self.A = np.array([[eps ,eps2],
 						   [eps2,eps]])
 		
@@ -365,10 +365,10 @@ class WDM(object):
 		fig = plt.figure()
 		plt.plot(lamda, self.il_port1(lamda), label="%0.2f" %
 				 (self.l1) + ' nm port')
-		plt.plot(lamda, self.il_port2(lamda), label="%0.2f" %
+		plt.plot(lamda, self.il_port2(lamda), label="%0.1f" %
 				 (self.l2) + ' nm port')
 		plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.13), ncol=2)
-		plt.xlabel(r'$\lambda (\mu m)$')
+		plt.xlabel(r'$\lambda (n m)$')
 		plt.xlim()
 		plt.ylabel('Power Ratio')
 		plt.xlim(xlim)
@@ -429,7 +429,7 @@ class Splicer(WDM):
 
 	def __init__(self, loss=1):
 		self.loss = loss
-		self.c1 = 10**(-0.1*self.loss/2)
+		self.c1 = 10**(-0.1*self.loss/2.)
 		self.c2 = (1 - 10**(-0.1*self.loss))**0.5
 
 
@@ -454,13 +454,11 @@ class Noise(object):
 	def noise_func(self, int_fwm):
 		noise = self.pquant * (np.random.randn(int_fwm.nt)
 							   + 1j*np.random.randn(int_fwm.nt))
-
-		#noise = self.pquant *np.ones([int_fwm.nt,int_fwm.nm])
 		return noise
 
 	def noise_func_freq(self, int_fwm, sim_wind, fft):
 		noise = self.noise_func(int_fwm)
-		noise_freq = fftshift(sim_wind.dt * fft(noise), axes=(0,))
+		noise_freq = fftshift(sim_wind.dt * fft(noise))
 		return noise_freq
 
 
@@ -622,6 +620,6 @@ def power_idler(spec,fv,T,fv_id):
     fv_id: tuple of the starting and
     ending index at which the idler is calculated
     """
-    P_bef = simps(np.abs(spec[fv_id[0]:fv_id[1],0,0])**2,fv[fv_id[0]:fv_id[1]])
+    P_bef = simps(np.abs(spec[fv_id[0]:fv_id[1],0])**2,fv[fv_id[0]:fv_id[1]])
     P_bef /= 2*T
     return P_bef 

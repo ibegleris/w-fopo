@@ -76,10 +76,18 @@ def dAdzmm_ron_s0(u0,M,n2,lamda,tsh,dt,hf, w_tiled,fft,ifft):
 	use: dA = dAdzmm(u0)
 		"""
 	M3 =  np.abs(u0)**2
-	N = 2.46*M *u0*M3 + 0.54*M*u0*dt*fftshift(ifft(fft(M3)*hf))	
+
+	N = 0.82*M *u0*M3 + 0.18*M*u0*dt*fftshift(ifft(fft(M3)*hf))	
 	N *= -1j*n2*2*pi/lamda
 	return N
-
+"""
+def dAdzmm_ron_s1(u0,M,n2,lamda,tsh,dt,hf, w_tiled,fft,ifft):
+	M3 =  np.abs(u0)**2
+	#M3 =  uabs(u0)
+	N = (2.46*M3 + 0.54*dt*fftshift(ifft(fft(M3)*hf)))*M *u0
+	N = -1j*n2*2*pi/lamda*(N + tsh*ifft((w_tiled)*fft(N)))
+	return N
+"""
 
 def dAdzmm_ron_s1(u0,M,n2,lamda,tsh,dt,hf, w_tiled,fft,ifft):
 
@@ -89,6 +97,7 @@ def dAdzmm_ron_s1(u0,M,n2,lamda,tsh,dt,hf, w_tiled,fft,ifft):
 	M3 =  uabs(u0)
 	temp = fftshift(ifft(fft(M3)*hf))
 	N = nonlin(M, u0,M3, dt, temp)
+	#N = M*u0*(2.46*M3 + 0.54*dt*temp)
 	#temp = multi(w_tiled,fft(N))
 	
 	N = -1j*n2*2*pi/lamda* (N + tsh*ifft(w_tiled * fft(N)))
@@ -110,7 +119,7 @@ def uabs(u0):
 
 @vectorize(['complex128(float64,complex128,float64,float64,complex128)']) # default to 'cpu'
 def nonlin(M, u0,M3, dt, ra ):
-    return M*u0*(2.46*M3 + 0.54*dt*ra)
+    return M*u0*(0.82*M3 + 0.18*dt*ra)
 
 @vectorize(['complex128(float64,float64,complex128,float64,complex128,float64)']) # default to 'cpu'
 def self_step(n2, lamda,N, tsh, ra,rp ):

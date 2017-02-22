@@ -16,6 +16,7 @@ from fft_module import *
 try:
 	import mkl
 	max_threads = mkl.get_max_threads()
+	mkl.set_num_threads(max_threads)
 	mkl.set_num_threads(1)
 except ImportError:
 	print(
@@ -129,13 +130,14 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 	U_original_pump = np.copy(U[:, 0])
 
 	# Pass the original pump through the WDM1, port1 is in to the loop, port2 junk
+	noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind, fft)
 	u[:, 0], U[:, 0] = WDM1.pass_through(
-		(U[:, 0], noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)[0]
+		(U[:, 0], noise_new), sim_wind, fft, ifft)[0]
 	
 	#from scipy.integrate import simps
 	#power = simps(np.abs(U_original_pump[:,0])**2, sim_wind.fv)/(2*np.max(sim_wind.t))
 	#print(power)
-	max_rounds = 1
+	max_rounds = 512
 	ro = -1
 	min_circ_error = 0.01 # relative percentage error in power
 	P_portb,P_portb_prev = 3*min_circ_error ,min_circ_error
@@ -154,8 +156,9 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 					P0_s, f_p, f_s, 0, ro,P_portb,rel_error,pump_wave, str(ro)+'1', pulse_pos_dict[3], D_pic[5],plots)
 		
 		# Splice3
+		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind, fft)
 		(u[:, 0], U[:, 0]) = splicer1.pass_through(
-			(U[:, 0], noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)[0]
+			(U[:, 0], noise_new), sim_wind, fft, ifft)[0]
 		
 		u, U = pulse_propagation(
 			u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm, fft, ifft)
@@ -163,20 +166,24 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 					P0_s, f_p, f_s, -1,ro,P_portb,rel_error,pump_wave, str(ro)+'2', pulse_pos_dict[0], D_pic[2],plots)
 		
 		# Splice4
+		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind, fft)
 		(u[:, -1], U[:, -1]) = splicer1.pass_through(
-			(U[:, -1], noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)[0]
+			(U[:, -1], noise_new), sim_wind, fft, ifft)[0]
 
 		# Splice5
+		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind, fft)
 		(u[:, -1], U[:, -1]) = splicer2.pass_through(
-			(U[:, -1], noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)[0]
+			(U[:, -1], noise_new), sim_wind, fft, ifft)[0]
 
 		# Splice6
+		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind, fft)
 		(u[:, -1], U[:, -1]) = splicer2.pass_through(
-			(U[:, -1], noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)[0]
+			(U[:, -1], noise_new), sim_wind, fft, ifft)[0]
 		
 		# pass through WDM2 port 2 continues and port 1 is out of the loop
+		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind, fft)
 		(out1, out2),(u[:, -1], U[:, -1])  = WDM2.pass_through(
-			(U[:, -1], noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)
+			(U[:, -1], noise_new), sim_wind, fft, ifft)
 		
 		
 		
@@ -186,8 +193,9 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 
 
 		# Splice7 after WDM2 for the signal
+		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind, fft)
 		(u[:, -1], U[:, -1]) = splicer2.pass_through(
-			(U[:, -1], noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)[0]
+			(U[:, -1], noise_new), sim_wind, fft, ifft)[0]
 
 
 		# Pass again through WDM1 with the signal now
@@ -196,15 +204,21 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 		
 		
 		################################The outbound stuff#####################
+		U_out = np.reshape(out2, (len(sim_wind.t), 1))
+		u_out = np.reshape(out1, (len(sim_wind.t), 1))
+		plotter_dbm(index,int_fwm.nm, sim_wind, u_out, U_out, P0_p1,
+					P0_s, f_p, f_s, -1, ro,P_portb,rel_error,pump_wave,str(ro)+'4', pulse_pos_dict[4], D_pic[6],plots)
 		
 		# Splice8 before WDM3
+		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind, fft)
 		(out1, out2) = splicer2.pass_through(
-			(out2, noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)[0]
+			(out2, noise_new), sim_wind, fft, ifft)[0]
 		
 
 		# WDM3 port 1 continues and port 2 is portA in experiment
+		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind, fft)
 		(utemp, Utemp),(u_portA, U_portA)  = WDM3.pass_through(
-			(out2, noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)
+			(out2, noise_new), sim_wind, fft, ifft)
 		
 		
 		U_portA = np.reshape(U_portA, (len(sim_wind.t), 1))
@@ -216,17 +230,19 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 			'round '+str(ro)+', portA',plots=plots)
 		
 		# Splice9 before WDM4
+		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind, fft)
 		(out1, out2)= splicer2.pass_through(
-			(out2, noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)[0]
+			(out2, noise_new), sim_wind, fft, ifft)[0]
 		
 		# WDM4 port 1 goes to port B and port 2 to junk
+		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind, fft)
 		(u_portB, U_portB)  = WDM4.pass_through(
-			(out2, noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind, fft, ifft)[0]
+			(out2, noise_new), sim_wind, fft, ifft)[0]
 		
 
 		
-		U_portB = np.reshape(U_portB, (len(sim_wind.t), int_fwm.nm, 1))
-		u_portB = np.reshape(u_portB, (len(sim_wind.t), int_fwm.nm, 1))
+		U_portB = np.reshape(U_portB, (len(sim_wind.t), 1))
+		u_portB = np.reshape(u_portB, (len(sim_wind.t), 1))
   		
 		plotter_dbm(index,int_fwm.nm, sim_wind, u_portB,
 					U_portB, P0_p1, P0_s, f_p, f_s, -1, ro,P_portb,rel_error,pump_wave,'portB/'+str(ro),
@@ -235,12 +251,6 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 		fv_id = idler_limits(sim_wind, U_portB)
 		P_portb = power_idler(U_portB,sim_wind.fv,sim_wind.T,fv_id)
 		rel_error = 100*np.abs(P_portb - P_portb_prev)/P_portb_prev
-			
-
-	#power_dbm = np.reshape(w2dbm(np.abs(U_portB[:,0,0])**2), (len(sim_wind.t), 1))
-	#max_norm = np.max(power_dbm)
-	
-	#return power_dbm, s_pos, max_norm, max_rounds
 	return None
 
 
@@ -268,8 +278,8 @@ def lam_p2_vary(lam_s_max,pump_index, lam_p1, power_pump_input,power_signal_inpu
 
 	#int_fwm.alphadB = 0.0011666666666666668
 	slice_from_edge = (sim_wind.fv[-1] - sim_wind.fv[0])/8
-	loss = Loss(int_fwm, sim_wind, amax=int_fwm.alphadB , apart_div=(sim_wind.fv[0] + slice_from_edge, sim_wind.fv[-1] - slice_from_edge))
-	#loss.plot(fv)
+	loss = Loss(int_fwm, sim_wind, amax=5)
+	loss.plot(fv)
 	int_fwm.alpha = loss.atten_func_full(fv)
 	"------------------------------Dispersion operator--------------------------------------"
 	# betas at ps/m (given in ps^n/km)
@@ -335,11 +345,11 @@ def main():
 	maxerr = 1e-13							# maximum tolerable error per step
 	ss = 1					  				# includes self steepening term
 	ram = 'on'				  				# Raman contribution 'on' if yes and 'off' if no
-	plots = True 							# Do you want plots, be carefull it makes the code very slow!
+	plots = False 							# Do you want plots, be carefull it makes the code very slow!
 	"----------------------------Simulation parameters-------------------------"
-	N = 10									# 2**N grid points 
+	N = 13									# 2**N grid points 
 	z = 18									# total distance [m]
-	nplot = 1								# number of plots within fibre
+	nplot = 2								# number of plots within fibre
 	nt = 2**N 								# number of grid points
 	dzstep = z/nplot						# distance per step
 	dz_less = 1e2
@@ -369,21 +379,24 @@ def main():
 	#print(
 	#	"The fft method that was found to be faster for your system is:", fft_method)
 
-	lamdaP_vec = np.linspace(1048.8816316376193e-9 - 0.5e-9, 1048.8816316376193e-9 + 0.5e-9,6)
-	lamdaP_vec = (1048.16488268e-9,1048.90830318e-9, 1048.82032844e-9,1048.25632956e-9,1047.84861016e-9,
-		1047.45289893e-9)
-	#lamdaP_vec = (,)# )
-	#lamdaP_vec = (1048.16488268e-9,)# 1048.90830318e-9)
-	#lamdaP_vec = (sys.argv[2]*1e-9,)
-	#lamdaP_vec = (float(sys.argv[1])*1e-9,)
+	lamdaP_vec = [1048.236639751706,
+				 1048.9161470177778,
+				 1047.4580276554484,
+				 1047.8542826528856,
+				 1048.2626870941695,
+				 1048.8279348320191,
+				 1048.1710734507749,
+				 1048.7982221124762]
 	for kk,pp in enumerate(lamdaP_vec):
-
+		if kk == 0:
+			continue
 		#kk = sys.argv[1]
 		create_file_structure(kk)
 		#pump_wavelengths = (1.0488816316376193e-06*1e9,)
-		pump_wavelengths = (pp*1e9,)
+		pump_wavelengths = (pp,)
 		#print(pump_wavelengths)
 		Power_inputs = np.arange(3.4,8.2,0.4)#np.arange(4.4,8.4,0.5)
+		#Power_inputs = (3.5,4,4.5,5)
 		#Power_inputs = (8.6,)
 		Power_signal = 0
 		lam_p1 = pump_wavelengths[0]

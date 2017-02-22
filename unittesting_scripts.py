@@ -332,7 +332,7 @@ class Test_WDM(object):
 	def test2_WDM_time(self):
 		self.x1 = 950
 		self.x2 = 1050
-		self.nt = 2**5
+		self.nt = 2**24
 		l1, l2 = 900, 1250
 		f1, f2 = 1e-3 * c /l1, 1e-3 *c /l2
 
@@ -542,3 +542,41 @@ def test_noise():
 	assert_raises(AssertionError, assert_almost_equal, n1, n2)
 
 
+def test_full_trans_in_cavity():
+    N = 12
+    nt = 2**N
+    fft,ifft,method = pick(nt, 1,100, 1)
+    from scipy.constants import c, pi
+    int_fwm = sim_parameters(2.5e-20, 1, 0)
+    int_fwm.general_options(1e-6, raman_object, 0, 0)
+    int_fwm.propagation_parameters(N, 18, 1, 1, False)
+
+    lam_p1 = 1048.17107345
+    fv, where = fv_creator(850, lam_p1, int_fwm)
+    lv = 1e-3*c/fv
+    sim_wind = sim_window(fv, lam_p1, lam_p1, int_fwm,0)
+    noise_obj = Noise(sim_wind)
+
+    WDM1 = WDM(1050, 1200, sim_wind.fv,c)
+    WDM2 = WDM(930, 1200, sim_wind.fv, c)
+    WDM3 = WDM(930, 1050, sim_wind.fv, c)
+    WDM4 = WDM(930, 1200, sim_wind.fv, c)
+    splicer1 = Splicer(loss=0.4895)
+    splicer2 = Splicer(loss=0.142225011896)
+
+
+    U = (1/2)**0.5 * (1 + 1j) * np.ones(nt)
+
+    U = splicer1.pass_through((U,np.zeros_like(U)), sim_wind, fft, ifft)[0][1]
+    U = splicer1.pass_through((U,np.zeros_like(U)), sim_wind, fft, ifft)[0][1]
+    U = splicer2.pass_through((U,np.zeros_like(U)), sim_wind, fft, ifft)[0][1]
+    U = splicer2.pass_through((U,np.zeros_like(U)), sim_wind, fft, ifft)[0][1]
+
+    U  = WDM2.pass_through((U, np.zeros_like(U)), sim_wind, fft, ifft)[1][1]
+
+    U = splicer2.pass_through((U,np.zeros_like(U)), sim_wind, fft, ifft)[0][1]
+
+
+    U  = WDM1.pass_through((np.zeros_like(U),U), sim_wind, fft, ifft)[0][1]
+    U_exact = read_variables('testing_data/trans_WDMS', '0')['U']
+    assert_allclose(U, U_exact)
