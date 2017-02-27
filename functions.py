@@ -452,8 +452,8 @@ class Noise(object):
 		return None
 
 	def noise_func(self, int_fwm):
-		noise = self.pquant * (np.random.randn(int_fwm.nt)
-							   + 1j*np.random.randn(int_fwm.nt))
+		noise = self.pquant * (np.random.rand(int_fwm.nt)
+							   + 1j*np.random.rand(int_fwm.nt))
 		return noise
 
 	def noise_func_freq(self, int_fwm, sim_wind, fft):
@@ -464,11 +464,11 @@ class Noise(object):
 
 def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm, fft, ifft):
 	"--------------------------Pulse propagation--------------------------------"
-	badz = 0  # counter for bad steps
+	#badz = 0  # counter for bad steps
 	#goodz = 0  # counter for good steps
 	dztot = 0  # total distance traveled
-	dzv = np.zeros(1)
-	dzv[0] = int_fwm.dz
+	#dzv = np.zeros(1)
+	#dzv[0] = int_fwm.dz
 	u1 = np.copy(u[:, 0])
 
 
@@ -486,7 +486,7 @@ def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm, fft, ifft):
 				if (delta > int_fwm.maxerr):
 					# calculate the step (shorter) to redo
 					dz *= (int_fwm.maxerr/delta)**0.25
-					badz += 1
+					#badz += 1
 			#####################################Successful step###############
 			# propagate the remaining half step
 			u1 = ifft(np.exp(Dop*dz/2)*fft(A))
@@ -495,19 +495,19 @@ def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm, fft, ifft):
 			# update the number of steps taken
 
 			# store the dz just taken
-			dzv = np.append(dzv, dz)
+			#dzv = np.append(dzv, dz)
 			# calculate the next step (longer)
 			# # without exceeding max dzstep
-			dz2 = np.min(
+			dz = np.min(
 				[0.95*dz*(int_fwm.maxerr/delta)**0.2, 0.95*int_fwm.dzstep])
 			###################################################################
 
 			if dztot == (int_fwm.dzstep*(jj+1)):
 				exitt = True
 
-			elif ((dztot + dz2) >= int_fwm.dzstep*(jj+1)):
-				dz2 = int_fwm.dzstep*(jj+1) - dztot
-			dz = np.copy(dz2)
+			elif ((dztot + dz) >= int_fwm.dzstep*(jj+1)):
+				dz = int_fwm.dzstep*(jj+1) - dztot
+			#dz = np.copy(dz2)
 			###################################################################
 
 		u[:, jj+1] = u1
@@ -586,6 +586,7 @@ def check_ft_grid(fv, diff):
 		print(np.max(grid_error))
 		sys.exit("your grid is not uniform")
 	return 0
+
 
 class create_destroy(object):
 	"""

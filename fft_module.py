@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.fftpack as scifft
+
 sfft, isfft = scifft.fft, scifft.ifft
 nfft,infft = np.fft.fft, np.fft.ifft
 from time import time
@@ -33,7 +34,7 @@ try:
 
 
 	def pick(N,nm,times,num_cores):
-		if num_cores >1:
+		if num_cores != 1:
 			a = timing(N, nm, times)[0][0]
 		else:
 			a = 'scipy'
@@ -44,6 +45,7 @@ try:
 			fft, ifft = mfft, imfft
 		else:
 			fft, ifft = nfft,infft
+		print(fft, ifft)
 		return fft,ifft,a
 
 

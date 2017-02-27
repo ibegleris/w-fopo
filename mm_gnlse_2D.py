@@ -5,7 +5,7 @@ mpl.use('Agg')
 from scipy.constants import c, pi
 from scipy.io import savemat
 from joblib import Parallel, delayed
-from scipy.fftpack import fftshift, ifftshift
+from scipy.fftpack import fftshift, ifftshift,ifft,fft
 import multiprocessing
 import sys
 import os
@@ -15,9 +15,9 @@ from functions import *
 from fft_module import *
 try:
 	import mkl
-	max_threads = mkl.get_max_threads()
-	mkl.set_num_threads(max_threads)
-	mkl.set_num_threads(1)
+	#max_threads = mkl.get_max_threads()
+	#mkl.set_num_threads(max_threads)
+	#mkl.set_num_threads(1)
 except ImportError:
 	print(
 		"MKL libaries help when you are not running in paralel.\
@@ -137,13 +137,13 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 	#from scipy.integrate import simps
 	#power = simps(np.abs(U_original_pump[:,0])**2, sim_wind.fv)/(2*np.max(sim_wind.t))
 	#print(power)
-	max_rounds = 512
+	max_rounds = 1024
 	ro = -1
 	min_circ_error = 0.01 # relative percentage error in power
 	P_portb,P_portb_prev = 3*min_circ_error ,min_circ_error
 
 	rel_error = 100*np.abs(P_portb - P_portb_prev)/P_portb_prev
-
+	#t3 = time()
 	while ro < max_rounds:# and rel_error  > min_circ_error:
 		#print(P_portb, 100*np.abs(P_portb - P_portb_prev)/P_portb_prev)
 		P_portb_prev = P_portb
@@ -151,17 +151,21 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 		print('round', ro)
 		pulse_pos_dict = [
 			'round ' + str(ro)+', ' + i for i in pulse_pos_dict_or]
-
+		#t1 = time()
 		plotter_dbm(index,int_fwm.nm, sim_wind, u, U, P0_p1,
 					P0_s, f_p, f_s, 0, ro,P_portb,rel_error,pump_wave, str(ro)+'1', pulse_pos_dict[3], D_pic[5],plots)
-		
+		#t2 = time() - t1
+		#print('Time of writting:', t2)
 		# Splice3
 		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind, fft)
 		(u[:, 0], U[:, 0]) = splicer1.pass_through(
 			(U[:, 0], noise_new), sim_wind, fft, ifft)[0]
-		
+		#t1 = time()
 		u, U = pulse_propagation(
 			u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm, fft, ifft)
+		#t2 = time() - t1
+		#print('Time of pulse_prop:', t2)
+		#sys.exit()
 		plotter_dbm(index,int_fwm.nm, sim_wind, u, U, P0_p1,
 					P0_s, f_p, f_s, -1,ro,P_portb,rel_error,pump_wave, str(ro)+'2', pulse_pos_dict[0], D_pic[2],plots)
 		
@@ -251,6 +255,9 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 		fv_id = idler_limits(sim_wind, U_portB)
 		P_portb = power_idler(U_portB,sim_wind.fv,sim_wind.T,fv_id)
 		rel_error = 100*np.abs(P_portb - P_portb_prev)/P_portb_prev
+	#tend = time() - t3
+	#print('time of round trip:', tend)
+	#sys.exit()
 	return None
 
 
@@ -360,8 +367,10 @@ def main():
 	int_fwm.general_options(maxerr, raman_object, ss, ram)
 	int_fwm.propagation_parameters(N, z, nplot, dz_less, wavelength_space)
 
-	fft, ifft, fft_method = pick(N, nm, 100,num_cores)
-
+	#fft, ifft, fft_method = pick(N, nm, 100,num_cores)
+	#print(fft)
+	fft_method = 'intel_scipy'
+	print('picked: ', fft_method, 'as a method')
 	"---------------------FWM wavelengths----------------------------------------"
 	lam_p1 = 1051.4  # [nm]
 	lams_max_asked = 1250  # [nm]
@@ -378,26 +387,22 @@ def main():
 	
 	#print(
 	#	"The fft method that was found to be faster for your system is:", fft_method)
+	os.system('rm output_dump_pump_powers'	)
 
-	lamdaP_vec = [1048.236639751706,
-				 1048.9161470177778,
-				 1047.4580276554484,
-				 1047.8542826528856,
-				 1048.2626870941695,
-				 1048.8279348320191,
-				 1048.1710734507749,
-				 1048.7982221124762]
+	lamdaP_vec = [1047.4580276554484,1047.8542826528856,
+				  1048.1710734507749,1048.236639751706,
+				  1048.2626870941695,1048.7982221124762,
+				  1048.8279348320191, 1048.9161470177778]
+	#lamdaP_vec = [1048.8279348320191,]
 	for kk,pp in enumerate(lamdaP_vec):
-		if kk == 0:
-			continue
 		#kk = sys.argv[1]
 		create_file_structure(kk)
 		#pump_wavelengths = (1.0488816316376193e-06*1e9,)
 		pump_wavelengths = (pp,)
 		#print(pump_wavelengths)
-		Power_inputs = np.arange(3.4,8.2,0.4)#np.arange(4.4,8.4,0.5)
+		Power_inputs = np.arange(3.4,5.8,0.2)#np.arange(3.4,6,0.4)#np.arange(4.4,8.4,0.5)
 		#Power_inputs = (3.5,4,4.5,5)
-		#Power_inputs = (8.6,)
+		#Power_inputs = (5,)
 		Power_signal = 0
 		lam_p1 = pump_wavelengths[0]
 		_power = create_destroy(Power_inputs,str(kk))
@@ -428,6 +433,7 @@ def main():
 			pump_wavelengths = (pp*1e9,)
 			print(pump_wavelengths)
 			Power_inputs = (4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10,10.5,11,11.5)
+			#Power_inputs = (6.5,)
 			Power_signal = 0
 			#Power_inputs = (4.5,5)
 			#Power_inputs = (13,)

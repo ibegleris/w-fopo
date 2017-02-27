@@ -42,21 +42,21 @@ def FWHM_fun(X,Y):
     right_idx = np.where(d < 0)[-1]
     return X[right_idx] - X[left_idx] #return the difference (full width)
 "------------------------------------------------------fft test--------------"
-#try:
-fft, ifft, method = pick(10, 1, 100,1)
-print('method for ffts', method) 
-import accelerate.mkl.fftpack as mklfft
-mfft, imfft = mklfft.fft, mklfft.ifft
-def test_fft():
-	x = np.random.rand(11,10)
-	assert_allclose(mfft(x), fft(x))
+try:
+	fft, ifft, method = pick(10, 1, 100,1)
+	print('method for ffts', method) 
+	import accelerate.mkl.fftpack as mklfft
+	mfft, imfft = mklfft.fft, mklfft.ifft
+	def test_fft():
+		x = np.random.rand(11,10)
+		assert_allclose(mfft(x), fft(x))
 
 
-def test_ifft():
-	x = np.random.rand(10,10)
-	assert_allclose(imfft(x), imfft(x))
-#except ImportError:
-
+	def test_ifft():
+		x = np.random.rand(10,10)
+		assert_allclose(imfft(x), imfft(x))
+except ImportError:
+	pass
 
 "--------------------------------------------Raman response--------------"
 def test_raman_off():
@@ -539,6 +539,7 @@ def test_noise():
 	noise = Noise(sim_wind)
 	n1 = noise.noise_func(int_fwm)
 	n2 = noise.noise_func(int_fwm)
+	print(n1,n2)
 	assert_raises(AssertionError, assert_almost_equal, n1, n2)
 
 
