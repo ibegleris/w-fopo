@@ -15,8 +15,10 @@ from math import isinf, factorial
 from integrand_and_rk import *
 from data_plotters_animators import *
 import cmath
+from scipy.fftpack import fft, ifft
 import pandas as pd
 phasor = np.vectorize(cmath.polar)
+
 """
 try:
 	import accelerate
@@ -70,7 +72,7 @@ class raman_object(object):
 		self.how = b
 		self.hf = None
 
-	def raman_load(self, t, dt, fft, ifft):
+	def raman_load(self, t, dt):
 		if self.on == 'on':
 			#print('Raman on')
 			if self.how == 'analytic':
@@ -335,7 +337,7 @@ class WDM(object):
 
 		return Uout
 
-	def pass_through(self, U_in, sim_wind, fft, ifft):
+	def pass_through(self, U_in, sim_wind):
 		"""
 		Passes the amplitudes through the object. returns the u, U and Uabs
 		in a form of a tuple of (port1,port2)
@@ -462,7 +464,7 @@ class Noise(object):
 		return noise_freq
 
 
-def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm, fft, ifft):
+def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm):
 	"--------------------------Pulse propagation--------------------------------"
 	#badz = 0  # counter for bad steps
 	#goodz = 0  # counter for good steps
@@ -482,7 +484,7 @@ def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm, fft, ifft):
 
 				u1new = ifft(np.exp(Dop*dz/2)*fft(u1))
 				A, delta = RK5mm(dAdzmm, u1new, dz, M, int_fwm.n2, sim_wind.lamda, sim_wind.tsh,
-								sim_wind.dt, hf,sim_wind.w_tiled, fft, ifft)  # calls a 5th order Runge Kutta routine
+								sim_wind.dt, hf,sim_wind.w_tiled)  # calls a 5th order Runge Kutta routine
 				if (delta > int_fwm.maxerr):
 					# calculate the step (shorter) to redo
 					dz *= (int_fwm.maxerr/delta)**0.25
@@ -500,6 +502,8 @@ def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm, fft, ifft):
 			# # without exceeding max dzstep
 			dz = np.min(
 				[0.95*dz*(int_fwm.maxerr/delta)**0.2, 0.95*int_fwm.dzstep])
+			#dz = 0.95*dz*(int_fwm.maxerr/delta)**0.2
+			#print(dz)
 			###################################################################
 
 			if dztot == (int_fwm.dzstep*(jj+1)):

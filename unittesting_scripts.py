@@ -61,7 +61,7 @@ except ImportError:
 "--------------------------------------------Raman response--------------"
 def test_raman_off():
 	ram = raman_object('off')
-	ram.raman_load(np.random.rand(10),np.random.rand(1)[0],fft,ifft)
+	ram.raman_load(np.random.rand(10),np.random.rand(1)[0])
 	assert ram.hf == None
 
 
@@ -73,7 +73,7 @@ def test_raman_load():
 	dt = D['dt'][0][0]
 	hf_exact = D['hf']
 	hf_exact = np.asanyarray([hf_exact[i][0] for i in range(hf_exact.shape[0])])
-	hf = ram.raman_load(t,dt,fft,ifft)
+	hf = ram.raman_load(t,dt)
 
 	assert_allclose(hf, hf_exact)
 
@@ -86,7 +86,7 @@ def test_raman_analytic():
 	dt = D['dt'][0][0]
 	hf_exact = D['hf']
 	hf_exact = np.asanyarray([hf_exact[i][0] for i in range(hf_exact.shape[0])])
-	hf = ram.raman_load(t,dt,fft,ifft)
+	hf = ram.raman_load(t,dt)
 
 	assert_allclose(hf, hf_exact)
 
@@ -196,7 +196,7 @@ def pulse_propagations(ram,ss,N_sol = 1):
 
 	M = Q_matrixes(1,n2,lamda,gama=gama)
 	raman = raman_object(int_fwm.ram, int_fwm.how)
-	raman.raman_load(sim_wind.t, sim_wind.dt, fft, ifft)
+	raman.raman_load(sim_wind.t, sim_wind.dt)
 	
 	if raman.on == 'on':	
 		hf = raman.hf
@@ -215,7 +215,7 @@ def pulse_propagations(ram,ss,N_sol = 1):
 	U[:,0] = fftshift(sim_wind.dt*fft(u[:,0]))
 	fwhm2 = FWHM_fun(sim_wind.t, np.abs(u)**2)
 	print(fwhm2)
-	u,U  = pulse_propagation(u,U,int_fwm,M,sim_wind,hf,Dop,dAdzmm,fft,ifft)
+	u,U  = pulse_propagation(u,U,int_fwm,M,sim_wind,hf,Dop,dAdzmm)
 
 	U_start = np.abs(U[:,0])**2
 	
@@ -321,7 +321,7 @@ class Test_WDM(object):
 		U_in = (U1, U2)
 
 
-		a,b = WDMS.pass_through(U_in,sim_wind,fft,ifft)
+		a,b = WDMS.pass_through(U_in,sim_wind)
 		U_out1,U_out2 = a[1], b[1]
 
 		U_in_tot = np.abs(U1)**2 + np.abs(U2)**2
@@ -351,7 +351,7 @@ class Test_WDM(object):
 		u_in2 = ifft(fftshift(U2)/sim_wind.dt)
 		u_in_tot = simps(np.abs(u_in1)**2, sim_wind.t) + simps(np.abs(u_in2)**2,sim_wind.t)
 
-		a,b = WDMS.pass_through(U_in,sim_wind,fft,ifft)
+		a,b = WDMS.pass_through(U_in,sim_wind)
 		u_out1,u_out2 = a[0], b[0]
 
 		u_out_tot =  simps(np.abs(u_out1)**2, sim_wind.t) + simps(np.abs(u_out2)**2,sim_wind.t)
@@ -418,7 +418,7 @@ class Test_splicer():
 		U_in = (U1, U2)
 		U1 = U1[:,np.newaxis]
 		U2 = U2[:,np.newaxis]
-		a,b = splicer.pass_through(U_in,sim_wind,fft,ifft)
+		a,b = splicer.pass_through(U_in,sim_wind)
 		U_out1,U_out2 = a[1], b[1]
 
 		U_in_tot = np.abs(U1)**2 + np.abs(U2)**2
@@ -450,7 +450,7 @@ class Test_splicer():
 		u_in2 = ifft(ifftshift(U2)/sim_wind.dt)
 		u_in_tot = np.abs(u_in1)**2 + np.abs(u_in2)**2
 
-		a,b = splicer.pass_through(U_in,sim_wind,fft,ifft)
+		a,b = splicer.pass_through(U_in,sim_wind)
 		u_out1,u_out2 = a[0], b[0]
 
 		
@@ -568,16 +568,16 @@ def test_full_trans_in_cavity():
 
     U = (1/2)**0.5 * (1 + 1j) * np.ones(nt)
 
-    U = splicer1.pass_through((U,np.zeros_like(U)), sim_wind, fft, ifft)[0][1]
-    U = splicer1.pass_through((U,np.zeros_like(U)), sim_wind, fft, ifft)[0][1]
-    U = splicer2.pass_through((U,np.zeros_like(U)), sim_wind, fft, ifft)[0][1]
-    U = splicer2.pass_through((U,np.zeros_like(U)), sim_wind, fft, ifft)[0][1]
+    U = splicer1.pass_through((U,np.zeros_like(U)), sim_wind)[0][1]
+    U = splicer1.pass_through((U,np.zeros_like(U)), sim_wind)[0][1]
+    U = splicer2.pass_through((U,np.zeros_like(U)), sim_wind)[0][1]
+    U = splicer2.pass_through((U,np.zeros_like(U)), sim_wind)[0][1]
 
-    U  = WDM2.pass_through((U, np.zeros_like(U)), sim_wind, fft, ifft)[1][1]
+    U  = WDM2.pass_through((U, np.zeros_like(U)), sim_wind)[1][1]
 
-    U = splicer2.pass_through((U,np.zeros_like(U)), sim_wind, fft, ifft)[0][1]
+    U = splicer2.pass_through((U,np.zeros_like(U)), sim_wind)[0][1]
 
 
-    U  = WDM1.pass_through((np.zeros_like(U),U), sim_wind, fft, ifft)[0][1]
+    U  = WDM1.pass_through((np.zeros_like(U),U), sim_wind)[0][1]
     U_exact = read_variables('testing_data/trans_WDMS', '0')['U']
     assert_allclose(U, U_exact)
