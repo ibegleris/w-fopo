@@ -14,17 +14,6 @@ import time as timeit
 os.system('export FONTCONFIG_PATH=/etc/fonts')
 from functions import *
 from fft_module import *
-try:
-	import mkl
-	#max_threads = mkl.get_max_threads()
-	#mkl.set_num_threads(max_threads)
-	#mkl.set_num_threads(1)
-except ImportError:
-	print(
-		"MKL libaries help when you are not running in paralel.\
-		 There is a free academic lisence by continuum analytics")
-
-	pass
 
 def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 				where, P0_p1, P0_s, Dop, M,index,plots,var_loss,pump_wave = ''):
@@ -145,7 +134,7 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 	#from scipy.integrate import simps
 	#power = simps(np.abs(U_original_pump[:,0])**2, sim_wind.fv)/(2*np.max(sim_wind.t))
 	#print(power)
-	max_rounds = 4096*4
+	max_rounds = 20
 	ro = -1
 	min_circ_error = 0.01 # relative percentage error in power
 	P_portb,P_portb_prev = 3*min_circ_error ,min_circ_error
@@ -422,14 +411,14 @@ def main():
 		#var_losses = np.linspace(0, 5, 30)
 		#var_losses = np.arange(0.5,5.5,1)#1,2,3,4,5)
 		var_losses = np.array([1.3])
-		var_losses = np.arange(1.46,1.48,0.005)
-		var_losses = np.arange(1.48,1.49,0.005)
-		var_losses = np.arange(1.495,1.605,0.005)
-		var_losses = np.array([1.3,1.4,1.5])
-		Power_inputs = np.copy(var_losses)
+		#var_losses = np.arange(1.46,1.48,0.005)
+		#var_losses = np.arange(1.48,1.49,0.005)
+		#var_losses = np.arange(1.495,1.605,0.005)
+		#var_losses = np.array([1.3,1.4,1.5])
+		#Power_inputs = np.copy(var_losses)
 		#var_losses = [0]
 		#Power_inputs = (3.5,4,4.5,5)
-		#Power_inputs = (5,)
+		Power_inputs = (5,)
 		Power_signal = 0
 		lam_p1 = pump_wavelengths[0]
 		_power = create_destroy(Power_inputs,str(kk))
@@ -528,7 +517,7 @@ def main():
 	Power_signal = 0
 	#pump_wavelengths = (1047, 1047.5, 1047.9, 1048.3, 1048.6,
 	#					1049.0, 1049.5, 1049.8, 1050.2, 1050.6, 1051.0, 1051.4)
-	pump_wavelengths = (1047,1047.6,1047.8,1048.5,1048.9,1049.6)
+	pump_wavelengths = (1047,)##1047.6,1047.8,1048.5,1048.9,1049.6)
 	#pump_wavelengths = (1049.6,)
 	#pump_wavelengths = ( 1050.6, 1051.0, 1051.4)
 	#pump_wavelengths = (1050.6,)

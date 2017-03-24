@@ -463,7 +463,7 @@ class Noise(object):
 		noise_freq = fftshift(sim_wind.dt * fft(noise))
 		return noise_freq
 
-
+@profile
 def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm):
 	"--------------------------Pulse propagation--------------------------------"
 	#badz = 0  # counter for bad steps
@@ -471,8 +471,8 @@ def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm):
 	dztot = 0  # total distance traveled
 	#dzv = np.zeros(1)
 	#dzv[0] = int_fwm.dz
-	u1 = np.copy(u[:, 0])
-
+	u1 = np.ascontiguousarray(u[:, 0])
+	
 
 	dz = int_fwm.dz * 1
 	for jj in range(int_fwm.nplot):

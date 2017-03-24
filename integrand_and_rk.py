@@ -98,14 +98,26 @@ def dAdzmm_ron_s1(u0,M,n2,lamda,tsh,dt,hf, w_tiled):
 #from time import time
 #import sys
 #@vectorize('complex128(complex128,float64,float64,float64,float64,float64,complex128,float64)')
+
+@profile
 def dAdzmm_ron_s1(u0,M,n2,lamda,tsh,dt,hf, w_tiled):
 	#calculates the nonlinear operator for a given field u0
 	#use: dA = dAdzmm(u0)
 	#t1 = time()
 	#M3 =  np.abs(u0)**2
-	M3 =  uabs(u0)
+	M3 =  uabs(np.ascontiguousarray(u0.real),np.ascontiguousarray(u0.imag))
+
+	#print(np.isfortran(u0))
+	#print(np.isfortran(M3))
+	#print(np.isfortran(fft(M3)*hf))
+
 	temp = fftshift(ifft(fft(M3)*hf))
+	#for i in (M, u0,M3, dt, temp):
+	#	print(i.dtype)
 	N = nonlin(M, u0,M3, dt, temp)
+	#print(np.isfortran(N))
+	#print(np.isfortran(w_tiled * fft(N)))
+	#sys.exit()
 	#N = M*u0*(0.82*M3 + 0.18*dt*temp)
 	#temp = multi(w_tiled,fft(N))
 	
@@ -116,24 +128,27 @@ def dAdzmm_ron_s1(u0,M,n2,lamda,tsh,dt,hf, w_tiled):
 	#print(t2)
 	#sys.exit()
 	return N
+trgt = 'cpu'
+#trgt = 'parallel'
+#trgt = 'cuda'
 
-@vectorize(['complex128(complex128,complex128)'])
+@vectorize(['complex128(complex128,complex128)'],target = trgt)
 def multi(x,y):
 	return x*y
 
-@vectorize(['complex128(complex128,complex128)'])
+@vectorize(['complex128(complex128,complex128)'],target = trgt)
 def add(x,y):
 	return x + y
 
-@vectorize(['float64(complex128)']) # default to 'cpu'
-def uabs(u0):
-    return np.abs(u0)**2
+@vectorize(['float64(float64,float64)'],target = 'cuda') # default to 'cpu'
+def uabs(u0r,u0i):
+    return u0r*u0r + u0i*u0i
 
-@vectorize(['complex128(float64,complex128,float64,float64,complex128)']) # default to 'cpu'
+@vectorize(['complex128(float64,complex128,float64,float64,complex128)'],target = trgt)
 def nonlin(M, u0,M3, dt,temp):
     return M*u0*(0.82*M3 + 0.18*dt*temp)
 
-@vectorize(['complex128(float64,float64,complex128,float64,complex128,float64)']) # default to 'cpu'
+@vectorize(['complex128(float64,float64,complex128,float64,complex128,float64)'],target = trgt)
 def self_step(n2, lamda,N, tsh, temp,rp ):
     return -1j*n2*2*rp/lamda*(N + tsh*temp)
 
