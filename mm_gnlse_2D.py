@@ -1,20 +1,16 @@
 from __future__ import division, print_function
 import numpy as np
 import matplotlib as mpl
-from scipy.fftpack import fft, ifft
 mpl.use('Agg')
 from scipy.constants import c, pi
-from scipy.io import savemat
 from joblib import Parallel, delayed
-from scipy.fftpack import fftshift, ifftshift,ifft,fft
-import multiprocessing
-import sys
+from scipy.fftpack import fftshift, fft
 import os
 import time as timeit
 os.system('export FONTCONFIG_PATH=/etc/fonts')
 from functions import *
 from fft_module import *
-
+import sys
 def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 				where, P0_p1, P0_s, Dop, M,index,plots,var_loss,pump_wave = ''):
 	if from_pump:
@@ -134,7 +130,7 @@ def lams_s_vary(wave, s_pos, from_pump, int_fwm, sim_wind,
 	#from scipy.integrate import simps
 	#power = simps(np.abs(U_original_pump[:,0])**2, sim_wind.fv)/(2*np.max(sim_wind.t))
 	#print(power)
-	max_rounds = 20
+	max_rounds = int(sys.argv[1])
 	ro = -1
 	min_circ_error = 0.01 # relative percentage error in power
 	P_portb,P_portb_prev = 3*min_circ_error ,min_circ_error

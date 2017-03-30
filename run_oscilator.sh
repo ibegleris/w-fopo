@@ -3,5 +3,5 @@ echo 'starting...'
 rm -r output*
 rm -r *__*
 export MKL_NUM_THREADS=$1
-echo "running with" $1
-python mm_gnlse_2D.py
+echo "running with" $1 "for" $2 "rounds"
+python mm_gnlse_2D.py $2

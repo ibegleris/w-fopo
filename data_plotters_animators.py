@@ -5,7 +5,6 @@ import numpy as np
 import os
 
 import h5py
-import sys
 
 def w2dbm(W, floor=-100):
 	"""This function converts a power given in W to a power given in dBm.
