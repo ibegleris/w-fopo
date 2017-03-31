@@ -171,7 +171,7 @@ def pulse_propagations(ram,ss,N_sol = 1):
 
 	int_fwm = sim_parameters(n2,nm,alphadB)
 	int_fwm.general_options(maxerr,raman_object,ss,ram)
-	int_fwm.propagation_parameters(N, z, nplot, dz_less, True)
+	int_fwm.propagation_parameters(N, z, nplot, dz_less)
 
 	fv,where = fv_creator(lam_p1 - 25,lam_p1,int_fwm)
 	sim_wind = sim_window(fv,lamda,lamda_c,int_fwm,fv_idler_int = 1)
@@ -512,16 +512,23 @@ def test_read_write3():
 
 
 def test_fv_creator():
+	"""
+	Checks whether the first order cascade is in the freequency window.
+	"""
 	class int_fwm1(object):
 		def __init__(self):
-			self.N =  10
+			self.N = 14
+			self.nt =  2**self.N
 
 	int_fwm = int_fwm1()
-	lam_start = 1000
-	lam_p1 = 1200
-	fv, where = fv_creator(lam_start, lam_p1, int_fwm)
+	lam_p1 = 1000
+	lam_s = 1200
+	fv, where = fv_creator(lam_p1, lam_s, int_fwm)
 	mins = np.min(1e-3*c/fv)
-	assert_almost_equal(lam_start,mins)
+	f1 = 1e-3*c/lam_p1
+	fs = 1e-3*c/lam_s
+	diff = abs(f1 - fs)
+	assert(all(i < max(fv) and i> min(fv) for i in (f1,fs,fs + diff, f1 - diff, f1 -2*diff)))
 
 
 def test_noise():
@@ -546,18 +553,18 @@ def test_noise():
 def test_full_trans_in_cavity():
     N = 12
     nt = 2**N
-    fft,ifft,method = pick(nt, 1,100, 1)
+    #fft,ifft,method = pick(nt, 1,100, 1)
     from scipy.constants import c, pi
     int_fwm = sim_parameters(2.5e-20, 1, 0)
     int_fwm.general_options(1e-6, raman_object, 0, 0)
-    int_fwm.propagation_parameters(N, 18, 1, 1, False)
+    int_fwm.propagation_parameters(N, 18, 1, 1)
 
     lam_p1 = 1048.17107345
     fv, where = fv_creator(850, lam_p1, int_fwm)
     lv = 1e-3*c/fv
     sim_wind = sim_window(fv, lam_p1, lam_p1, int_fwm,0)
     noise_obj = Noise(sim_wind)
-
+    print(fv)
     WDM1 = WDM(1050, 1200, sim_wind.fv,c)
     WDM2 = WDM(930, 1200, sim_wind.fv, c)
     WDM3 = WDM(930, 1050, sim_wind.fv, c)
@@ -579,5 +586,5 @@ def test_full_trans_in_cavity():
 
 
     U  = WDM1.pass_through((np.zeros_like(U),U), sim_wind)[0][1]
-    U_exact = read_variables('testing_data/trans_WDMS', '0')['U']
-    assert_allclose(U, U_exact)
+ 
+    assert_allclose(max(np.abs(U)**2), 0.723489854063)

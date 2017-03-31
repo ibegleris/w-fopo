@@ -4,6 +4,26 @@
 		"selected_items":
 		[
 			[
+				"T",
+				"TFWHM_s"
+			],
+			[
+				"l",
+				"lam_p1"
+			],
+			[
+				"lamd",
+				"lamda_c"
+			],
+			[
+				"N",
+				"N\tstatement"
+			],
+			[
+				"la",
+				"lam_p1\tstatement"
+			],
+			[
 				"A",
 				"A\tstatement"
 			],
@@ -90,10 +110,6 @@
 			[
 				"TW",
 				"TFWHM\tstatement"
-			],
-			[
-				"T",
-				"T"
 			],
 			[
 				"pump",
@@ -348,20 +364,12 @@
 				"betas_exact"
 			],
 			[
-				"lamd",
-				"lamda"
-			],
-			[
 				"fft",
 				"fftshift\tfunction"
 			],
 			[
 				"inte",
 				"interpolate\tmodule"
-			],
-			[
-				"N",
-				"N\tstatement"
 			],
 			[
 				"save",
@@ -422,10 +430,6 @@
 			[
 				"f_",
 				"f_p1\tstatement"
-			],
-			[
-				"la",
-				"lam_p1\tparam"
 			],
 			[
 				"lin",
@@ -510,15 +514,52 @@
 			[
 				"xx",
 				"xx\tparam"
-			],
-			[
-				"for",
-				"for\tFor Loop"
 			]
 		]
 	},
 	"buffers":
 	[
+		{
+			"file": "mm_gnlse_2D.py",
+			"settings":
+			{
+				"buffer_size": 12310,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"contents": "import matplotlib as mpl\nmpl.use('Agg')\nimport matplotlib.pyplot as plt\nimport numpy as np\nimport os\n\nimport h5py\n\ndef w2dbm(W, floor=-100):\n\t\"\"\"This function converts a power given in W to a power given in dBm.\n\t   Inputs::\n\t\t   W(float): power in units of W\n\t   Returns::\n\t\t   Power in units of dBm(float)\n\t\"\"\"\n\tif type(W) != np.ndarray:\n\t\tif W > 0:\n\t\t\treturn 10. * np.log10(W) + 30\n\t\telif W == 0:\n\t\t\treturn floor\n\t\telse:\n\t\t\tprint(W)\n\t\t\traise(ZeroDivisionError)\n\ta = 10. * (np.ma.log10(W)).filled(floor/10-3) + 30\n\treturn a\n\nplt.gca().get_yaxis().get_major_formatter().set_useOffset(False)\nplt.gca().get_xaxis().get_major_formatter().set_useOffset(False)\n\n\ndef plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro,P_portb,rel_error, master_index = '',filename=None, title=None, im=0, plots = True):\n\tif plots == True:\n\t\tfig = plt.figure(figsize=(20.0, 10.0))\n\n\t\tplt.plot(sim_wind.lv, \n\t\t\t\tw2dbm(np.abs(U[:,which])**2), '-*')\n\t\t#plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)\n\t\t#plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)\n\t\tplt.xlabel(r'$\\lambda (nm)$', fontsize=18)\n\t\tplt.ylabel(r'$Spectrum (a.u.)$', fontsize=18)\n\t\tplt.ylim([-80, 80])\n\t\tplt.xlim([np.min(sim_wind.lv), np.max(sim_wind.lv)])\n\t\t#plt.xlim([900, 1250])\n\t\tplt.title(title)\n\t\tplt.grid()\n\t\tif type(im) != int:\n\t\t\tnewax = fig.add_axes([0.8, 0.8, 0.2, 0.2], anchor='NE')\n\t\t\tnewax.imshow(im)\n\t\t\tnewax.axis('off')\n\t\tif filename == None:\n\t\t\tplt.show()\n\t\telse:\n\t\t\tplt.savefig('output'+master_index+'/output'+str(index)+'/figures/wavelength/'+filename, bbox_inched='tight')\n\n\t\tplt.close(fig)\n\n\t\tfig = plt.figure(figsize=(20.0, 10.0))\n\t\tplt.plot(sim_wind.fv, w2dbm(np.abs(U[:,which])**2), '-*')\n\t\t#plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)\n\t\t#plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)\n\t\tplt.xlabel(r'$f (THz)$', fontsize=18)\n\t\tplt.ylabel(r'$Spectrum (a.u.)$', fontsize=18)\n\t\tplt.xlim([np.min(sim_wind.fv), np.max(sim_wind.fv)])\n\t\tplt.ylim([-80, 80])\n\t\tplt.title(title)\n\t\tplt.grid()\n\t\tif type(im) != int:\n\t\t\tnewax = fig.add_axes([0.8, 0.8, 0.2, 0.2], anchor='NE')\n\t\t\tnewax.imshow(im)\n\t\t\tnewax.axis('off')\n\t\tif filename == None:\n\t\t\tplt.show()\n\t\telse:\n\t\t\tplt.savefig('output'+master_index+'/output'+str(index)+'/figures/freequency/'+filename, bbox_inched='tight')\n\t\tplt.close(fig)\n\n\t\tfig = plt.figure(figsize=(20.0, 10.0))\n\t\t\n\t\tplt.plot(sim_wind.t,np.abs(u[:, which])**2, '*-')\n\t\t#plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)\n\t\tplt.title('time space')\n\t\tplt.ylim([0, 160])\n\t\tplt.grid()\n\t\tplt.xlabel(r'$t(ps)$')\n\t\tplt.ylabel(r'$Spectrum$')\n\t\tif type(im) != int:\n\t\t\tnewax = fig.add_axes([0.8, 0.8, 0.2, 0.2], anchor='NE')\n\t\t\tnewax.imshow(im)\n\t\t\tnewax.axis('off')\n\n\t\tif filename == None:\n\t\t\tplt.show()\n\t\telse:\n\n\t\t\tplt.savefig('output'+master_index+'/output'+str(index)+'/figures/time/'+filename)\n\t\tplt.close(fig)\n\t\t\t\n\n\tif filename is not(None):\n\t\tif filename[:4] != 'port': \n\t\t\tlayer = filename[-1]+'/'+filename[:-1]\n\t\telse:\n\t\t\tlayer = filename\n\t\ttry:\n\t\t\t\n\t\t\tsave_variables('data_large', layer, filepath='output'+master_index+'/output'+str(index)+'/data/', U = U[:,which], t=sim_wind.t, u=u[:,which],\n\t\t\t\t\t\t   fv=sim_wind.fv, lv=sim_wind.lv,\n\t\t\t\t\t\t   which=which, nm=nm, P0_p=P0_p, P0_s=P0_s, f_p=f_p, f_s=f_s, ro = ro,P_portb = P_portb,rel_error = rel_error)\n\t\texcept RuntimeError:\n\t\t\tos.system('rm output'+master_index+'/output'+str(index)+'/data/data_large.hdf5')\n\t\t\tsave_variables('data_large', layer, filepath='output'+master_index+'/output'+str(index)+'/data/', U=U[:,which], t=sim_wind.t, u=u[:,which],\n\t\t\t\t\t\t   fv=sim_wind.fv, lv=sim_wind.lv,\n\t\t\t\t\t\t   which=which, nm=nm, P0_p=P0_p, P0_s=P0_s, f_p=f_p, f_s=f_s, ro = ro, P_portb = P_portb, rel_error = rel_error)\n\t\t\tpass\n\n\treturn 0\n\n\ndef plotter_dbm_load():\n\t# class sim_window(object):\n\tplotter_dbm(nm, sim_wind, Uabs, u, which)\n\treturn None\n\n\n\ndef animator_pdf_maker(rounds, pump_index):\n\t\"\"\"\n\tCreates the animation and pdf of the FOPO at different parts of the FOPO \n\tusing convert from imagemagic. Also removes the pngs so be carefull\n\n\t\"\"\"\n\tprint(\"making pdf's and animations.\")\n\tspace = ('wavelength', 'freequency', 'time')\n\tfor sp in space:\n\t\tfile_loc = 'output/output'+str(pump_index)+'/figures/'+sp+'/'\n\t\tstrings_large = ['convert '+file_loc+'00.png ']\n\t\tfor i in range(4):\n\t\t\tstrings_large.append('convert ')\n\t\tfor ro in range(rounds):\n\t\t\tfor i in range(4):\n\t\t\t\tstrings_large[i+1] += file_loc+str(ro)+str(i+1)+'.png '\n\t\t\tfor w in range(1, 4):\n\t\t\t\tif i == 5:\n\t\t\t\t\tbreak\n\t\t\t\tstrings_large[0] += file_loc+str(ro)+str(w)+'.png '\n\t\tfor i in range(4):\n\t\t\tos.system(strings_large[i]+file_loc+str(i)+'.pdf')\n\n\t\tfile_loca = file_loc+'portA/'\n\t\tfile_locb = file_loc+'portB/'\n\t\tstring_porta = 'convert '\n\t\tstring_portb = 'convert '\n\t\tfor i in range(rounds):\n\t\t\tstring_porta += file_loca + str(i) + '.png '\n\t\t\tstring_portb += file_locb + str(i) + '.png '\n\n\t\tstring_porta += file_loca+'porta.pdf '\n\t\tstring_portb += file_locb+'portb.pdf '\n\t\tos.system(string_porta)\n\t\tos.system(string_portb)\n\n\t\tfor i in range(4):\n\t\t\tos.system(\n\t\t\t\t'convert -delay 30 '+file_loc+str(i)+'.pdf '+file_loc+str(i)+'.mp4')\n\t\tos.system('convert -delay 30 ' + file_loca +\n\t\t\t\t  'porta.pdf ' + file_loca+'porta.mp4 ')\n\t\tos.system('convert -delay 30 ' + file_locb +\n\t\t\t\t  'portb.pdf ' + file_locb+'portb.mp4 ')\n\n\t\tfor i in (file_loc, file_loca, file_locb):\n\t\t\tprint('rm ' + i + '*.png')\n\t\t\tos.system('rm ' + i + '*.png')\n\t\tos.system('sleep 5')\n\treturn None\n\n\ndef read_variables(filename, layer, filepath=''):\n\twith h5py.File(filepath+str(filename)+'.hdf5', 'r') as f:\n\t\tD = {}\n\t\tfor i in f.get(layer).keys():\n\t\t\ttry: \n\t\t\t\tD[str(i)] = f.get(layer + '/' + str(i)).value\n\t\t\texcept AttributeError:\n\t\t\t\tpass\n\treturn D\n\n\ndef save_variables(filename, layers, filepath='', **variables):\n\twith h5py.File(filepath + filename + '.hdf5', 'a') as f:\n\t\tfor i in (variables):\n\t\t\tf.create_dataset(layers+'/'+str(i), data=variables[i])\n\treturn None\n",
+			"file": "data_plotters_animators.py",
+			"file_size": 5910,
+			"file_write_time": 131354243397141514,
+			"settings":
+			{
+				"buffer_size": 5931,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"contents": "# -*- coding: utf-8 -*-\nfrom __future__ import division, print_function\nimport sys\nimport os\nimport numpy as np\nfrom scipy.constants import pi, c\nfrom scipy.io import loadmat\nfrom scipy.interpolate import InterpolatedUnivariateSpline\nfrom scipy.integrate import simps\nfrom scipy.fftpack import fftshift\nfrom math import factorial\nfrom integrand_and_rk import *\nfrom data_plotters_animators import *\nimport cmath\nfrom scipy.fftpack import fft, ifft\nphasor = np.vectorize(cmath.polar)\n\n\ndef dbm2w(dBm):\n    \"\"\"This function converts a power given in dBm to a power given in W.\n       Inputs::\n               dBm(float): power in units of dBm\n       Returns::\n               Power in units of W (float)\n    \"\"\"\n    return 1e-3*10**((dBm)/10.)\n\n\ndef w2dbm(W, floor=-100):\n    \"\"\"This function converts a power given in W to a power given in dBm.\n       Inputs::\n               W(float): power in units of W\n       Returns::\n               Power in units of dBm(float)\n    \"\"\"\n    if type(W) != np.ndarray:\n        if W > 0:\n            return 10. * np.log10(W) + 30\n        elif W == 0:\n            return floor\n        else:\n            print(W)\n            raise(ZeroDivisionError)\n    a = 10. * (np.ma.log10(W)).filled(floor/10-3) + 30\n    return a\n\n\nclass raman_object(object):\n\n    def __init__(self, a, b=None):\n        self.on = a\n        self.how = b\n        self.hf = None\n\n    def raman_load(self, t, dt):\n        if self.on == 'on':\n            #print('Raman on')\n            if self.how == 'analytic':\n                print(self.how)\n                t11 = 12.2e-3\t  # [ps]\n                t2 = 32e-3\t\t # [ps]\n                # analytical response\n                htan = (t11**2 + t2**2)/(t11*t2**2) * \\\n                    np.exp(-t/t2*(t >= 0))*np.sin(t/t11)*(t >= 0)\n                # Fourier transform of the analytic nonlinear response\n                self.hf = fft(htan)\n            elif self.how == 'load':\n                # loads the measured response (Stolen et al. JOSAB 1989)\n                mat = loadmat('loading_data/silicaRaman.mat')\n                ht = mat['ht']\n                t1 = mat['t1']\n                htmeas_f = InterpolatedUnivariateSpline(t1*1e-3, ht)\n                htmeas = htmeas_f(t)\n                htmeas *= (t > 0)*(t < 1)  # only measured between +/- 1 ps)\n                htmeas /= (dt*np.sum(htmeas))  # normalised\n                # Fourier transform of the measured nonlinear response\n                self.hf = fft(htmeas)\n            else:\n                self.hf = None\n\n            return self.hf\n\n\ndef dispersion_operator(betas, lamda_c, int_fwm, sim_wind):\n    \"\"\"\n    Calculates the dispersion operator in rad/m units\n    INputed are the dispersion operators at the omega0\n    Local include the taylor expansion to get these opeators at omegac \n    Returns Dispersion operator\n    \"\"\"\n    # print(betas)\n    c_norm = c*1e-12  # Speed of light [m/ps] #Central wavelength [nm]\n    wc = 2*pi * c_norm / sim_wind.lamda\n    w0 = 2*pi * c_norm / lamda_c\n    betap = np.zeros_like(betas)\n\n    for j in range(len(betas.T)):\n        if j == 0:\n            betap[j] = betas[j]\n        fac = 0\n        for k in range(j, len(betas.T)):\n            betap[j] += (1/factorial(fac)) * \\\n                betas[k] * (wc - w0)**(fac)\n            fac += 1\n    w = sim_wind.w  # + sim_wind.woffset2\n    Dop = np.zeros(int_fwm.nt, dtype=np.complex)\n    alpha = np.reshape(int_fwm.alpha, np.shape(Dop))\n    Dop -= fftshift(alpha/2)\n    #Dop -=alpha/2\n    betap[0] -= betap[0]\n    betap[1] -= betap[1]\n\n    for j, bb in enumerate(betap):\n        Dop -= 1j*(w**j * bb / factorial(j))\n    return Dop\n\n\ndef Q_matrixes(nm, n2, lamda, gama=None):\n    \"\"\"Calculates the Q matrices from importing them from a file.\n     CHnages the gama if given\"\"\"\n    if nm == 1:\n        # loads M1 and M2 matrices\n        mat = loadmat('loading_data/M1_M2_1m_new.mat')\n        M1 = np.real(mat['M1'])\n        M2 = mat['M2']\n        M2[:, :] -= 1\n        M1[0:4] -= 1\n        M1[-1] -= 1\n        gamma_or = 3*n2*(2*pi/lamda)*M1[4]\n        if gama is not None:\n            M1[4] = gama / (n2*(2*pi/lamda))\n            M1[5] = gama / (n2*(2*pi/lamda))\n        M = M1[4, 0]\n\n    if nm == 2:\n        mat = loadmat(\"loading_data/M1_M2_new_2m.mat\")\n        M1 = np.real(mat['M1'])\n        M2 = mat['M2']\n        M2[:] -= 1\n        M1[:4, :] -= 1\n        M1[6, :] -= 1\n    return M\n\n\nclass sim_parameters(object):\n\n    def __init__(self, n2, nm, alphadB):\n        self.n2 = n2\n        self.nm = nm\n        self.alphadB = alphadB\n\n    def general_options(self, maxerr, raman_object,\n                        ss='1', ram='on', how='load'):\n        self.maxerr = maxerr\n        self.ss = ss\n        self.ram = ram\n        self.how = how\n        return None\n\n    def propagation_parameters(self, N, z, nplot, dz_less):\n        self.N = N\n        self.nt = 2**self.N\n        self.z = z\n        self.nplot = nplot\n        self.dzstep = self.z/self.nplot\n        self.dz = self.dzstep/dz_less\n        return None\n\n\nclass sim_window(object):\n\n    def __init__(self, fv, lamda, lamda_c, int_fwm, fv_idler_int):\n        self.fv = fv\n        self.lamda = lamda\n        # self.lmin = 1e-3*c/np.max(fv)  # [nm]\n        # self.lmax = 1e-3*c/np.min(fv)  # [nm]\n\n        self.fmed = 1e12*fv[len(fv)//2]  # [Hz]\n        self.deltaf = np.max(self.fv) - np.min(self.fv)  # [THz]\n        self.df = self.deltaf/int_fwm.nt  # [THz]\n        self.T = 1/self.df  # Time window (period)[ps]\n        self.woffset = 2*pi*(self.fmed - c/lamda)*1e-12  # [rad/ps]\n        # [rad/ps] Offset of central freequency and that of the experiment\n        self.woffset2 = 2*pi*(self.fmed - c/lamda_c)*1e-12\n        # wavelength limits (for plots) (nm)\n        #self.fv = fv\n        self.w0 = 2*pi*self.fmed  # central angular frequency [rad/s]\n\n        self.tsh = 1/self.w0*1e12  # shock time [ps]\n        self.dt = self.T/int_fwm.nt  # timestep (dt)\t [ps]\n        # time vector\t   [ps]\n        self.t = (range(int_fwm.nt)-np.ones(int_fwm.nt)*int_fwm.nt/2)*self.dt\n        # angular frequency vector [rad/ps]\n        self.w = 2*pi * np.append(\n            range(0, int(int_fwm.nt/2)),\n            range(int(-int_fwm.nt/2), 0, 1))/self.T\n\n        # frequency vector[THz] (shifted for plotting)\n        # wavelength vector [nm]\n        self.lv = 1e-3*c/self.fv\n        # space vector [m]\n        self.zv = int_fwm.dzstep*np.asarray(range(0, int_fwm.nplot+1))\n        self.fv_idler_int = fv_idler_int\n        self.fv_idler_tuple = (\n            self.fmed*1e-12 - fv_idler_int, self.fmed*1e-12 + fv_idler_int)\n\n        # for i in (self.fv,self.t, fftshift(self.w)):\n        #\tcheck_ft_grid(i, np.abs(i[1] - i[0]))\n\n\ndef idler_limits(sim_wind, U):\n\n    size = len(U[:, 0])\n    max_int = np.argsort(U[(size//2 + 1):, 0])[0]\n    max_int += size//2\n    # print(sim_wind.fv[max_int])\n\n    sim_wind.fv_idler_tuple = (sim_wind.fv[\n        max_int] - sim_wind.fv_idler_int,\n        sim_wind.fv[max_int] + sim_wind.fv_idler_int)\n\n    fv_id = (np.where(np.abs(sim_wind.fv - sim_wind.fv_idler_tuple[0]) ==\n                      np.min(np.abs(sim_wind.fv\n                                    - sim_wind.fv_idler_tuple[0])))[0][0],\n             np.where(np.abs(sim_wind.fv - sim_wind.fv_idler_tuple[1])\n                      == np.min(np.abs(sim_wind.fv\n                                       - sim_wind.fv_idler_tuple[1])))[0][0])\n    return fv_id\n\n\nclass Loss(object):\n\n    def __init__(self, int_fwm, sim_wind, amax=None, apart_div=8):\n        \"\"\"\n        Initialise the calss Loss, takes in the general parameters and \n        the freequenbcy window. From that it determines where the loss will become\n        freequency dependent. With the default value being an 8th of the difference\n        of max and min. \n\n        \"\"\"\n        self.alpha = int_fwm.alphadB/4.343\n        if amax == None:\n            self.amax = self.alpha\n        else:\n            self.amax = amax/4.343\n\n        self.flims_large = (np.min(sim_wind.fv), np.max(sim_wind.fv))\n        try:\n            temp = len(apart_div)\n            self.begin = apart_div[0]\n            self.end = apart_div[1]\n        except TypeError:\n\n            self.apart = np.abs(self.flims_large[1] - self.flims_large[0])\n            self.apart /= apart_div\n            self.begin = self.flims_large[0] + self.apart\n            self.end = self.flims_large[1] - self.apart\n\n    def atten_func_full(self, fv):\n        aten = []\n\n        a_s = ((self.amax - self.alpha) / (self.flims_large[0] - self.begin),\n\n               (self.amax - self.alpha) / (self.flims_large[1] - self.end))\n        b_s = (-a_s[0] * self.begin, -a_s[1] * self.end)\n\n        for f in fv:\n            if f <= self.begin:\n                aten.append(a_s[0] * f + b_s[0])\n            elif f >= self.end:\n                aten.append(a_s[1] * f + b_s[1])\n            else:\n                aten.append(0)\n        return np.asanyarray(aten) + self.alpha\n\n    def plot(self, fv):\n        fig = plt.figure()\n        y = self.atten_func_full(fv)\n        plt.plot(fv, y)\n        plt.xlabel(\"Frequency (Thz)\")\n        plt.ylabel(\"Attenuation (cm -1 )\")\n        plt.savefig(\n            \"loss_function_fibre.png\", bbox_inches='tight')\n        plt.close(fig)\n\n\nclass WDM(object):\n\n    def __init__(self, x1, x2, fv, c, modes=1):\n        \"\"\"\n                This class represents a 2x2 WDM coupler. The minimum and maximums are\n                given and then the object represents the class with WDM_pass the calculation\n                done.\n        \"\"\"\n        self.l1 = x1   # High part of port 1\n        self.l2 = x2  # Low wavelength of port 1\n        self.f1 = 1e-3 * c / self.l1   # High part of port 1\n        self.f2 = 1e-3 * c / self.l2  # Low wavelength of port 1\n        self.omega = 0.5*pi/np.abs(self.f1 - self.f2)\n        self.phi = 2*pi - self.omega*self.f2\n        #self.fv = fv\n        self.fv_wdm = self.omega*fv+self.phi\n\n        # self.A = np.array([[np.reshape(np.cos(self.fv), (len(self.fv), modes)),\n        #\t\t\t\t\t\tnp.reshape(np.sin(self.fv), (len(self.fv), modes))],\n        #\t\t\t\t\t   [-np.reshape(np.sin(self.fv), (len(self.fv), modes)),\n        #\t\t\t\t\t\tnp.reshape(np.cos(self.fv), (len(self.fv), modes))]])\n\n        eps = np.sin(self.fv_wdm)\n        eps2 = 1j*np.cos(self.fv_wdm)\n        self.A = np.array([[eps, eps2],\n                           [eps2, eps]])\n\n        return None\n\n    def U_calc(self, U_in):\n        \"\"\"\n        Uses the array defined in __init__ to calculate \n        the outputed amplitude in arbitary units\n\n        \"\"\"\n\n        Uout = (self.A[0, 0] * U_in[0] + self.A[0, 1] * U_in[1],)\n        Uout += (self.A[1, 0] * U_in[0] + self.A[1, 1] * U_in[1],)\n\n        return Uout\n\n    def pass_through(self, U_in, sim_wind):\n        \"\"\"\n        Passes the amplitudes through the object. returns the u, U and Uabs\n        in a form of a tuple of (port1,port2)\n        \"\"\"\n        # print(np.shape(U_in[0]))\n        #U_in[0],U_in[1] = U_in[0][:,np.newaxis],U_in[1][:,np.newaxis]\n        U_out = self.U_calc(U_in)\n        u_out = ()\n        for i, UU in enumerate(U_out):\n            u_out += (ifft(fftshift(UU)/sim_wind.dt),)\n            #u_out += (UU,)\n        return ((u_out[0], U_out[0]), (u_out[1], U_out[1]))\n\n    def il_port1(self, lamda=None):\n        freq = 1e-3 * c / lamda\n        return (np.sin(self.omega*freq+self.phi))**2\n\n    def il_port2(self, lamda):\n        freq = 1e-3 * c / lamda\n        return (np.cos(self.omega*freq+self.phi))**2\n\n    def plot(self, lamda, filename=False, xlim=(900, 1250)):\n        fig = plt.figure()\n        plt.plot(lamda, self.il_port1(lamda), label=\"%0.2f\" %\n                 (self.l1) + ' nm port')\n        plt.plot(lamda, self.il_port2(lamda), label=\"%0.1f\" %\n                 (self.l2) + ' nm port')\n        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.13), ncol=2)\n        plt.xlabel(r'$\\lambda (n m)$')\n        plt.xlim()\n        plt.ylabel('Power Ratio')\n        plt.xlim(xlim)\n        if filename:\n            os.system('mkdir output/WDMs_loss')\n            plt.savefig(\n                'output/WDMs_loss/WDM_high_'+str(self.l1)\n                + '_low_'+str(self.l2)+'.png')\n        else:\n            plt.show()\n        plt.close(fig)\n        return None\n\n    def plot_dB(self, lamda, filename=False):\n        fig = plt.figure()\n        plt.plot(lamda, 10*np.log10(self.il_port1(lamda)),\n                 label=\"%0.2f\" % (self.l1*1e9) + ' nm port')\n        plt.plot(lamda, 10*np.log10(self.il_port2(lamda)),\n                 label=\"%0.2f\" % (self.l2*1e9) + ' nm port')\n        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.13), ncol=2)\n        plt.xlabel(r'$\\lambda (\\mu m)$')\n        plt.ylabel(r'$Insertion loss (dB)$')\n        plt.ylim(-60, 0)\n        #plt.xlim((900, 1250))\n        if filename:\n\n            plt.savefig('output/WDMs&loss/WDM_dB_high_' +\n                        str(self.l1)+'_low_'+str(self.l2)+'.png')\n        else:\n            plt.show()\n        plt.close(fig)\n        return None\n\n\ndef create_file_structure(kk=''):\n    \"\"\"\n    Is set to create and destroy the filestructure needed \n    to run the program so that the files are not needed in the repo\n    \"\"\"\n    folders_large = ('output_dump_pump_powers',\n                     'output_dump_pump_wavelengths',\n                     'output_final', 'output'+str(kk))\n    folders_large += (folders_large[-1] + '/output',)\n    folders_large += (folders_large[-1] + '/data',)\n    folders_large += (folders_large[-2] + '/figures',)\n\n    outs = folders_large[-1]\n    folders_figures = ('/freequency', '/time', '/wavelength')\n    for i in folders_figures:\n        folders_figures += (i+'/portA', i+'/portB')\n    for i in folders_figures:\n        folders_large += (outs + i,)\n    folders_large += (outs+'/WDMs',)\n    for i in folders_large:\n        if not os.path.isdir(i):\n            os.system('mkdir ' + i)\n    return None\n\n\nclass Splicer(WDM):\n\n    def __init__(self, loss=1):\n        self.loss = loss\n        self.c1 = 10**(-0.1*self.loss/2.)\n        self.c2 = (1 - 10**(-0.1*self.loss))**0.5\n\n    def U_calc(self, U_in):\n        \"\"\"\n        Operates like a beam splitter that reduces the optical power by the loss given (in dB).\n\n        \"\"\"\n        U_out1 = U_in[0] * self.c1 + 1j * U_in[1] * self.c2\n        U_out2 = 1j * U_in[0] * self.c2 + U_in[1] * self.c1\n        return U_out1, U_out2\n\n\nclass Noise(object):\n\n    def __init__(self, sim_wind):\n        self.pquant = np.sum(\n            1.054e-34*(sim_wind.w*1e12 + sim_wind.w0)/(sim_wind.T*1e-12))\n        self.pquant = (self.pquant/2)**0.5\n        return None\n\n    def noise_func(self, int_fwm):\n        noise = self.pquant * (np.random.rand(int_fwm.nt)\n                               + 1j*np.random.rand(int_fwm.nt))\n        return noise\n\n    def noise_func_freq(self, int_fwm, sim_wind):\n        noise = self.noise_func(int_fwm)\n        noise_freq = fftshift(sim_wind.dt * fft(noise))\n        return noise_freq\n\n\n#@profile\ndef pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm):\n    \"\"\"Pulse propagation\"\"\"\n    # badz = 0  # counter for bad steps\n    # goodz = 0  # counter for good steps\n    dztot = 0  # total distance traveled\n    #dzv = np.zeros(1)\n    #dzv[0] = int_fwm.dz\n    u1 = np.ascontiguousarray(u[:, 0])\n\n    dz = int_fwm.dz * 1\n    for jj in range(int_fwm.nplot):\n        exitt = False\n        while not(exitt):\n            # trick to do the first iteration\n            delta = 2*int_fwm.maxerr\n            while delta > int_fwm.maxerr:\n\n                u1new = ifft(np.exp(Dop*dz/2)*fft(u1))\n                A, delta = RK5mm(dAdzmm, u1new, dz, M, int_fwm.n2,\n                                 sim_wind.lamda, sim_wind.tsh,\n                                 sim_wind.dt, hf, sim_wind.w_tiled)\n                if (delta > int_fwm.maxerr):\n                    # calculate the step (shorter) to redo\n                    dz *= (int_fwm.maxerr/delta)**0.25\n                    #badz += 1\n            #####################################Successful step###############\n            # propagate the remaining half step\n            u1 = ifft(np.exp(Dop*dz/2)*fft(A))\n            # update the propagated distance\n            dztot += dz\n            # update the number of steps taken\n\n            # store the dz just taken\n            #dzv = np.append(dzv, dz)\n            # calculate the next step (longer)\n            # # without exceeding max dzstep\n            dz = np.min(\n                [0.95*dz*(int_fwm.maxerr/delta)**0.2, 0.95*int_fwm.dzstep])\n            #dz = 0.95*dz*(int_fwm.maxerr/delta)**0.2\n            # print(dz)\n            ###################################################################\n\n            if dztot == (int_fwm.dzstep*(jj+1)):\n                exitt = True\n\n            elif ((dztot + dz) >= int_fwm.dzstep*(jj+1)):\n                dz = int_fwm.dzstep*(jj+1) - dztot\n            #dz = np.copy(dz2)\n            ###################################################################\n\n        u[:, jj+1] = u1\n        U[:, jj+1] = fftshift(sim_wind.dt*fft(u[:, jj+1]))\n    int_fwm.dz = dz*1\n    return u, U\n\n\ndef dbm_nm(U, sim_wind, int_fwm):\n    \"\"\"\n    Converts The units of freequency to units of dBm/nm\n    \"\"\"\n    U_out = U / sim_wind.T**2\n    U_out = -1*w2dbm(U_out)\n    dlv = [sim_wind.lv[i+1] - sim_wind.lv[i]\n           for i in range(len(sim_wind.lv) - 1)]\n    dlv = np.asanyarray(dlv)\n    for i in range(int_fwm.nm):\n        U_out[:, i] /= dlv[i]\n    return U_out\n\n\n\ndef fv_creator(lam_p1,lams,int_fwm,prot_casc = 100):\n    \"\"\"\n    Creates the freequency grid of the simmualtion and returns it.\n    The conceprt is that the pump freq is the center. (N/4 - prot_casc) steps till the \n    signal and then (N/4 + prot_casc/2). After wards the rest is filled on the other side of the\n    pump wavelength. \n\n    lam_p1 :: pump wavelength\n    lams :: signal wavelength\n    int_fwm :: data class with the number of points in\n    prot_casc :: a safety to keep the periodic boundary condition away from the first cascade.\n                    You can change it to let in more cascades but beware that you are taking \n                    points away from the original pump-signal. \n    \"\"\"\n    N = int_fwm.nt\n    fp = 1e-3*c / lam_p1\n    fs = 1e-3*c /lams\n    f_med = np.linspace(fp,fs,N/4 - prot_casc)\n    d = f_med[1] - f_med[0]\n    f_2 =  [f_med[-1],]\n    for i in range(1,N//4+1 + prot_casc//2):\n        f_2.append(f_2[i-1]+ d)\n    f_2 = f_2[1:]\n    f_2.sort()\n    f_1 = [f_med[0],]\n    for i in range(1,N//2+1 +prot_casc//2):\n        f_1.append(f_1[i-1] -d)\n    f_1 = f_1[1:]\n    f_1.sort()\n    f_med.sort()\n    fv = np.concatenate((f_1,f_med,f_2))\n    fv.sort()\n    where = [2**(int_fwm.N-1)]\n    return fv,where\n\ndef energy_conservation(entot):\n    if not(np.allclose(entot, entot[0])):\n        fig = plt.figure()\n        plt.plot(entot)\n        plt.grid()\n        plt.xlabel(\"nplots(snapshots)\", fontsize=18)\n        plt.ylabel(\"Total energy\", fontsize=18)\n        # plt.show()\n        plt.close()\n        sys.exit(\"energy is not conserved\")\n    return 0\n\n\ndef check_ft_grid(fv, diff):\n    \"\"\"Grid check for fft optimisation\"\"\"\n    if fv.any() < 0:\n        sys.exit(\"some of your grid is negative\")\n\n    if np.log2(np.shape(fv)[0]) == int(np.log2(np.shape(fv)[0])):\n        nt = np.shape(fv)[0]\n    else:\n        print(\" \")\n        sys.exit(\n            \"fix the grid for optimization\\\n             of the fft's, grid:\", np.shape(fv)[0])\n\n    lvio = []\n    for i in range(len(fv)-1):\n        lvio.append(fv[i+1] - fv[i])\n\n    grid_error = np.abs(np.asanyarray(lvio)[:]) - np.abs(diff)\n    if not(np.allclose(grid_error, 0, rtol=0, atol=1e-12)):\n        print(np.max(grid_error))\n        sys.exit(\"your grid is not uniform\")\n    return 0\n\n\nclass create_destroy(object):\n    \"\"\"\n    creates and destroys temp folder that is used for computation. Both methods needs to be run\n    before you initiate a new variable\n    \"\"\"\n\n    def __init__(self, variable, pump_wave=''):\n        self.variable = variable\n        self.pump_wave = pump_wave\n        return None\n\n    def cleanup_folder(self):\n        for i in range(len(self.variable)):\n            os.system('rm -r output'+self.pump_wave)\n        return None\n\n    def prepare_folder(self):\n        for i in range(len(self.variable)):\n            os.system('cp -r output'+self.pump_wave +\n                      '/output/ output'+self.pump_wave+'/output'+str(i))\n        return None\n\n\ndef power_idler(spec, fv, T, fv_id):\n    \"\"\"\n    Set to calculate the power of the idler. The possitions\n    at what you call an idler are given in fv_id\n    spec: the spectrum in freequency domain\n    fv: the freequency vector\n    T: time window\n    fv_id: tuple of the starting and\n    ending index at which the idler is calculated\n    \"\"\"\n    P_bef = simps(np.abs(spec[fv_id[0]:fv_id[1], 0])**2, fv[fv_id[0]:fv_id[1]])\n    P_bef /= 2*T\n    return P_bef\n",
+			"file": "functions.py",
+			"file_size": 20830,
+			"file_write_time": 131354455664449088,
+			"settings":
+			{
+				"buffer_size": 20825,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "unittesting_scripts.py",
+			"settings":
+			{
+				"buffer_size": 16418,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		}
 	],
 	"build_system": "",
 	"build_system_choices":
@@ -577,7 +618,7 @@
 	},
 	"expanded_folders":
 	[
-		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO"
+		"/home/john/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO"
 	],
 	"file_history":
 	[
@@ -712,7 +753,7 @@
 	],
 	"find":
 	{
-		"height": 32.0
+		"height": 35.0
 	},
 	"find_in_files":
 	{
@@ -727,6 +768,58 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"pulse_pos_dict_or",
+			"pulse_pos_dict_or\n\n",
+			"WDM4",
+			"WDM3",
+			"WDM2",
+			"WDM1",
+			"splicer3",
+			"splicer1",
+			"splicer2",
+			"propagation_parameters",
+			"int_fwm",
+			"noise",
+			"fft",
+			",fft",
+			"pump_wave",
+			"d",
+			"f_p",
+			"fv_crea",
+			"fv",
+			"create",
+			"fv_idler",
+			"raman",
+			"sim",
+			"int_fwm",
+			"raman_object",
+			"wdm",
+			"lamda_c",
+			"betas",
+			"dispers",
+			"betas",
+			"wavelength_space",
+			"wavelength",
+			"wavelength_space",
+			"wavelength",
+			"wave",
+			"test_fv",
+			"fv_",
+			"fv_creator",
+			"fv_cre",
+			"class",
+			"int_fwm",
+			"class int_fwm",
+			"int_fwm(",
+			"int_fwm",
+			"test_full_trans",
+			"check",
+			"diff",
+			"check",
+			"fv_cre",
+			"fv",
+			"fv_crea",
+			"fv_cr",
 			"coefficient",
 			"boldsymbol{E}^2",
 			"\\boldsymbol{E}^2",
@@ -802,59 +895,7 @@
 			"splicer",
 			"splice",
 			"lam_p2",
-			"loss",
-			"function",
-			"rounds",
-			"self.w = ",
-			"self.w",
-			"w_tiled",
-			",fft,ifft",
-			", FFT, IFFT",
-			",FFT, IFFT",
-			"FFT, IFFT",
-			",FFT, IFFT",
-			"FFT, IFFT",
-			"FFT,IFFT",
-			",,,",
-			",fft,ifft,",
-			"fft,ifft",
-			"FFT,IFFT",
-			"FFT",
-			"mkl",
-			"time",
-			"uabs",
-			"pulse",
-			"dzv",
-			"dzv]",
-			"pulse",
-			"plots = ",
-			"plot",
-			"time",
-			"read",
-			"Q_mat",
-			"fft",
-			"print",
-			"print(",
-			"print(fft",
-			"fft",
-			"rand",
-			"randn",
-			"loss",
-			"D_pic ",
-			"pulse_pos_dict",
-			"pulse_pos_dict[",
-			"pulse_pos_dict[4]",
-			"pulse_pos_dict",
-			"q_matr",
-			"Q_ma",
-			"noise",
-			"dispe",
-			"loss",
-			"U_calc",
-			"Ucalc",
-			"pass_throu",
-			"power",
-			"spli"
+			"loss"
 		],
 		"highlight": false,
 		"in_selection": false,
@@ -862,6 +903,15 @@
 		"regex": true,
 		"replace_history":
 		[
+			"WDM_vec[3]",
+			"WDM_vec[2]",
+			"WDM_vec[1]",
+			"WDM_vec[0]",
+			"WDM_vec",
+			"WDM_vec[0]",
+			"splicers_vec[2]",
+			"splicers_vec[1]",
+			"master_index",
 			"\\left| \\boldsymbol{E}^2 \\right|",
 			"",
 			"1.5",
@@ -914,8 +964,126 @@
 	"groups":
 	[
 		{
+			"selected": 0,
 			"sheets":
 			[
+				{
+					"buffer": 0,
+					"file": "mm_gnlse_2D.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 12310,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								11251,
+								11251
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 5985.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "data_plotters_animators.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 5931,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1328,
+								1328
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 548.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "functions.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 20825,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								14727,
+								14727
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 8072.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "unittesting_scripts.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 16418,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								14942,
+								14942
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 10181.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				}
 			]
 		}
 	],
@@ -958,7 +1126,7 @@
 	"project": "strict_sm.sublime-project",
 	"replace":
 	{
-		"height": 60.0
+		"height": 64.0
 	},
 	"save_all_on_build": true,
 	"select_file":

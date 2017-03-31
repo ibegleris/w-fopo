@@ -157,14 +157,13 @@ class sim_parameters(object):
         self.how = how
         return None
 
-    def propagation_parameters(self, N, z, nplot, dz_less, wavelength_space):
+    def propagation_parameters(self, N, z, nplot, dz_less):
         self.N = N
         self.nt = 2**self.N
         self.z = z
         self.nplot = nplot
         self.dzstep = self.z/self.nplot
         self.dz = self.dzstep/dz_less
-        self.wavelength_space = wavelength_space
         return None
 
 
@@ -522,27 +521,41 @@ def dbm_nm(U, sim_wind, int_fwm):
     return U_out
 
 
-def fv_creator(lam_start, lam_p1, int_fwm):
+
+def fv_creator(lam_p1,lams,int_fwm,prot_casc = 100):
     """
-    Creates the freequency grid of the simmualtion and returns it. The middle 
-    freequency gris is the pump freequency and where on the grid the pump lies.
+    Creates the freequency grid of the simmualtion and returns it.
+    The conceprt is that the pump freq is the center. (N/4 - prot_casc) steps till the 
+    signal and then (N/4 + prot_casc/2). After wards the rest is filled on the other side of the
+    pump wavelength. 
+
+    lam_p1 :: pump wavelength
+    lams :: signal wavelength
+    int_fwm :: data class with the number of points in
+    prot_casc :: a safety to keep the periodic boundary condition away from the first cascade.
+                    You can change it to let in more cascades but beware that you are taking 
+                    points away from the original pump-signal. 
     """
-    #lam_start = 800
-    f_p1 = 1e-3*c / lam_p1
-    f_start = 1e-3*c / lam_start
-
-    fv1 = np.linspace(f_p1, f_start, 2**(int_fwm.N - 1))
-    fv = np.ndarray.tolist(fv1)
-    diff = fv[1] - fv[0]
-
-    for i in range(2**(int_fwm.N - 1)):
-        fv.insert(0, fv[0]-diff)
-    fv = np.asanyarray(fv)
-    check_ft_grid(fv, diff)
-
+    N = int_fwm.nt
+    fp = 1e-3*c / lam_p1
+    fs = 1e-3*c /lams
+    f_med = np.linspace(fp,fs,N/4 - prot_casc)
+    d = f_med[1] - f_med[0]
+    f_2 =  [f_med[-1],]
+    for i in range(1,N//4+1 + prot_casc//2):
+        f_2.append(f_2[i-1]+ d)
+    f_2 = f_2[1:]
+    f_2.sort()
+    f_1 = [f_med[0],]
+    for i in range(1,N//2+1 +prot_casc//2):
+        f_1.append(f_1[i-1] -d)
+    f_1 = f_1[1:]
+    f_1.sort()
+    f_med.sort()
+    fv = np.concatenate((f_1,f_med,f_2))
+    fv.sort()
     where = [2**(int_fwm.N-1)]
-    return fv, where
-
+    return fv,where
 
 def energy_conservation(entot):
     if not(np.allclose(entot, entot[0])):
