@@ -282,7 +282,7 @@ def main():
 	maxerr = 1e-13							# maximum tolerable error per step in integration
 	ss = 1					  				# includes self steepening term
 	ram = 'on'				  				# Raman contribution 'on' if yes and 'off' if no
-	plots = True 							# Do you want plots, be carefull it makes the code very slow!
+	plots = False 							# Do you want plots, be carefull it makes the code very slow!
 	N = 13									# 2**N grid points
 	nt = 2**N 								# number of grid points
 	nplot = 2								# number of plots within fibre min is 2
