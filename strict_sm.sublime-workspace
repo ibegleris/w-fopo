@@ -523,7 +523,7 @@
 			"file": "mm_gnlse_2D.py",
 			"settings":
 			{
-				"buffer_size": 12310,
+				"buffer_size": 12574,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -547,7 +547,6 @@
 			"settings":
 			{
 				"buffer_size": 20825,
-				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
 		},
@@ -973,15 +972,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 12310,
+						"buffer_size": 12574,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								11251,
-								11251
+								0,
+								0
 							]
 						],
 						"settings":

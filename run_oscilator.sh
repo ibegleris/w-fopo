@@ -1,4 +1,5 @@
 #!/bin/bash
+source activate intel
 echo 'starting...'
 rm -r output*
 rm -r *__*

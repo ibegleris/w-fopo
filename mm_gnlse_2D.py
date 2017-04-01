@@ -11,9 +11,8 @@ os.system('export FONTCONFIG_PATH=/etc/fonts')
 from functions import *
 from fft_module import *
 import sys
-from time import time
-
-def oscilate(sim_wind,int_fwm,TFWHM_p, TFWHM_s,index,master_index,P0_p1,P0_s, f_p, f_s,s_pos,splicers_vec,
+from time import time,sleep
+def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p1,P0_s, f_p, f_s,s_pos,splicers_vec,
 			WDM_vec,M, hf, Dop, dAdzmm,D_pic,pulse_pos_dict_or,plots):
 	u = np.zeros(
 		[len(sim_wind.t), len(sim_wind.zv)], dtype='complex128')
@@ -22,7 +21,8 @@ def oscilate(sim_wind,int_fwm,TFWHM_p, TFWHM_s,index,master_index,P0_p1,P0_s, f_
 	
 	T0_p = TFWHM_p/2/(np.log(2))**0.5
 	T0_s = TFWHM_s/2/(np.log(2))**0.5
-	u[:, 0] = noise
+	noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
+	u[:, 0] = noise_new
 
 	u[:, 0] += (P0_p1)**0.5  # *np.exp(-sim_wind.t**2/T0)
 
@@ -32,9 +32,8 @@ def oscilate(sim_wind,int_fwm,TFWHM_p, TFWHM_s,index,master_index,P0_p1,P0_s, f_
 
 	U[:, 0] = fftshift(sim_wind.dt*fft(u[:,0]))
 	sim_wind.w_tiled = sim_wind.w
-
-
-
+	master_index = str(master_index)
+	
 
 	plotter_dbm(index,int_fwm.nm, sim_wind, u, U, P0_p1,
 				P0_s, f_p, f_s, 0,0,0,0,master_index, '00', 'original pump', D_pic[0],plots)
@@ -76,7 +75,7 @@ def oscilate(sim_wind,int_fwm,TFWHM_p, TFWHM_s,index,master_index,P0_p1,P0_s, f_
 					P0_s, f_p, f_s, 0, ro,P_portb,rel_error,master_index, str(ro)+'1', pulse_pos_dict[3], D_pic[5],plots)
 
 		# Splice3
-		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind, fft)
+		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
 		(u[:, 0], U[:, 0]) = splicers_vec[1].pass_through(
 			(U[:, 0], noise_new), sim_wind)[0]
 
@@ -87,22 +86,22 @@ def oscilate(sim_wind,int_fwm,TFWHM_p, TFWHM_s,index,master_index,P0_p1,P0_s, f_
 					P0_s, f_p, f_s, -1,ro,P_portb,rel_error,master_index, str(ro)+'2', pulse_pos_dict[0], D_pic[2],plots)
 		
 		# Splice4
-		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind, fft)
+		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
 		(u[:, -1], U[:, -1]) = splicers_vec[1].pass_through(
 			(U[:, -1], noise_new), sim_wind)[0]
 
 		# Splice5
-		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind, fft)
+		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
 		(u[:, -1], U[:, -1]) = splicers_vec[1].pass_through(
 			(U[:, -1], noise_new), sim_wind)[0]
 
 		# Splice6
-		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind, fft)
+		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
 		(u[:, -1], U[:, -1]) = splicers_vec[1].pass_through(
 			(U[:, -1], noise_new), sim_wind)[0]
 		
 		# pass through WDM2 port 2 continues and port 1 is out of the loop
-		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind, fft)
+		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
 		(out1, out2),(u[:, -1], U[:, -1])  = WDM_vec[1].pass_through(
 			(U[:, -1], noise_new), sim_wind)
 		
@@ -114,14 +113,14 @@ def oscilate(sim_wind,int_fwm,TFWHM_p, TFWHM_s,index,master_index,P0_p1,P0_s, f_
 
 
 		# Splice7 after WDM2 for the signal
-		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind, fft)
+		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
 		(u[:, -1], U[:, -1]) = splicers_vec[1].pass_through(
 			(U[:, -1], noise_new), sim_wind)[0]
 
 
 
 		# Splice7 after WDM2 for the signal
-		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind, fft)
+		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
 		(u[:, -1], U[:, -1]) = splicers_vec[2].pass_through(
 			(U[:, -1], noise_new), sim_wind)[0]
 
@@ -138,13 +137,13 @@ def oscilate(sim_wind,int_fwm,TFWHM_p, TFWHM_s,index,master_index,P0_p1,P0_s, f_
 					P0_s, f_p, f_s, -1, ro,P_portb,rel_error,master_index,str(ro)+'4', pulse_pos_dict[4], D_pic[6],plots)
 		
 		# Splice8 before WDM3
-		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind, fft)
+		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
 		(out1, out2) = splicers_vec[1].pass_through(
 			(out2, noise_new), sim_wind)[0]
 		
 
 		# WDM3 port 1 continues and port 2 is portA in experiment
-		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind, fft)
+		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
 		(utemp, Utemp),(u_portA, U_portA)  = WDM_vec[2].pass_through(
 			(out2, noise_new), sim_wind)
 		
@@ -158,12 +157,12 @@ def oscilate(sim_wind,int_fwm,TFWHM_p, TFWHM_s,index,master_index,P0_p1,P0_s, f_
 			'round '+str(ro)+', portA',plots=plots)
 		
 		# Splice9 before WDM4
-		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind, fft)
+		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
 		(out1, out2)= splicers_vec[1].pass_through(
 			(out2, noise_new), sim_wind)[0]
 		
 		# WDM4 port 1 goes to port B and port 2 to junk
-		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind, fft)
+		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
 		(u_portB, U_portB)  = WDM_vec[3].pass_through(
 			(out2, noise_new), sim_wind)[0]
 		
@@ -182,19 +181,23 @@ def oscilate(sim_wind,int_fwm,TFWHM_p, TFWHM_s,index,master_index,P0_p1,P0_s, f_
 
 	return None
 
+#'num_cores':num_cores, 'maxerr':maxerr, 'ss':ss, 'ram':ram, 'plots': plots
+#					'N':N, 'nt':nt,'nplot':nplot}
 
 
-
-def formulate():
+def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,betas,
+				lamda_c, WDMS_pars, lamp, lams,num_cores, maxerr, ss, ram, plots,
+				 N, nt, nplot,master_index):
 	"------------------propagation paramaters------------------"
 	dzstep = z/nplot						# distance per step
 	dz_less = 1e2
 	dz = dzstep/dz_less		 # starting guess value of the step
-	int_fwm = sim_parameters(n2, nm, alphadB)
+	int_fwm = sim_parameters(n2, 1, alphadB)
 	int_fwm.general_options(maxerr, raman_object, ss, ram)
 	int_fwm.propagation_parameters(N, z, nplot, dz_less)
-	lamda = lam_p1*1e-9  # central wavelength of the grid[m]
-	"----------------------------------------------------------"
+	lamda = lamp*1e-9  # central wavelength of the grid[m]
+	fv_idler_int = 10 #safety for the idler to be spotted used only for idler power
+	"-----------------------------f-----------------------------"
 	
 
 	"---------------------Aeff-Qmatrixes-----------------------"
@@ -203,7 +206,8 @@ def formulate():
 
 
 	"---------------------Grida&window-----------------------"
-	fv, where = fv_creator(lam_p1,lams,int_fwm,prot_casc = 100):
+	fv, where = fv_creator(lamp,lams,int_fwm,prot_casc = 100)
+	p_po,s_pos = where
 	sim_wind = sim_window(fv, lamda, lamda_c, int_fwm,fv_idler_int)
 	"----------------------------------------------------------"
 
@@ -258,16 +262,14 @@ def formulate():
 	"------------------------------------------------------------"
 
 
-	f_p,f_s = 1e-3*c/lam_p1, 1e-3*c/lams
+	f_p,f_s = 1e-3*c/lamp, 1e-3*c/lams
 
-
-	if len(var_losses) < num_cores:
-			num_cores = len(var_losses)
-	D = 
-	
-	oscilate(sim_wind,int_fwm,TFWHM_p, TFWHM_s,index,master_index,P0_p1,P0_s, f_p, f_s,s_pos,splicers_vec,
+	oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P_p,P_s, f_p, f_s,s_pos,splicers_vec,
 			WDM_vec,M, hf, Dop, dAdzmm,D_pic,pulse_pos_dict_or,plots)
-	os.system('mv output'+master_index+'/output'+ str(pump_index)+' output_dump_'+where_save+'/output'+str(pump_index))
+
+	
+	#while cop !=0:
+	#	sleep(0.5)
 	return None
 
 
@@ -280,19 +282,20 @@ def main():
 	maxerr = 1e-13							# maximum tolerable error per step in integration
 	ss = 1					  				# includes self steepening term
 	ram = 'on'				  				# Raman contribution 'on' if yes and 'off' if no
-	plots = False 							# Do you want plots, be carefull it makes the code very slow!
+	plots = True 							# Do you want plots, be carefull it makes the code very slow!
 	N = 13									# 2**N grid points
 	nt = 2**N 								# number of grid points
 	nplot = 2								# number of plots within fibre min is 2
 	"--------------------------------------------------------------------------"
-
+	stable_dic = {'num_cores':num_cores, 'maxerr':maxerr, 'ss':ss, 'ram':ram, 'plots': plots,
+					'N':N, 'nt':nt,'nplot':nplot}
 	"------------------------Can be variable parameters------------------------"
 	n2 = 2.5e-20							# Nonlinear index [m/W]
 	gama = 10e-3 							# Overwirtes n2 and Aeff w/m
 	alphadB = 0*0.0011666666666666668		# loss within fibre[dB/m]
 	z = 18									# Length of the fibre
-	P_p = 6									# Pump power [W]
-	P_s = 0									# Signal power [W]
+	P_p = [5]									# Pump power [W]
+	P_s = [1]									# Signal power [W]
 	TFWHM_p = 0								# full with half max of pump
 	TFWHM_s = 0								# full with half max of signal
 	spl_losses = [0,0,0.1]					# loss of each type of splices [dB] 
@@ -304,60 +307,41 @@ def main():
 					[930,1048.17107345],
 					[930,1200.39])
 	lamp = 1048.17107345					# Pump wavelengths [m]
-	lams = 1200								# Signal wavelength [m] 
+	lams = 1200								# Signal wavelength [m]
+	var_dic = {'n2':n2, 'gama':gama, 'alphadB':alphadB, 'z':z, 'P_p':P_p,
+				 'P_s':P_s,'TFWHM_p':TFWHM_p, 'TFWHM_s':TFWHM_s,
+				 'spl_losses':spl_losses, 'betas':betas,
+				  'lamda_c':lamda_c, 'WDMS_pars':WDMS_pars,
+				   'lamp':lamp, 'lams':lams}
 	"--------------------------------------------------------------------------"
+	outside_var_key = 'P_p'
+	inside_var_key = 'P_s'
+	inside_var = var_dic[inside_var_key]
+	outside_var = var_dic[outside_var_key]
+	del var_dic[outside_var_key]
+	del var_dic[inside_var_key]
+	"----------------------------Simulation------------------------------------"
+	D_ins = [{'index':i, inside_var_key: insvar} for i,insvar in enumerate(inside_var)]
 
 
+	large_dic = {**stable_dic, **var_dic}
+
+	if len(inside_var) < num_cores:
+		num_cores = len(inside_var)
 	
-	"----------------------------Simulation parameters-------------------------"
+	for kk,variable in enumerate(outside_var):
+		create_file_structure(kk)
 
-	os.system('rm output_dump_pump_powers'	)
-
-
-
-
-
-	create_file_structure(kk)
-
-	
-	for variable in variables:
-		_temps = create_destroy(Power_inputs,str(kk))
+		_temps = create_destroy(inside_var,str(kk))
 		_temps.prepare_folder()
-
-		formulate()
-
-
+		large_dic ['master_index'] = kk
+		large_dic [outside_var_key] = variable
+		#formulate(**{**D_ins[0],** large_dic})
+		A = Parallel(n_jobs = num_cores)(delayed(formulate)(**{**D_ins[i],** large_dic}) for i in range(len(D_ins)))
 		_temps.cleanup_folder()
-		moved = 256
-		os.system('mkdir output_dump_pump_powers/'+str(kk))
-		moved = os.system('mv output_dump_pump_powers/output* output_dump_pump_powers/'+str(kk) )
-		while moved != 0: 
-			timeit.sleep(2)
-
-
-
-
-	for kk,pp in enumerate(lamdaP_vec):
-
-
-		Power_input = 4.3
-
-		if num_cores > 1:
-			#os.system("taskset -p 0xff %d" % os.getpid()) # fixes the numpy affinity problem
-			A = Parallel(n_jobs=num_cores)(delayed(lam_p2_vary)(lensig,i,lam_p1,Power_input,Power_signal,int_fwm,1
-								,gama,'pump_powers',fv_idler_int,plots,var_loss,par = False,grid_only = False,timing= False,pump_wave = str(kk))\
-								 for i, var_loss in enumerate(var_losses))
-		else:
-
-			for i, var_loss in enumerate(var_losses):
-				A = lam_p2_vary(lensig,i,lam_p1,Power_input,Power_signal,int_fwm,1
-								,gama,'pump_powers',fv_idler_int,plots,var_loss,par = False,grid_only = False,timing= False,pump_wave = str(kk))
-
-
-
+	
 
 	print('\a')
-   	
 	return None
 
 if __name__ == '__main__':
@@ -365,8 +349,3 @@ if __name__ == '__main__':
 	main()
 	dt = time() - start
 	print(dt, 'sec', dt/60, 'min', dt/60/60, 'hours')
-
-
-
-
-

@@ -394,8 +394,7 @@ def create_file_structure(kk=''):
     Is set to create and destroy the filestructure needed 
     to run the program so that the files are not needed in the repo
     """
-    folders_large = ('output_dump_pump_powers',
-                     'output_dump_pump_wavelengths',
+    folders_large = ('output_dump',
                      'output_final', 'output'+str(kk))
     folders_large += (folders_large[-1] + '/output',)
     folders_large += (folders_large[-1] + '/data',)
@@ -444,7 +443,7 @@ class Noise(object):
                                + 1j*np.random.rand(int_fwm.nt))
         return noise
 
-    def noise_func_freq(self, int_fwm, sim_wind, fft):
+    def noise_func_freq(self, int_fwm, sim_wind):
         noise = self.noise_func(int_fwm)
         noise_freq = fftshift(sim_wind.dt * fft(noise))
         return noise_freq
@@ -554,7 +553,8 @@ def fv_creator(lam_p1,lams,int_fwm,prot_casc = 100):
     f_med.sort()
     fv = np.concatenate((f_1,f_med,f_2))
     fv.sort()
-    where = [2**(int_fwm.N-1)]
+    s_pos = np.where(fv == fs)[0][0]
+    where = [2**(int_fwm.N-1),s_pos]
     return fv,where
 
 def energy_conservation(entot):
@@ -606,8 +606,8 @@ class create_destroy(object):
         return None
 
     def cleanup_folder(self):
-        for i in range(len(self.variable)):
-            os.system('rm -r output'+self.pump_wave)
+        #for i in range(len(self.variable)):
+        os.system('mv output'+self.pump_wave +' output_dump/')
         return None
 
     def prepare_folder(self):
