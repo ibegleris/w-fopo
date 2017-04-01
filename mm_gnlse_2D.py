@@ -295,7 +295,7 @@ def main():
 	alphadB = 0*0.0011666666666666668		# loss within fibre[dB/m]
 	z = 18									# Length of the fibre
 	P_p = [5]									# Pump power [W]
-	P_s = [1]									# Signal power [W]
+	P_s = [0,1,2,3]									# Signal power [W]
 	TFWHM_p = 0								# full with half max of pump
 	TFWHM_s = 0								# full with half max of signal
 	spl_losses = [0,0,0.1]					# loss of each type of splices [dB] 
