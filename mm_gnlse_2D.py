@@ -295,19 +295,19 @@ def main():
 	alphadB = 0*0.0011666666666666668		# loss within fibre[dB/m]
 	z = 18									# Length of the fibre
 	P_p = [5]									# Pump power [W]
-	P_s = [0,1,2,3]									# Signal power [W]
+	P_s = [ i *1e-3 for i in [0,1,2,3]]							# Signal power [W]
 	TFWHM_p = 0								# full with half max of pump
 	TFWHM_s = 0								# full with half max of signal
-	spl_losses = [0,0,0.1]					# loss of each type of splices [dB] 
+	spl_losses = [0,0,1.4]					# loss of each type of splices [dB] 
 	betas = np.array([0, 0, 0, 6.756e-2,	# propagation constants [ps^n/m]
 			-1.002e-4, 3.671e-7])*1e-3								
 	lamda_c = 1051.85e-9					# Zero dispersion wavelength [nm]
-	WDMS_pars = ([1048.17107345, 1200.39], 	# WDM up downs in wavelengths [m]
-					[930, 1200.39],
+	WDMS_pars = ([1048.17107345, 1200], 	# WDM up downs in wavelengths [m]
+					[930, 1200],
 					[930,1048.17107345],
-					[930,1200.39])
-	lamp = 1048.17107345					# Pump wavelengths [m]
-	lams = 1200								# Signal wavelength [m]
+					[930,1200])
+	lamp = 1048.17107345					# Pump wavelengths [nm]
+	lams = 1196.02							# Signal wavelength [nm]
 	var_dic = {'n2':n2, 'gama':gama, 'alphadB':alphadB, 'z':z, 'P_p':P_p,
 				 'P_s':P_s,'TFWHM_p':TFWHM_p, 'TFWHM_s':TFWHM_s,
 				 'spl_losses':spl_losses, 'betas':betas,
