@@ -298,7 +298,7 @@ class WDM(object):
         self.f2 = 1e-3 * c / self.l2  # Low wavelength of port 1
         self.omega = 0.5*pi/np.abs(self.f1 - self.f2)
         self.phi = 2*pi - self.omega*self.f2
-        #self.fv = fv
+        self.fv = fv
         self.fv_wdm = self.omega*fv+self.phi
 
         # self.A = np.array([[np.reshape(np.cos(self.fv), (len(self.fv), modes)),
@@ -339,30 +339,28 @@ class WDM(object):
             #u_out += (UU,)
         return ((u_out[0], U_out[0]), (u_out[1], U_out[1]))
 
-    def il_port1(self, lamda=None):
-        freq = 1e-3 * c / lamda
-        return (np.sin(self.omega*freq+self.phi))**2
+    def il_port1(self):
 
-    def il_port2(self, lamda):
-        freq = 1e-3 * c / lamda
-        return (np.cos(self.omega*freq+self.phi))**2
+        return (np.sin(self.omega*self.fv+self.phi))**2
 
-    def plot(self, lamda, filename=False, xlim=(900, 1250)):
+    def il_port2(self):
+        return (np.cos(self.omega*self.fv+self.phi))**2
+
+    def plot(self, filename=False, xlim=False):
         fig = plt.figure()
-        plt.plot(lamda, self.il_port1(lamda), label="%0.2f" %
+        plt.plot(1e-3*c/self.fv, self.il_port1(), label="%0.2f" %
                  (self.l1) + ' nm port')
-        plt.plot(lamda, self.il_port2(lamda), label="%0.1f" %
+        plt.plot(1e-3*c/self.fv, self.il_port2(), label="%0.1f" %
                  (self.l2) + ' nm port')
         plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.13), ncol=2)
         plt.xlabel(r'$\lambda (n m)$')
-        plt.xlim()
+        #plt.xlim()
         plt.ylabel('Power Ratio')
-        plt.xlim(xlim)
+        if xlim:
+            plt.xlim(xlim)
         if filename:
-            os.system('mkdir output/WDMs_loss')
-            plt.savefig(
-                'output/WDMs_loss/WDM_high_'+str(self.l1)
-                + '_low_'+str(self.l2)+'.png')
+            #os.system('mkdir output/WDMs_loss')
+            plt.savefig(filename+'.png')
         else:
             plt.show()
         plt.close(fig)
@@ -429,6 +427,13 @@ class Splicer(WDM):
         U_out2 = 1j * U_in[0] * self.c2 + U_in[1] * self.c1
         return U_out1, U_out2
 
+def norm_const(u, sim_wind):
+        t = sim_wind.t
+        fv = sim_wind.fv
+        U_temp = fftshift(fft(u))
+        first_int = simps(np.abs(U_temp)**2, fv)
+        second_int = simps(np.abs(u)**2,t)
+        return (first_int/second_int)**0.5
 
 class Noise(object):
 
@@ -445,7 +450,7 @@ class Noise(object):
 
     def noise_func_freq(self, int_fwm, sim_wind):
         noise = self.noise_func(int_fwm)
-        noise_freq = fftshift(sim_wind.dt * fft(noise))
+        noise_freq = fftshift(fft(noise))
         return noise_freq
 
 
@@ -538,15 +543,15 @@ def fv_creator(lam_p1,lams,int_fwm,prot_casc = 100):
     N = int_fwm.nt
     fp = 1e-3*c / lam_p1
     fs = 1e-3*c /lams
-    f_med = np.linspace(fp,fs,N/4 - prot_casc)
+    f_med = np.linspace(fp,fs,N/8 - prot_casc)
     d = f_med[1] - f_med[0]
     f_2 =  [f_med[-1],]
-    for i in range(1,N//4+1 + prot_casc//2):
+    for i in range(1,N//4+N//16+1 + prot_casc//2):
         f_2.append(f_2[i-1]+ d)
     f_2 = f_2[1:]
     f_2.sort()
     f_1 = [f_med[0],]
-    for i in range(1,N//2+1 +prot_casc//2):
+    for i in range(1,N//2+N//16+1 +prot_casc//2):
         f_1.append(f_1[i-1] -d)
     f_1 = f_1[1:]
     f_1.sort()

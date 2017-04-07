@@ -21,14 +21,14 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 	
 	T0_p = TFWHM_p/2/(np.log(2))**0.5
 	T0_s = TFWHM_s/2/(np.log(2))**0.5
-	noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
-	u[:, 0] = noise_new
+	noise_new = noise_obj.noise_func(int_fwm)
+	#u[:, 0] = noise_new
 
 	u[:, 0] += (P0_p1)**0.5  # *np.exp(-sim_wind.t**2/T0)
-
+	#print(P0_p1)
 	woff1 = -(s_pos - int_fwm.nt//2)*2*pi*sim_wind.df
 	u[:, 0] += (P0_s)**0.5 * np.exp(-1j*(woff1)*sim_wind.t)#*np.exp(-sim_wind.t**2/T0_s)
-
+	print(np.max(w2dbm(np.abs(u))**2))
 
 	U[:, 0] = fftshift(sim_wind.dt*fft(u[:,0]))
 	sim_wind.w_tiled = sim_wind.w
@@ -54,8 +54,8 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 
 	# Pass the original pump through the WDM1, port1 is in to the loop, port2 junk
 	noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
-	u[:, 0], U[:, 0] = WDM_vec[0].pass_through(
-		(U[:, 0], noise_new), sim_wind)[0]
+	#u[:, 0], U[:, 0] = WDM_vec[0].pass_through(
+	#	(U[:, 0], noise_new), sim_wind)[0]
 	
 
 	max_rounds = int(sys.argv[1])
@@ -205,7 +205,7 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 	"----------------------------------------------------------"
 
 
-	"---------------------Grida&window-----------------------"
+	"---------------------Grid&window-----------------------"
 	fv, where = fv_creator(lamp,lams,int_fwm,prot_casc = 100)
 	p_po,s_pos = where
 	sim_wind = sim_window(fv, lamda, lamda_c, int_fwm,fv_idler_int)
@@ -213,7 +213,7 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 
 
 	"---------------------Loss-in-fibres-----------------------"
-	slice_from_edge = (sim_wind.fv[-1] - sim_wind.fv[0])/8
+	slice_from_edge = (sim_wind.fv[-1] - sim_wind.fv[0])/16
 	loss = Loss(int_fwm, sim_wind, amax=5)
 	int_fwm.alpha = loss.atten_func_full(fv)
 	"----------------------------------------------------------"
@@ -251,16 +251,14 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 	hf = raman.hf
 	"--------------------------------------------------------"
 
-
 	"----------------------Formulate WDMS--------------------"
-	WDM_vec = [WDM(i[0], i[1],sim_wind.fv,c) for i in WDMS_pars]
+	WDM_vec = [WDM(i[0], i[1],sim_wind.fv,c) for i in WDMS_pars]# WDM up downs in wavelengths [m]
 	"--------------------------------------------------------"
-
-
+	for ei,i in enumerate(WDM_vec):
+		i.plot(filename = str(ei))
 	"----------------------Formulate splicers--------------------"
 	splicers_vec = [Splicer(loss = i) for i in spl_losses]
 	"------------------------------------------------------------"
-
 
 	f_p,f_s = 1e-3*c/lamp, 1e-3*c/lams
 
@@ -282,8 +280,8 @@ def main():
 	maxerr = 1e-13							# maximum tolerable error per step in integration
 	ss = 1					  				# includes self steepening term
 	ram = 'on'				  				# Raman contribution 'on' if yes and 'off' if no
-	plots = False 							# Do you want plots, be carefull it makes the code very slow!
-	N = 13									# 2**N grid points
+	plots = True 							# Do you want plots, be carefull it makes the code very slow!
+	N = 14									# 2**N grid points
 	nt = 2**N 								# number of grid points
 	nplot = 2								# number of plots within fibre min is 2
 	"--------------------------------------------------------------------------"
@@ -293,29 +291,33 @@ def main():
 	n2 = 2.5e-20							# Nonlinear index [m/W]
 	gama = 10e-3 							# Overwirtes n2 and Aeff w/m
 	alphadB = 0*0.0011666666666666668		# loss within fibre[dB/m]
-	z = 18									# Length of the fibre
-	P_p = [5]									# Pump power [W]
-	P_s = [ i *1e-3 for i in [0,1,2,3]]							# Signal power [W]
+	z = 200								# Length of the fibre
+	P_p = 5									# Pump power [W]
+	P_s = 0#3e-3								# Signal power [W]
 	TFWHM_p = 0								# full with half max of pump
 	TFWHM_s = 0								# full with half max of signal
-	spl_losses = [0,0,1.4]					# loss of each type of splices [dB] 
+	spl_losses = [[0,0,1.]]#,[0,0,1.1],[0,0,1.2],[0,0,1.3]]					# loss of each type of splices [dB] 
 	betas = np.array([0, 0, 0, 6.756e-2,	# propagation constants [ps^n/m]
 			-1.002e-4, 3.671e-7])*1e-3								
 	lamda_c = 1051.85e-9					# Zero dispersion wavelength [nm]
-	WDMS_pars = ([1048.17107345, 1200], 	# WDM up downs in wavelengths [m]
-					[930, 1200],
-					[930,1048.17107345],
-					[930,1200])
-	lamp = 1048.17107345					# Pump wavelengths [nm]
-	lams = 1196.02							# Signal wavelength [nm]
+	WDMS_pars = ([1051.5, 1098.1408717948718], 	# WDM up downs in wavelengths [m]
+					[1008.6596271805298, 1098.1408717948718],
+					[1008.6596271805298,1051.5],
+					[1008.6596271805298,1098.1408717948718])
+	lamp = 1051.5							# Pump wavelengths [nm]
+
+
+	lams = np.arange(1085, 1115, 2)
+	lams = [1085,1115]
+	#lams = [lams[1]]									# Signal wavelength [nm]
 	var_dic = {'n2':n2, 'gama':gama, 'alphadB':alphadB, 'z':z, 'P_p':P_p,
 				 'P_s':P_s,'TFWHM_p':TFWHM_p, 'TFWHM_s':TFWHM_s,
 				 'spl_losses':spl_losses, 'betas':betas,
 				  'lamda_c':lamda_c, 'WDMS_pars':WDMS_pars,
 				   'lamp':lamp, 'lams':lams}
 	"--------------------------------------------------------------------------"
-	outside_var_key = 'P_p'
-	inside_var_key = 'P_s'
+	outside_var_key = 'spl_losses'
+	inside_var_key = 'lams'
 	inside_var = var_dic[inside_var_key]
 	outside_var = var_dic[outside_var_key]
 	del var_dic[outside_var_key]
@@ -328,7 +330,7 @@ def main():
 
 	if len(inside_var) < num_cores:
 		num_cores = len(inside_var)
-	
+	print(outside_var)
 	for kk,variable in enumerate(outside_var):
 		create_file_structure(kk)
 
@@ -337,6 +339,7 @@ def main():
 		large_dic ['master_index'] = kk
 		large_dic [outside_var_key] = variable
 		#formulate(**{**D_ins[0],** large_dic})
+
 		A = Parallel(n_jobs = num_cores)(delayed(formulate)(**{**D_ins[i],** large_dic}) for i in range(len(D_ins)))
 		_temps.cleanup_folder()
 	

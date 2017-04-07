@@ -397,6 +397,27 @@ class Test_loss:
 		minim = np.min(alpha_func)
 		assert minim == alphadB/4.343
 
+def test_norm_constant():
+	class int_fwm1(object):
+		def __init__(self):
+			self.N = 10
+			self.nt =  2**self.N
+			self.dzstep =1
+			self.nplot = 1
+	int_fwmss = int_fwm1()
+	fv,where = fv_creator(1050, 1250, int_fwmss)
+	simwin = sim_window(fv, 1050, 1050, int_fwmss, 10)
+	u = 10*(np.random.rand(int_fwmss.nt) + 1j * np.random.rand(int_fwmss.nt))
+	a1 = norm_const(u, simwin)
+	U1 = fftshift(a1* fft(u))
+	
+	lams = 1200
+	fv,where = fv_creator(1050, 1200, int_fwmss)
+	simwin = sim_window(fv, 1050, 1050, int_fwmss, 10)
+	a2 = norm_const(u, simwin)
+	U2 = fftshift(a2* fft(u))
+	print(a1, a2)
+	assert_allclose(U1, U2)
 
 class Test_splicer():
 

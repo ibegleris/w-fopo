@@ -38,7 +38,7 @@ def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro,P_port
 		#plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
 		plt.xlabel(r'$\lambda (nm)$', fontsize=18)
 		plt.ylabel(r'$Spectrum (a.u.)$', fontsize=18)
-		plt.ylim([-80, 80])
+		plt.ylim([-80, 100])
 		plt.xlim([np.min(sim_wind.lv), np.max(sim_wind.lv)])
 		#plt.xlim([900, 1250])
 		plt.title(title)
@@ -61,7 +61,7 @@ def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro,P_port
 		plt.xlabel(r'$f (THz)$', fontsize=18)
 		plt.ylabel(r'$Spectrum (a.u.)$', fontsize=18)
 		plt.xlim([np.min(sim_wind.fv), np.max(sim_wind.fv)])
-		plt.ylim([-80, 80])
+		#plt.ylim([-80, 100])
 		plt.title(title)
 		plt.grid()
 		if type(im) != int:
