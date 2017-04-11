@@ -53,7 +53,7 @@ try:
 
 
 except ImportError:
-	print("You dont have accelerate on this system, defaulting to scipy")
+	#print("You dont have accelerate on this system, defaulting to scipy")
 	def pick(N,nm,times,num_cores):
 		
 		fft, ifft = sfft, isfft 

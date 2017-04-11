@@ -63,6 +63,7 @@ def dAdzmm_roff_s0(u0, M, n2, lamda, tsh, dt, hf, w_tiled):
     calculates the nonlinear operator for a given field u0
     use: dA = dAdzmm(u0)
     """
+    #print(M,lamda)
     M3 = np.abs(u0)**2
     N = M*u0*M3
     N *= -1j*n2*2*pi/lamda
@@ -74,6 +75,7 @@ def dAdzmm_roff_s1(u0, M, n2, lamda, tsh, dt, hf, w_tiled):
     calculates the nonlinear operator for a given field u0
     use: dA = dAdzmm(u0)
     """
+    print('no')
     M3 = np.abs(u0)**2
     N = M*u0*M3
     N = -1j*n2*2*pi/lamda*(N + tsh*ifft((w_tiled)*fft(N)))
@@ -85,6 +87,7 @@ def dAdzmm_ron_s0(u0, M, n2, lamda, tsh, dt, hf, w_tiled):
     calculates the nonlinear operator for a given field u0
     use: dA = dAdzmm(u0)
             """
+
     M3 = np.abs(u0)**2
 
     N = 0.82*M * u0*M3 + 0.18*M*u0*dt*fftshift(ifft(fft(M3)*hf))
@@ -104,6 +107,7 @@ def dAdzmm_ron_s1(u0,M,n2,lamda,tsh,dt,hf, w_tiled):
 
 #@profile
 def dAdzmm_ron_s1(u0, M, n2, lamda, tsh, dt, hf, w_tiled):
+
     # calculates the nonlinear operator for a given field u0
     # use: dA = dAdzmm(u0)
     #t1 = time()

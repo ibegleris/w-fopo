@@ -12,6 +12,7 @@ from math import factorial
 from integrand_and_rk import *
 from data_plotters_animators import *
 import cmath
+from time import time
 from scipy.fftpack import fft, ifft
 phasor = np.vectorize(cmath.polar)
 
@@ -72,7 +73,7 @@ class raman_object(object):
                 htmeas_f = InterpolatedUnivariateSpline(t1*1e-3, ht)
                 htmeas = htmeas_f(t)
                 htmeas *= (t > 0)*(t < 1)  # only measured between +/- 1 ps)
-                htmeas /= (dt*np.sum(htmeas))  # normalised
+                htmeas /= (np.sum(htmeas))  # normalised
                 # Fourier transform of the measured nonlinear response
                 self.hf = fft(htmeas)
             else:
@@ -92,6 +93,8 @@ def dispersion_operator(betas, lamda_c, int_fwm, sim_wind):
     c_norm = c*1e-12  # Speed of light [m/ps] #Central wavelength [nm]
     wc = 2*pi * c_norm / sim_wind.lamda
     w0 = 2*pi * c_norm / lamda_c
+
+
     betap = np.zeros_like(betas)
 
     for j in range(len(betas.T)):
@@ -102,7 +105,9 @@ def dispersion_operator(betas, lamda_c, int_fwm, sim_wind):
             betap[j] += (1/factorial(fac)) * \
                 betas[k] * (wc - w0)**(fac)
             fac += 1
-    w = sim_wind.w  # + sim_wind.woffset2
+
+    w = sim_wind.w + sim_wind.woffset
+
     Dop = np.zeros(int_fwm.nt, dtype=np.complex)
     alpha = np.reshape(int_fwm.alpha, np.shape(Dop))
     Dop -= fftshift(alpha/2)
@@ -172,13 +177,16 @@ class sim_window(object):
     def __init__(self, fv, lamda, lamda_c, int_fwm, fv_idler_int):
         self.fv = fv
         self.lamda = lamda
+        print(self.lamda)
         # self.lmin = 1e-3*c/np.max(fv)  # [nm]
         # self.lmax = 1e-3*c/np.min(fv)  # [nm]
 
-        self.fmed = 1e12*fv[len(fv)//2]  # [Hz]
+        self.fmed = 0.5*(fv[-1] + fv[0])*1e12  # [Hz]
         self.deltaf = np.max(self.fv) - np.min(self.fv)  # [THz]
         self.df = self.deltaf/int_fwm.nt  # [THz]
         self.T = 1/self.df  # Time window (period)[ps]
+        #print(self.fmed,c/lamda)
+        #sys.exit()
         self.woffset = 2*pi*(self.fmed - c/lamda)*1e-12  # [rad/ps]
         # [rad/ps] Offset of central freequency and that of the experiment
         self.woffset2 = 2*pi*(self.fmed - c/lamda_c)*1e-12
@@ -194,7 +202,10 @@ class sim_window(object):
         self.w = 2*pi * np.append(
             range(0, int(int_fwm.nt/2)),
             range(int(-int_fwm.nt/2), 0, 1))/self.T
-
+        #self.w = fftshift(2*pi *(self.fv - 1e-12*self.fmed))
+        #plt.plot(self.w)
+        #plt.savefig('w.png')
+        #sys.exit()
         # frequency vector[THz] (shifted for plotting)
         # wavelength vector [nm]
         self.lv = 1e-3*c/self.fv
@@ -335,7 +346,7 @@ class WDM(object):
         U_out = self.U_calc(U_in)
         u_out = ()
         for i, UU in enumerate(U_out):
-            u_out += (ifft(fftshift(UU)/sim_wind.dt),)
+            u_out += (ifft(fftshift(UU)),)
             #u_out += (UU,)
         return ((u_out[0], U_out[0]), (u_out[1], U_out[1]))
 
@@ -440,19 +451,22 @@ class Noise(object):
     def __init__(self, sim_wind):
         self.pquant = np.sum(
             1.054e-34*(sim_wind.w*1e12 + sim_wind.w0)/(sim_wind.T*1e-12))
+        #print(self.pquant**0.5)
         self.pquant = (self.pquant/2)**0.5
         return None
 
     def noise_func(self, int_fwm):
-        noise = self.pquant * (np.random.rand(int_fwm.nt)
-                               + 1j*np.random.rand(int_fwm.nt))
+        seed = np.random.seed(int(time()*np.random.rand()))
+        noise =  self.pquant * (np.random.randn(int_fwm.nt)
+                               + 1j*np.random.randn(int_fwm.nt))
         return noise
 
     def noise_func_freq(self, int_fwm, sim_wind):
         noise = self.noise_func(int_fwm)
         noise_freq = fftshift(fft(noise))
         return noise_freq
-
+import warnings
+warnings.filterwarnings("error")
 
 #@profile
 def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm):
@@ -491,8 +505,11 @@ def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm):
             #dzv = np.append(dzv, dz)
             # calculate the next step (longer)
             # # without exceeding max dzstep
-            dz = np.min(
+            try:
+                dz = np.min(
                 [0.95*dz*(int_fwm.maxerr/delta)**0.2, 0.95*int_fwm.dzstep])
+            except RuntimeWarning:
+                dz = 0.95*int_fwm.dzstep
             #dz = 0.95*dz*(int_fwm.maxerr/delta)**0.2
             # print(dz)
             ###################################################################
@@ -540,26 +557,35 @@ def fv_creator(lam_p1,lams,int_fwm,prot_casc = 100):
                     You can change it to let in more cascades but beware that you are taking 
                     points away from the original pump-signal. 
     """
+    #prot_casc = 1024
     N = int_fwm.nt
     fp = 1e-3*c / lam_p1
     fs = 1e-3*c /lams
-    f_med = np.linspace(fp,fs,N/8 - prot_casc)
+    f_med = np.linspace(fs,fp,N/4 - prot_casc)
     d = f_med[1] - f_med[0]
-    f_2 =  [f_med[-1],]
-    for i in range(1,N//4+N//16+1 + prot_casc//2):
-        f_2.append(f_2[i-1]+ d)
+    
+
+    f_2 =  [f_med[0],]
+    for i in range(1,N//4 +1 + prot_casc//2):
+        f_2.append(f_2[i-1]- d)
     f_2 = f_2[1:]
     f_2.sort()
-    f_1 = [f_med[0],]
-    for i in range(1,N//2+N//16+1 +prot_casc//2):
-        f_1.append(f_1[i-1] -d)
+    f_1 = [f_med[-1],]
+    for i in range(1,N//2 +1 + prot_casc//2):
+        f_1.append(f_1[i-1] +d)
     f_1 = f_1[1:]
     f_1.sort()
     f_med.sort()
+    print(min(f_1),max(f_1))
+    print(min(f_med),max(f_med))
+    print(min(f_2),max(f_2))
+    
     fv = np.concatenate((f_1,f_med,f_2))
     fv.sort()
     s_pos = np.where(fv == fs)[0][0]
-    where = [2**(int_fwm.N-1),s_pos]
+    p_pos = np.where(fv == fp)[0][0]
+    where = [p_pos,s_pos]
+    check_ft_grid(fv, d)
     return fv,where
 
 def energy_conservation(entot):
@@ -583,10 +609,10 @@ def check_ft_grid(fv, diff):
     if np.log2(np.shape(fv)[0]) == int(np.log2(np.shape(fv)[0])):
         nt = np.shape(fv)[0]
     else:
-        print(" ")
-        sys.exit(
-            "fix the grid for optimization\
-             of the fft's, grid:", np.shape(fv)[0])
+        print(            "fix the grid for optimization\
+             of the fft's, grid:" +str(np.shape(fv)[0]))
+        sys.exit(1)
+
 
     lvio = []
     for i in range(len(fv)-1):

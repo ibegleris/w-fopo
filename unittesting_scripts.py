@@ -64,17 +64,20 @@ def test_raman_off():
 	ram.raman_load(np.random.rand(10),np.random.rand(1)[0])
 	assert ram.hf == None
 
-
+from scipy.io import savemat
 def test_raman_load():
 	ram = raman_object('on','load')
+
 	D = loadmat('testing_data/Raman_measured.mat')
 	t = D['t']
 	t = np.asanyarray([t[i][0] for i in range(t.shape[0])])
-	dt = D['dt'][0][0]
-	hf_exact = D['hf']
-	hf_exact = np.asanyarray([hf_exact[i][0] for i in range(hf_exact.shape[0])])
-	hf = ram.raman_load(t,dt)
-
+	print(np.shape(t))
+	dt = t[1] - t[0]
+	#hf_exact = D['hf']
+	#hf_exact = np.asanyarray([hf_exact[i][0] for i in range(hf_exact.shape[0])])
+	#hf = ram.raman_load(t,dt)
+	DD = {'t': t, 'dt': dt, 'hf':hf}
+	savemat('testing_data/Raman_measured.mat',DD)
 	assert_allclose(hf, hf_exact)
 
 
@@ -106,7 +109,8 @@ class sim_windows(object):
 		self.lv = lv
 		self.nt = 512
 		self.fv = 1e-3*c/self.lv
-		self.fmed = c/(self.lamda)
+		self.fmed = 0.5*(max(self.fv) + min(self.fv))*1e12
+		self.woffset = 2*pi*(self.fmed - c/lamda)*1e-12
 		self.deltaf = 1e-3*(c/self.lmin - c/self.lmax)
 		self.df = self.deltaf/len(lv)
 		self.T = 1/self.df 
@@ -133,8 +137,10 @@ def test_dispersion():
 
 	betas_disp = dispersion_operator(betas,lamdac,int_fwm,sim_wind)
 
-	betas_exact = np.loadtxt('testing_data/exact_dispersion.py').view(complex)
-	assert_allclose(betas_disp,betas_exact[:,0])
+
+
+	betas_exact = np.loadtxt('testing_data/exact_dispersion.txt').view(complex)
+	assert_allclose(betas_disp,betas_exact)
 
 
 "-----------------------Full soliton--------------------------------------------"	
@@ -163,7 +169,7 @@ def pulse_propagations(ram,ss,N_sol = 1):
 	lamda = lam_p1*1e-9
 	
 	beta2 = -1e-3
-	P0_p1 = 1
+	P0_p1 = 0.1
 
 	T0 =  (N_sol**2 * np.abs(beta2) / (gama * P0_p1))**0.5
 	TFWHM = (2*np.log(1+2**0.5)) * T0
@@ -210,8 +216,8 @@ def pulse_propagations(ram,ss,N_sol = 1):
 	sim_wind.w_tiled = sim_wind.w
 
 	print(T0, 'tooo')
-
-	u[:,0] = (P0_p1)**0.5 / np.cosh(sim_wind.t/T0)*np.exp(-1j*(sim_wind.woffset)*sim_wind.t)
+	print(sim_wind.t/T0)
+	u[:,0] = (P0_p1)**0.5 / np.cosh(sim_wind.t/T0)#*np.exp(-1j*(sim_wind.woffset)*sim_wind.t)
 	U[:,0] = fftshift(sim_wind.dt*fft(u[:,0]))
 	fwhm2 = FWHM_fun(sim_wind.t, np.abs(u)**2)
 	print(fwhm2)
@@ -347,8 +353,8 @@ class Test_WDM(object):
 		U2 = 10*(np.random.randn(self.nt) + 1j * np.random.randn(self.nt))
 		U_in = (U1, U2)
 
-		u_in1 = ifft(fftshift(U1)/sim_wind.dt)
-		u_in2 = ifft(fftshift(U2)/sim_wind.dt)
+		u_in1 = ifft(fftshift(U1))
+		u_in2 = ifft(fftshift(U2))
 		u_in_tot = simps(np.abs(u_in1)**2, sim_wind.t) + simps(np.abs(u_in2)**2,sim_wind.t)
 
 		a,b = WDMS.pass_through(U_in,sim_wind)
@@ -397,27 +403,6 @@ class Test_loss:
 		minim = np.min(alpha_func)
 		assert minim == alphadB/4.343
 
-def test_norm_constant():
-	class int_fwm1(object):
-		def __init__(self):
-			self.N = 10
-			self.nt =  2**self.N
-			self.dzstep =1
-			self.nplot = 1
-	int_fwmss = int_fwm1()
-	fv,where = fv_creator(1050, 1250, int_fwmss)
-	simwin = sim_window(fv, 1050, 1050, int_fwmss, 10)
-	u = 10*(np.random.rand(int_fwmss.nt) + 1j * np.random.rand(int_fwmss.nt))
-	a1 = norm_const(u, simwin)
-	U1 = fftshift(a1* fft(u))
-	
-	lams = 1200
-	fv,where = fv_creator(1050, 1200, int_fwmss)
-	simwin = sim_window(fv, 1050, 1050, int_fwmss, 10)
-	a2 = norm_const(u, simwin)
-	U2 = fftshift(a2* fft(u))
-	print(a1, a2)
-	assert_allclose(U1, U2)
 
 class Test_splicer():
 
@@ -467,8 +452,8 @@ class Test_splicer():
 		U_in = (U1, U2)
 		U1 = U1#[:,np.newaxis]
 		U2 = U2#[:,np.newaxis]
-		u_in1 = ifft(ifftshift(U1)/sim_wind.dt)
-		u_in2 = ifft(ifftshift(U2)/sim_wind.dt)
+		u_in1 = ifft(ifftshift(U1))
+		u_in2 = ifft(ifftshift(U2))
 		u_in_tot = np.abs(u_in1)**2 + np.abs(u_in2)**2
 
 		a,b = splicer.pass_through(U_in,sim_wind)

@@ -12,7 +12,7 @@ from functions import *
 from fft_module import *
 import sys
 from time import time,sleep
-def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p1,P0_s, f_p, f_s,s_pos,splicers_vec,
+def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p1,P0_s, f_p, f_s,p_pos,s_pos,splicers_vec,
 			WDM_vec,M, hf, Dop, dAdzmm,D_pic,pulse_pos_dict_or,plots):
 	u = np.zeros(
 		[len(sim_wind.t), len(sim_wind.zv)], dtype='complex128')
@@ -22,17 +22,22 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 	T0_p = TFWHM_p/2/(np.log(2))**0.5
 	T0_s = TFWHM_s/2/(np.log(2))**0.5
 	noise_new = noise_obj.noise_func(int_fwm)
-	#u[:, 0] = noise_new
+	u[:, 0] = noise_new
 
-	u[:, 0] += (P0_p1)**0.5  # *np.exp(-sim_wind.t**2/T0)
-	#print(P0_p1)
-	woff1 = -(s_pos - int_fwm.nt//2)*2*pi*sim_wind.df
-	u[:, 0] += (P0_s)**0.5 * np.exp(-1j*(woff1)*sim_wind.t)#*np.exp(-sim_wind.t**2/T0_s)
-	print(np.max(w2dbm(np.abs(u))**2))
+	woff1 = (p_pos+(int_fwm.nt)//2)*2*pi*sim_wind.df
+	u[:, 0] += (0.5*P0_p1)**0.5  * np.exp(1j*(woff1)*sim_wind.t)
 
-	U[:, 0] = fftshift(sim_wind.dt*fft(u[:,0]))
-	sim_wind.w_tiled = sim_wind.w
+
+	#woff2 = -(s_pos - (int_fwm.nt-1)//2)*2*pi*sim_wind.df
+	#u[:, 0] += (P0_s)**0.5 * np.exp(-1j*(woff2)*sim_wind.t)#*np.exp(-sim_wind.t**2/T0_s)
+
+
+	U[:, 0] = fftshift(fft(u[:,0]))
+	
+	sim_wind.w_tiled = sim_wind.w + sim_wind.woffset
 	master_index = str(master_index)
+
+
 	
 
 	plotter_dbm(index,int_fwm.nm, sim_wind, u, U, P0_p1,
@@ -54,8 +59,8 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 
 	# Pass the original pump through the WDM1, port1 is in to the loop, port2 junk
 	noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
-	#u[:, 0], U[:, 0] = WDM_vec[0].pass_through(
-	#	(U[:, 0], noise_new), sim_wind)[0]
+	u[:, 0], U[:, 0] = WDM_vec[0].pass_through(
+		(U[:, 0], noise_new), sim_wind)[0]
 	
 
 	max_rounds = int(sys.argv[1])
@@ -75,9 +80,9 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 					P0_s, f_p, f_s, 0, ro,P_portb,rel_error,master_index, str(ro)+'1', pulse_pos_dict[3], D_pic[5],plots)
 
 		# Splice3
-		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
-		(u[:, 0], U[:, 0]) = splicers_vec[1].pass_through(
-			(U[:, 0], noise_new), sim_wind)[0]
+		#noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
+		#(u[:, 0], U[:, 0]) = splicers_vec[1].pass_through(
+		#	(U[:, 0], noise_new), sim_wind)[0]
 
 		u, U = pulse_propagation(
 			u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm)
@@ -206,23 +211,25 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 
 
 	"---------------------Grid&window-----------------------"
-	fv, where = fv_creator(lamp,lams,int_fwm,prot_casc = 100)
-	p_po,s_pos = where
+	fv, where = fv_creator(lamp,lams,int_fwm,prot_casc =0)
+	p_pos,s_pos = where
 	sim_wind = sim_window(fv, lamda, lamda_c, int_fwm,fv_idler_int)
 	"----------------------------------------------------------"
 
 
 	"---------------------Loss-in-fibres-----------------------"
-	slice_from_edge = (sim_wind.fv[-1] - sim_wind.fv[0])/16
-	loss = Loss(int_fwm, sim_wind, amax=5)
+	slice_from_edge = (sim_wind.fv[-1] - sim_wind.fv[0])/100
+	loss = Loss(int_fwm, sim_wind, amax=0)
+
 	int_fwm.alpha = loss.atten_func_full(fv)
+
 	"----------------------------------------------------------"
 
 
 	"--------------------Dispersion----------------------------"
 	Dop = dispersion_operator(betas, lamda_c, int_fwm, sim_wind)
 	"----------------------------------------------------------"
-
+	
 
 	"--------------------Noise---------------------------------"
 	pquant = np.sum(1.054e-34*(sim_wind.w*1e12 + sim_wind.w0)/
@@ -254,15 +261,15 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 	"----------------------Formulate WDMS--------------------"
 	WDM_vec = [WDM(i[0], i[1],sim_wind.fv,c) for i in WDMS_pars]# WDM up downs in wavelengths [m]
 	"--------------------------------------------------------"
-	for ei,i in enumerate(WDM_vec):
-		i.plot(filename = str(ei))
+	#for ei,i in enumerate(WDM_vec):
+	#	i.plot(filename = str(ei))
 	"----------------------Formulate splicers--------------------"
 	splicers_vec = [Splicer(loss = i) for i in spl_losses]
 	"------------------------------------------------------------"
 
 	f_p,f_s = 1e-3*c/lamp, 1e-3*c/lams
 
-	oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P_p,P_s, f_p, f_s,s_pos,splicers_vec,
+	oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P_p,P_s, f_p, f_s,p_pos,s_pos,splicers_vec,
 			WDM_vec,M, hf, Dop, dAdzmm,D_pic,pulse_pos_dict_or,plots)
 
 	
@@ -291,12 +298,12 @@ def main():
 	n2 = 2.5e-20							# Nonlinear index [m/W]
 	gama = 10e-3 							# Overwirtes n2 and Aeff w/m
 	alphadB = 0*0.0011666666666666668		# loss within fibre[dB/m]
-	z = 200								# Length of the fibre
+	z = 180								# Length of the fibre
 	P_p = 5									# Pump power [W]
-	P_s = 0#3e-3								# Signal power [W]
+	P_s = 0									# Signal power [W]
 	TFWHM_p = 0								# full with half max of pump
 	TFWHM_s = 0								# full with half max of signal
-	spl_losses = [[0,0,1.]]#,[0,0,1.1],[0,0,1.2],[0,0,1.3]]					# loss of each type of splices [dB] 
+	spl_losses = [[0,0,0.]]#,[0,0,1.1],[0,0,1.2],[0,0,1.3]]					# loss of each type of splices [dB] 
 	betas = np.array([0, 0, 0, 6.756e-2,	# propagation constants [ps^n/m]
 			-1.002e-4, 3.671e-7])*1e-3								
 	lamda_c = 1051.85e-9					# Zero dispersion wavelength [nm]
@@ -330,7 +337,7 @@ def main():
 
 	if len(inside_var) < num_cores:
 		num_cores = len(inside_var)
-	print(outside_var)
+	
 	for kk,variable in enumerate(outside_var):
 		create_file_structure(kk)
 
