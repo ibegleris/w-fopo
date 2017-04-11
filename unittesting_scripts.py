@@ -64,21 +64,18 @@ def test_raman_off():
 	ram.raman_load(np.random.rand(10),np.random.rand(1)[0])
 	assert ram.hf == None
 
-from scipy.io import savemat
+
 def test_raman_load():
 	ram = raman_object('on','load')
-
 	D = loadmat('testing_data/Raman_measured.mat')
 	t = D['t']
 	t = np.asanyarray([t[i][0] for i in range(t.shape[0])])
-	print(np.shape(t))
-	dt = t[1] - t[0]
-	#hf_exact = D['hf']
-	#hf_exact = np.asanyarray([hf_exact[i][0] for i in range(hf_exact.shape[0])])
-	#hf = ram.raman_load(t,dt)
-	DD = {'t': t, 'dt': dt, 'hf':hf}
-	savemat('testing_data/Raman_measured.mat',DD)
-	assert_allclose(hf, hf_exact)
+	dt = D['dt'][0][0]
+	hf_exact = D['hf']
+	hf_exact = np.asanyarray([hf_exact[i][0] for i in range(hf_exact.shape[0])])
+	hf = ram.raman_load(t,dt)
+
+	assert_allclose(hf, hf_exact*dt)
 
 
 def test_raman_analytic():
@@ -169,7 +166,7 @@ def pulse_propagations(ram,ss,N_sol = 1):
 	lamda = lam_p1*1e-9
 	
 	beta2 = -1e-3
-	P0_p1 = 0.1
+	P0_p1 = 0.05
 
 	T0 =  (N_sol**2 * np.abs(beta2) / (gama * P0_p1))**0.5
 	TFWHM = (2*np.log(1+2**0.5)) * T0
@@ -217,7 +214,7 @@ def pulse_propagations(ram,ss,N_sol = 1):
 
 	print(T0, 'tooo')
 	print(sim_wind.t/T0)
-	u[:,0] = (P0_p1)**0.5 / np.cosh(sim_wind.t/T0)#*np.exp(-1j*(sim_wind.woffset)*sim_wind.t)
+	u[:,0] = (P0_p1)**0.5 / np.cosh(sim_wind.t/T0)*np.exp(-1j*(sim_wind.woffset)*sim_wind.t)
 	U[:,0] = fftshift(sim_wind.dt*fft(u[:,0]))
 	fwhm2 = FWHM_fun(sim_wind.t, np.abs(u)**2)
 	print(fwhm2)

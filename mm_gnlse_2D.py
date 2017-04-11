@@ -1,7 +1,7 @@
 from __future__ import division, print_function
 import numpy as np
-import matplotlib as mpl
-mpl.use('Agg')
+#import matplotlib as mpl
+#mpl.use('Agg')
 from scipy.constants import c, pi
 from joblib import Parallel, delayed
 from scipy.fftpack import fftshift, fft
@@ -28,8 +28,8 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 	u[:, 0] += (0.5*P0_p1)**0.5  * np.exp(1j*(woff1)*sim_wind.t)
 
 
-	#woff2 = -(s_pos - (int_fwm.nt-1)//2)*2*pi*sim_wind.df
-	#u[:, 0] += (P0_s)**0.5 * np.exp(-1j*(woff2)*sim_wind.t)#*np.exp(-sim_wind.t**2/T0_s)
+	woff2 = -(s_pos - (int_fwm.nt-1)//2)*2*pi*sim_wind.df
+	u[:, 0] += (P0_s)**0.5 * np.exp(-1j*(woff2)*sim_wind.t)#*np.exp(-sim_wind.t**2/T0_s)
 
 
 	U[:, 0] = fftshift(fft(u[:,0]))
@@ -109,7 +109,8 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
 		(out1, out2),(u[:, -1], U[:, -1])  = WDM_vec[1].pass_through(
 			(U[:, -1], noise_new), sim_wind)
-		
+
+	
 		
 		
 		plotter_dbm(index,int_fwm.nm, sim_wind, u, U, P0_p1,
@@ -283,11 +284,11 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 
 def main():
 	"-----------------------------Stable parameters----------------------------"
-	num_cores = 6							# Number of computing cores for sweep
+	num_cores = 5							# Number of computing cores for sweep
 	maxerr = 1e-13							# maximum tolerable error per step in integration
 	ss = 1					  				# includes self steepening term
 	ram = 'on'				  				# Raman contribution 'on' if yes and 'off' if no
-	plots = True 							# Do you want plots, be carefull it makes the code very slow!
+	plots = False 							# Do you want plots, be carefull it makes the code very slow!
 	N = 14									# 2**N grid points
 	nt = 2**N 								# number of grid points
 	nplot = 2								# number of plots within fibre min is 2
@@ -298,12 +299,12 @@ def main():
 	n2 = 2.5e-20							# Nonlinear index [m/W]
 	gama = 10e-3 							# Overwirtes n2 and Aeff w/m
 	alphadB = 0*0.0011666666666666668		# loss within fibre[dB/m]
-	z = 180								# Length of the fibre
+	z = 18								# Length of the fibre
 	P_p = 5									# Pump power [W]
-	P_s = 0									# Signal power [W]
+	P_s = [3e-3]									# Signal power [W]
 	TFWHM_p = 0								# full with half max of pump
 	TFWHM_s = 0								# full with half max of signal
-	spl_losses = [[0,0,0.]]#,[0,0,1.1],[0,0,1.2],[0,0,1.3]]					# loss of each type of splices [dB] 
+	spl_losses = [0,0,1.]#,[0,0,1.1],[0,0,1.2],[0,0,1.3]]					# loss of each type of splices [dB] 
 	betas = np.array([0, 0, 0, 6.756e-2,	# propagation constants [ps^n/m]
 			-1.002e-4, 3.671e-7])*1e-3								
 	lamda_c = 1051.85e-9					# Zero dispersion wavelength [nm]
@@ -314,8 +315,8 @@ def main():
 	lamp = 1051.5							# Pump wavelengths [nm]
 
 
-	lams = np.arange(1085, 1115, 2)
-	lams = [1085,1115]
+	lams = np.arange(1091, 1101, 1)
+	#lams = [1085,1115]
 	#lams = [lams[1]]									# Signal wavelength [nm]
 	var_dic = {'n2':n2, 'gama':gama, 'alphadB':alphadB, 'z':z, 'P_p':P_p,
 				 'P_s':P_s,'TFWHM_p':TFWHM_p, 'TFWHM_s':TFWHM_s,
@@ -323,7 +324,7 @@ def main():
 				  'lamda_c':lamda_c, 'WDMS_pars':WDMS_pars,
 				   'lamp':lamp, 'lams':lams}
 	"--------------------------------------------------------------------------"
-	outside_var_key = 'spl_losses'
+	outside_var_key = 'P_s'
 	inside_var_key = 'lams'
 	inside_var = var_dic[inside_var_key]
 	outside_var = var_dic[outside_var_key]
@@ -338,6 +339,10 @@ def main():
 	if len(inside_var) < num_cores:
 		num_cores = len(inside_var)
 	
+	#division_of_cores = len()//max_num_cores
+	#while division_of_cores !=
+	#num_cores = max_num_cores
+
 	for kk,variable in enumerate(outside_var):
 		create_file_structure(kk)
 

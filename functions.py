@@ -177,7 +177,6 @@ class sim_window(object):
     def __init__(self, fv, lamda, lamda_c, int_fwm, fv_idler_int):
         self.fv = fv
         self.lamda = lamda
-        print(self.lamda)
         # self.lmin = 1e-3*c/np.max(fv)  # [nm]
         # self.lmax = 1e-3*c/np.min(fv)  # [nm]
 
@@ -343,6 +342,7 @@ class WDM(object):
         """
         # print(np.shape(U_in[0]))
         #U_in[0],U_in[1] = U_in[0][:,np.newaxis],U_in[1][:,np.newaxis]
+
         U_out = self.U_calc(U_in)
         u_out = ()
         for i, UU in enumerate(U_out):
@@ -465,8 +465,8 @@ class Noise(object):
         noise = self.noise_func(int_fwm)
         noise_freq = fftshift(fft(noise))
         return noise_freq
-import warnings
-warnings.filterwarnings("error")
+#import warnings
+#warnings.filterwarnings("error")
 
 #@profile
 def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm):
@@ -523,7 +523,7 @@ def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm):
             ###################################################################
 
         u[:, jj+1] = u1
-        U[:, jj+1] = fftshift(sim_wind.dt*fft(u[:, jj+1]))
+        U[:, jj+1] = fftshift(fft(u[:, jj+1]))
     int_fwm.dz = dz*1
     return u, U
 
@@ -561,24 +561,24 @@ def fv_creator(lam_p1,lams,int_fwm,prot_casc = 100):
     N = int_fwm.nt
     fp = 1e-3*c / lam_p1
     fs = 1e-3*c /lams
-    f_med = np.linspace(fs,fp,N/4 - prot_casc)
+
+    sig_pump_shave = N//8
+    f_med = np.linspace(fs,fp,sig_pump_shave - prot_casc)
     d = f_med[1] - f_med[0]
-    
+    diff = N//4 - sig_pump_shave
 
     f_2 =  [f_med[0],]
-    for i in range(1,N//4 +1 + prot_casc//2):
+    for i in range(1,N//4 +1 +diff//2+ prot_casc//2):
         f_2.append(f_2[i-1]- d)
     f_2 = f_2[1:]
     f_2.sort()
     f_1 = [f_med[-1],]
-    for i in range(1,N//2 +1 + prot_casc//2):
+    for i in range(1,N//2 +1 +diff//2+ prot_casc//2):
         f_1.append(f_1[i-1] +d)
     f_1 = f_1[1:]
     f_1.sort()
     f_med.sort()
-    print(min(f_1),max(f_1))
-    print(min(f_med),max(f_med))
-    print(min(f_2),max(f_2))
+
     
     fv = np.concatenate((f_1,f_med,f_2))
     fv.sort()
