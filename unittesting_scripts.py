@@ -75,7 +75,7 @@ def test_raman_load():
 	hf_exact = np.asanyarray([hf_exact[i][0] for i in range(hf_exact.shape[0])])
 	hf = ram.raman_load(t,dt)
 
-	assert_allclose(hf, hf_exact*dt)
+	assert_allclose(hf, hf_exact)
 
 
 def test_raman_analytic():
@@ -143,7 +143,7 @@ def test_dispersion():
 "-----------------------Full soliton--------------------------------------------"	
 def pulse_propagations(ram,ss,N_sol = 1):
 	"SOLITON TEST. IF THIS FAILS GOD HELP YOU!"
-	
+
 
 
 	n2 = 2.5e-20								# n2 for silica [m/W]
@@ -154,11 +154,11 @@ def pulse_propagations(ram,ss,N_sol = 1):
 	maxerr = 1e-13				# maximum tolerable error per step
 	"----------------------------Simulation parameters-------------------------"
 	N = 14
-	z =2				 	# total distance [m]
+	z = 70				 	# total distance [m]
 	nplot = 1				  # number of plots
 	nt = 2**N 					# number of grid points
 	dzstep = z/nplot			# distance per step
-	dz_less = 1e10
+	dz_less = 1e20
 	dz = dzstep/dz_less		 # starting guess value of the step
 
 	lam_p1 = 835
@@ -166,7 +166,7 @@ def pulse_propagations(ram,ss,N_sol = 1):
 	lamda = lam_p1*1e-9
 	
 	beta2 = -1e-3
-	P0_p1 = 0.05
+	P0_p1 = 1
 
 	T0 =  (N_sol**2 * np.abs(beta2) / (gama * P0_p1))**0.5
 	TFWHM = (2*np.log(1+2**0.5)) * T0
@@ -212,16 +212,15 @@ def pulse_propagations(ram,ss,N_sol = 1):
 
 	sim_wind.w_tiled = sim_wind.w
 
-	print(T0, 'tooo')
-	print(sim_wind.t/T0)
-	u[:,0] = (P0_p1)**0.5 / np.cosh(sim_wind.t/T0)*np.exp(-1j*(sim_wind.woffset)*sim_wind.t)
+
+	u[:,0] = ((P0_p1)**0.5 / np.cosh(sim_wind.t/T0))*np.exp(-1j*(sim_wind.woffset)*sim_wind.t)
 	U[:,0] = fftshift(sim_wind.dt*fft(u[:,0]))
 	fwhm2 = FWHM_fun(sim_wind.t, np.abs(u)**2)
-	print(fwhm2)
 	u,U  = pulse_propagation(u,U,int_fwm,M,sim_wind,hf,Dop,dAdzmm)
 
 	U_start = np.abs(U[:,0])**2
 	
+	u[:,-1] = u[:,-1]*np.exp(1j*z/2)*np.exp(1j*(sim_wind.woffset)*sim_wind.t)
 	"""
 	fig1 = plt.figure()
 	plt.plot(sim_wind.fv,U_start)
@@ -230,32 +229,38 @@ def pulse_propagations(ram,ss,N_sol = 1):
 	fig2 = plt.figure()
 	plt.plot(sim_wind.fv,np.abs(U[:,-1])**2)
 	plt.savefig('2.png')	
-
+	"""
+	"""
 	fig3 = plt.figure()
 	plt.plot(sim_wind.t,np.abs(u[:,0])**2)
-	plt.xlim(-3*T0, 3*T0)
+	plt.xlim(-10*T0, 10*T0)
 	plt.savefig('3.png')
 
 	fig4 = plt.figure()
 	plt.plot(sim_wind.t,np.abs(u[:,-1])**2)
-	plt.xlim(-3*T0, 3*T0)
+	plt.xlim(-10*T0, 10*T0)
 	plt.savefig('4.png')	
-
+	"""
+	"""
 	fig5 = plt.figure()
 	plt.plot(fftshift(sim_wind.w),(np.abs(U[:,-1])**2 - U_start))
 	plt.savefig('error.png')
-
+	"""
+	"""
 	fig6 = plt.figure()
 	plt.plot(sim_wind.t,np.abs(u[:,-1])**2 - np.abs(u[:,0])**2)
-	plt.xlim(-3*T0, 3*T0)
+	plt.xlim(-10*T0, 10*T0)
 	plt.savefig('error2.png')
 	plt.show()
 	"""
-	return u,U
+	return u,U,maxerr
+def test_solit_r0_ss0():
+	u,U,maxerr = pulse_propagations('off', 0)
+	assert_allclose(np.abs(u[:,0])**2 , np.abs(u[:,-1])**2,atol = maxerr)
 
 
 def test_energy_r0_ss0():
-	u,U = pulse_propagations('off', 0,N_sol=np.abs(np.random.randn()))
+	u,U,maxerr  = pulse_propagations('off', 0,N_sol=np.abs(np.random.randn()))
 	E = []
 	for i in range(np.shape(u)[1]):
 		E.append(np.linalg.norm(u[:,i], 2)**2)
@@ -263,7 +268,7 @@ def test_energy_r0_ss0():
 
 
 def test_energy_r0_ss1():
-	u,U = pulse_propagations('off', 1,N_sol=np.abs(np.random.randn()))
+	u,U,maxerr  = pulse_propagations('off', 1,N_sol=np.abs(np.random.randn()))
 	E = []
 	for i in range(np.shape(u)[1]):
 		E.append(np.linalg.norm(u[:,i], 2)**2)
@@ -271,7 +276,7 @@ def test_energy_r0_ss1():
 
 
 def test_energy_r1_ss0():
-	u,U = pulse_propagations('on', 0,N_sol=np.abs(np.random.randn()))
+	u,U,maxerr  = pulse_propagations('on', 0,N_sol=np.abs(np.random.randn()))
 	E = []
 	for i in range(np.shape(u)[1]):
 		E.append(np.linalg.norm(u[:,i], 2)**2)
@@ -279,16 +284,14 @@ def test_energy_r1_ss0():
 
 
 def test_energy_r1_ss1():
-	u,U = pulse_propagations('on', 1,N_sol=np.abs(np.random.randn()))
+	u,U,maxerr  = pulse_propagations('on', 1,N_sol=np.abs(np.random.randn()))
 	E = []
 	for i in range(np.shape(u)[1]):
 		E.append(np.linalg.norm(u[:,i], 2)**2)
 	assert np.all(x == E[0] for x in E)
 
 
-def test_solit_r0_ss0():
-	u,U = pulse_propagations('off', 0)
-	assert_allclose(np.abs(U[:,0])**2 , np.abs(U[:,-1])**2,atol = 1e-13)
+
 
 
 def test_time_frequency():

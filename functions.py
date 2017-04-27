@@ -15,7 +15,9 @@ import cmath
 from time import time
 from scipy.fftpack import fft, ifft
 phasor = np.vectorize(cmath.polar)
+import warnings
 
+warnings.filterwarnings('error')
 
 def dbm2w(dBm):
     """This function converts a power given in dBm to a power given in W.
@@ -73,7 +75,7 @@ class raman_object(object):
                 htmeas_f = InterpolatedUnivariateSpline(t1*1e-3, ht)
                 htmeas = htmeas_f(t)
                 htmeas *= (t > 0)*(t < 1)  # only measured between +/- 1 ps)
-                htmeas /= (np.sum(htmeas))  # normalised
+                htmeas /= (dt*np.sum(htmeas))  # normalised
                 # Fourier transform of the measured nonlinear response
                 self.hf = fft(htmeas)
             else:
@@ -471,13 +473,12 @@ class Noise(object):
 #@profile
 def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm):
     """Pulse propagation"""
-    # badz = 0  # counter for bad steps
-    # goodz = 0  # counter for good steps
+    #badz = 0  # counter for bad steps
+    #goodz = 0  # counter for good steps
     dztot = 0  # total distance traveled
     #dzv = np.zeros(1)
     #dzv[0] = int_fwm.dz
     u1 = np.ascontiguousarray(u[:, 0])
-
     dz = int_fwm.dz * 1
     for jj in range(int_fwm.nplot):
         exitt = False
@@ -497,6 +498,7 @@ def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm):
             #####################################Successful step###############
             # propagate the remaining half step
             u1 = ifft(np.exp(Dop*dz/2)*fft(A))
+            #goodz +=1
             # update the propagated distance
             dztot += dz
             # update the number of steps taken
@@ -525,6 +527,7 @@ def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm):
         u[:, jj+1] = u1
         U[:, jj+1] = fftshift(fft(u[:, jj+1]))
     int_fwm.dz = dz*1
+
     return u, U
 
 
