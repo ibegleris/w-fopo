@@ -75,7 +75,7 @@ def dAdzmm_roff_s1(u0, M, n2, lamda, tsh, dt, hf, w_tiled):
     calculates the nonlinear operator for a given field u0
     use: dA = dAdzmm(u0)
     """
-    print('no')
+    #print('no')
     M3 = np.abs(u0)**2
     N = M*u0*M3
     N = -1j*n2*2*pi/lamda*(N + tsh*ifft((w_tiled)*fft(N)))

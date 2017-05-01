@@ -352,12 +352,25 @@ class WDM(object):
             #u_out += (UU,)
         return ((u_out[0], U_out[0]), (u_out[1], U_out[1]))
 
-    def il_port1(self):
+    def il_port1(self,fv_sp = None):
+        """
+        For visualisation of the wdm loss of port 1. If no input is given then it is plotted
+        in the freequency vector that the function is defined by. You can however 
+        give an input in wavelength.
+        """
+        if fv_sp is None:
+            return (np.sin(self.omega*self.fv+self.phi))**2
+        else:
+            return (np.sin(self.omega*(1e-3*c/fv_sp)+self.phi))**2
+    def il_port2(self,fv_sp = None):
+        """
+        Like il_port1 but with cosine (oposite)
+        """
+        if fv_sp is None:
+            return (np.cos(self.omega*self.fv+self.phi))**2
+        else:
+            return (np.cos(self.omega*(1e-3*c/fv_sp) +self.phi))**2
 
-        return (np.sin(self.omega*self.fv+self.phi))**2
-
-    def il_port2(self):
-        return (np.cos(self.omega*self.fv+self.phi))**2
 
     def plot(self, filename=False, xlim=False):
         fig = plt.figure()
@@ -478,6 +491,7 @@ def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm):
     dztot = 0  # total distance traveled
     #dzv = np.zeros(1)
     #dzv[0] = int_fwm.dz
+    Safety = 0.95
     u1 = np.ascontiguousarray(u[:, 0])
     dz = int_fwm.dz * 1
     for jj in range(int_fwm.nplot):
@@ -493,7 +507,7 @@ def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm):
                                  sim_wind.dt, hf, sim_wind.w_tiled)
                 if (delta > int_fwm.maxerr):
                     # calculate the step (shorter) to redo
-                    dz *= (int_fwm.maxerr/delta)**0.25
+                    dz *= Safety*(int_fwm.maxerr/delta)**0.25
                     #badz += 1
             #####################################Successful step###############
             # propagate the remaining half step
@@ -509,9 +523,9 @@ def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm):
             # # without exceeding max dzstep
             try:
                 dz = np.min(
-                [0.95*dz*(int_fwm.maxerr/delta)**0.2, 0.95*int_fwm.dzstep])
+                [Safety*dz*(int_fwm.maxerr/delta)**0.2, Safety*int_fwm.dzstep])
             except RuntimeWarning:
-                dz = 0.95*int_fwm.dzstep
+                dz = Safety*int_fwm.dzstep
             #dz = 0.95*dz*(int_fwm.maxerr/delta)**0.2
             # print(dz)
             ###################################################################
@@ -546,7 +560,7 @@ def dbm_nm(U, sim_wind, int_fwm):
 
 
 
-def fv_creator(lam_p1,lams,int_fwm,prot_casc = 100):
+def fv_creator(lam_p1,lams,int_fwm,prot_casc = 0):
     """
     Creates the freequency grid of the simmualtion and returns it.
     The conceprt is that the pump freq is the center. (N/4 - prot_casc) steps till the 
@@ -565,7 +579,7 @@ def fv_creator(lam_p1,lams,int_fwm,prot_casc = 100):
     fp = 1e-3*c / lam_p1
     fs = 1e-3*c /lams
 
-    sig_pump_shave = N//8
+    sig_pump_shave = N//16
     f_med = np.linspace(fs,fp,sig_pump_shave - prot_casc)
     d = f_med[1] - f_med[0]
     diff = N//4 - sig_pump_shave
