@@ -98,6 +98,8 @@ class int_fwms(object):
 			self.alphadB = alpha
 			self.alpha = self.alphadB/4.343
 			self.nt = nt
+
+
 class sim_windows(object):
 	def __init__(self,lamda,lv,lmin,lmax,nt):
 		self.lamda = lamda
@@ -158,7 +160,7 @@ def pulse_propagations(ram,ss,N_sol = 1):
 	nplot = 1				  # number of plots
 	nt = 2**N 					# number of grid points
 	dzstep = z/nplot			# distance per step
-	dz_less = 1e20
+	dz_less = 1e30
 	dz = dzstep/dz_less		 # starting guess value of the step
 
 	lam_p1 = 835
@@ -211,7 +213,7 @@ def pulse_propagations(ram,ss,N_sol = 1):
 	U = np.zeros([len(sim_wind.t),len(sim_wind.zv)],dtype='complex128')
 
 	sim_wind.w_tiled = sim_wind.w
-
+	print(sim_wind.woffset)
 
 	u[:,0] = ((P0_p1)**0.5 / np.cosh(sim_wind.t/T0))*np.exp(-1j*(sim_wind.woffset)*sim_wind.t)
 	U[:,0] = fftshift(sim_wind.dt*fft(u[:,0]))
@@ -220,17 +222,17 @@ def pulse_propagations(ram,ss,N_sol = 1):
 
 	U_start = np.abs(U[:,0])**2
 	
-	u[:,-1] = u[:,-1]*np.exp(1j*z/2)*np.exp(1j*(sim_wind.woffset)*sim_wind.t)
+	u[:,-1] = u[:,-1]*np.exp(1j*z/2)*np.exp(-1j*(sim_wind.woffset)*sim_wind.t)
 	"""
 	fig1 = plt.figure()
-	plt.plot(sim_wind.fv,U_start)
+	plt.plot(sim_wind.fv,np.abs(U[:,0])**2)
 	plt.savefig('1.png')
 
 	fig2 = plt.figure()
 	plt.plot(sim_wind.fv,np.abs(U[:,-1])**2)
 	plt.savefig('2.png')	
-	"""
-	"""
+	
+	
 	fig3 = plt.figure()
 	plt.plot(sim_wind.t,np.abs(u[:,0])**2)
 	plt.xlim(-10*T0, 10*T0)
@@ -240,13 +242,13 @@ def pulse_propagations(ram,ss,N_sol = 1):
 	plt.plot(sim_wind.t,np.abs(u[:,-1])**2)
 	plt.xlim(-10*T0, 10*T0)
 	plt.savefig('4.png')	
-	"""
-	"""
+	
+
 	fig5 = plt.figure()
 	plt.plot(fftshift(sim_wind.w),(np.abs(U[:,-1])**2 - U_start))
 	plt.savefig('error.png')
-	"""
-	"""
+
+	
 	fig6 = plt.figure()
 	plt.plot(sim_wind.t,np.abs(u[:,-1])**2 - np.abs(u[:,0])**2)
 	plt.xlim(-10*T0, 10*T0)
@@ -254,13 +256,15 @@ def pulse_propagations(ram,ss,N_sol = 1):
 	plt.show()
 	"""
 	return u,U,maxerr
+
+
 def test_solit_r0_ss0():
 	u,U,maxerr = pulse_propagations('off', 0)
-	assert_allclose(np.abs(u[:,0])**2 , np.abs(u[:,-1])**2,atol = maxerr)
+	assert_allclose(np.abs(u[:,0])**2 , np.abs(u[:,-1])**2,atol = 9e-4)
 
 
 def test_energy_r0_ss0():
-	u,U,maxerr  = pulse_propagations('off', 0,N_sol=np.abs(np.random.randn()))
+	u,U,maxerr  = pulse_propagations('off', 0,N_sol=np.abs(10*np.random.randn()))
 	E = []
 	for i in range(np.shape(u)[1]):
 		E.append(np.linalg.norm(u[:,i], 2)**2)
@@ -268,7 +272,7 @@ def test_energy_r0_ss0():
 
 
 def test_energy_r0_ss1():
-	u,U,maxerr  = pulse_propagations('off', 1,N_sol=np.abs(np.random.randn()))
+	u,U,maxerr  = pulse_propagations('off', 1,N_sol=np.abs(10*np.random.randn()))
 	E = []
 	for i in range(np.shape(u)[1]):
 		E.append(np.linalg.norm(u[:,i], 2)**2)
@@ -276,7 +280,7 @@ def test_energy_r0_ss1():
 
 
 def test_energy_r1_ss0():
-	u,U,maxerr  = pulse_propagations('on', 0,N_sol=np.abs(np.random.randn()))
+	u,U,maxerr  = pulse_propagations('on', 0,N_sol=np.abs(10*np.random.randn()))
 	E = []
 	for i in range(np.shape(u)[1]):
 		E.append(np.linalg.norm(u[:,i], 2)**2)
@@ -284,7 +288,7 @@ def test_energy_r1_ss0():
 
 
 def test_energy_r1_ss1():
-	u,U,maxerr  = pulse_propagations('on', 1,N_sol=np.abs(np.random.randn()))
+	u,U,maxerr  = pulse_propagations('on', 1,N_sol=np.abs(10*np.random.randn()))
 	E = []
 	for i in range(np.shape(u)[1]):
 		E.append(np.linalg.norm(u[:,i], 2)**2)
@@ -300,7 +304,8 @@ def test_time_frequency():
 	u1 = 10*(np.random.randn(2**nt) + 1j * np.random.randn(2**nt))
 	U = fftshift(dt*fft(u1))
 	u2 = ifft(ifftshift(U)/dt)
-	assert_allclose( u1, u2)
+	assert_allclose(u1, u2)
+	
 "-------------------------------WDM------------------------------------"
 class Test_WDM(object):
 	"""
@@ -593,4 +598,4 @@ def test_full_trans_in_cavity():
 
     U  = WDM1.pass_through((np.zeros_like(U),U), sim_wind)[0][1]
  
-    assert_allclose(max(np.abs(U)**2), 0.723489854063)
+    assert_allclose(max(np.abs(U)**2), 0.7234722042243035)

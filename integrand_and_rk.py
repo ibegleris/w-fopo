@@ -64,20 +64,21 @@ def dAdzmm_roff_s0(u0, M, n2, lamda, tsh, dt, hf, w_tiled):
     use: dA = dAdzmm(u0)
     """
     #print(M,lamda)
-    M3 = np.abs(u0)**2
-    N = M*u0*M3
+    M3 = uabs(np.ascontiguousarray(u0.real), np.ascontiguousarray(u0.imag))
+    N = nonlin_ker(M, u0, M3)
     N *= -1j*n2*2*pi/lamda
     return N
 
 
+#@profile
 def dAdzmm_roff_s1(u0, M, n2, lamda, tsh, dt, hf, w_tiled):
     """
     calculates the nonlinear operator for a given field u0
     use: dA = dAdzmm(u0)
     """
     #print('no')
-    M3 = np.abs(u0)**2
-    N = M*u0*M3
+    M3 = uabs(np.ascontiguousarray(u0.real), np.ascontiguousarray(u0.imag))
+    N = nonlin_ker(M, u0, M3)
     N = -1j*n2*2*pi/lamda*(N + tsh*ifft((w_tiled)*fft(N)))
     return N
 
@@ -88,9 +89,12 @@ def dAdzmm_ron_s0(u0, M, n2, lamda, tsh, dt, hf, w_tiled):
     use: dA = dAdzmm(u0)
             """
 
-    M3 = np.abs(u0)**2
+    M3 = uabs(np.ascontiguousarray(u0.real), np.ascontiguousarray(u0.imag))
 
-    N = 0.82*M * u0*M3 + 0.18*M*u0*dt*fftshift(ifft(fft(M3)*hf))
+    temp = fftshift(ifft(fft(M3)*hf))
+    # for i in (M, u0,M3, dt, temp):
+    #   print(i.dtype)
+    N = nonlin_ram(M, u0, M3, dt, temp)
     N *= -1j*n2*2*pi/lamda
     return N
 """
@@ -121,7 +125,7 @@ def dAdzmm_ron_s1(u0, M, n2, lamda, tsh, dt, hf, w_tiled):
     temp = fftshift(ifft(fft(M3)*hf))
     # for i in (M, u0,M3, dt, temp):
     #	print(i.dtype)
-    N = nonlin(M, u0, M3, dt, temp)
+    N = nonlin_ram(M, u0, M3, dt, temp)
     # print(np.isfortran(N))
     #print(np.isfortran(w_tiled * fft(N)))
     # sys.exit()
@@ -154,10 +158,15 @@ def add(x, y):
 def uabs(u0r, u0i):
     return u0r*u0r + u0i*u0i
 
+@vectorize(['complex128(float64,complex128,\
+                float64)'], target=trgt)
+def nonlin_ker(M, u0, M3):
+    return 0.82*M*u0*M3
+
 
 @vectorize(['complex128(float64,complex128,\
 				float64,float64,complex128)'], target=trgt)
-def nonlin(M, u0, M3, dt, temp):
+def nonlin_ram(M, u0, M3, dt, temp):
     return M*u0*(0.82*M3 + 0.18*dt*temp)
 
 
