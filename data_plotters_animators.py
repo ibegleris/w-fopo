@@ -3,7 +3,7 @@ mpl.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-
+from scipy.constants import c
 import h5py
 
 def w2dbm(W, floor=-100):
@@ -32,7 +32,7 @@ def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro,P_port
 	if plots == True:
 		fig = plt.figure(figsize=(20.0, 10.0))
 
-		plt.plot(sim_wind.lv, 
+		plt.plot(1e-3*c/sim_wind.fv, 
 				w2dbm(np.abs(U[:,which])**2), '-*')
 		#plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
 		#plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
@@ -40,7 +40,7 @@ def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro,P_port
 		plt.ylabel(r'$Spectrum (a.u.)$', fontsize=18)
 		plt.ylim([-80, 100])
 		plt.xlim([np.min(sim_wind.lv), np.max(sim_wind.lv)])
-		#plt.xlim([900, 1250])
+		plt.xlim([900, 1250])
 		plt.title(title)
 		plt.grid()
 		if type(im) != int:
@@ -61,7 +61,7 @@ def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro,P_port
 		plt.xlabel(r'$f (THz)$', fontsize=18)
 		plt.ylabel(r'$Spectrum (a.u.)$', fontsize=18)
 		#plt.xlim([np.min(sim_wind.fv), np.max(sim_wind.fv)])
-		#plt.ylim([-80, 100])
+		plt.ylim([-20, 120])
 		#plt.xlim(270,300)
 		plt.title(str(f_p)+' ' +str(f_s))
 		plt.grid()

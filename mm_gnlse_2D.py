@@ -25,7 +25,7 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 	u[:, 0] = noise_new
 
 	woff1 = (p_pos+(int_fwm.nt)//2)*2*pi*sim_wind.df
-	u[:, 0] += (0.5*P0_p1)**0.5  * np.exp(1j*(woff1)*sim_wind.t)
+	u[:, 0] += (P0_p1)**0.5  * np.exp(1j*(woff1)*sim_wind.t)
 
 
 	woff2 = -(s_pos - (int_fwm.nt-1)//2)*2*pi*sim_wind.df
@@ -89,7 +89,7 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 	
 		plotter_dbm(index,int_fwm.nm, sim_wind, u, U, P0_p1,
 					P0_s, f_p, f_s, -1,ro,P_portb,rel_error,master_index, str(ro)+'2', pulse_pos_dict[0], D_pic[2],plots)
-		
+		"""
 		# Splice4
 		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
 		(u[:, -1], U[:, -1]) = splicers_vec[1].pass_through(
@@ -104,12 +104,12 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
 		(u[:, -1], U[:, -1]) = splicers_vec[1].pass_through(
 			(U[:, -1], noise_new), sim_wind)[0]
-		
+		"""
 		# pass through WDM2 port 2 continues and port 1 is out of the loop
 		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
 		(out1, out2),(u[:, -1], U[:, -1])  = WDM_vec[1].pass_through(
 			(U[:, -1], noise_new), sim_wind)
-
+		
 	
 		
 		
@@ -117,12 +117,12 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 					P0_s, f_p, f_s, -1, ro,P_portb,rel_error,master_index,str(ro)+'3', pulse_pos_dict[1], D_pic[3],plots)
 
 
-
+		"""
 		# Splice7 after WDM2 for the signal
 		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
 		(u[:, -1], U[:, -1]) = splicers_vec[1].pass_through(
 			(U[:, -1], noise_new), sim_wind)[0]
-
+		"""
 
 
 		# Splice7 after WDM2 for the signal
@@ -141,12 +141,12 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 		u_out = np.reshape(out1, (len(sim_wind.t), 1))
 		plotter_dbm(index,int_fwm.nm, sim_wind, u_out, U_out, P0_p1,
 					P0_s, f_p, f_s, -1, ro,P_portb,rel_error,master_index,str(ro)+'4', pulse_pos_dict[4], D_pic[6],plots)
-		
+		"""
 		# Splice8 before WDM3
 		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
 		(out1, out2) = splicers_vec[1].pass_through(
 			(out2, noise_new), sim_wind)[0]
-		
+		"""
 
 		# WDM3 port 1 continues and port 2 is portA in experiment
 		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
@@ -161,12 +161,12 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 		plotter_dbm(index,int_fwm.nm, sim_wind , u_portA,
 			U_portA, P0_p1, P0_s, f_p, f_s, -1, ro,P_portb,rel_error,master_index,'portA/'+str(ro),
 			'round '+str(ro)+', portA',plots=plots)
-		
+		"""
 		# Splice9 before WDM4
 		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
 		(out1, out2)= splicers_vec[1].pass_through(
 			(out2, noise_new), sim_wind)[0]
-		
+		"""
 		# WDM4 port 1 goes to port B and port 2 to junk
 		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
 		(u_portB, U_portB)  = WDM_vec[3].pass_through(
@@ -184,7 +184,7 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 		fv_id = idler_limits(sim_wind, U_portB)
 		P_portb = power_idler(U_portB,sim_wind.fv,sim_wind.T,fv_id)
 		rel_error = 100*np.abs(P_portb - P_portb_prev)/P_portb_prev
-
+		
 	return None
 
 #'num_cores':num_cores, 'maxerr':maxerr, 'ss':ss, 'ram':ram, 'plots': plots
@@ -220,7 +220,7 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 
 	"---------------------Loss-in-fibres-----------------------"
 	slice_from_edge = (sim_wind.fv[-1] - sim_wind.fv[0])/100
-	loss = Loss(int_fwm, sim_wind, amax=0)
+	loss = Loss(int_fwm, sim_wind, amax=5)
 
 	int_fwm.alpha = loss.atten_func_full(fv)
 
@@ -261,6 +261,7 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 
 	"----------------------Formulate WDMS--------------------"
 	if WDMS_pars == 'signal_locked':
+
 		Omega = 2*pi*c/(lamp*1e-9) - 2*pi*c/(lams*1e-9) 
 		omegai = 2*pi*c/(lamp*1e-9) +Omega
 		lami = 1e9*2*pi*c/(omegai)
@@ -270,6 +271,11 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 					[lami, lams])
 	#print(WDMS_pars)
 	#sys.exit()
+	#print(lamp)
+	WDMS_pars = ([lamp, 1200], 	# WDM up downs in wavelengths [m]
+				[930,  1200],
+				[930,lamp],
+				[930, 1200])
 	WDM_vec = [WDM(i[0], i[1],sim_wind.fv,c) for i in WDMS_pars]# WDM up downs in wavelengths [m]
 
 
@@ -296,46 +302,62 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 
 def main():
 	"-----------------------------Stable parameters----------------------------"
-	num_cores = 4							# Number of computing cores for sweep
+	num_cores = 6							# Number of computing cores for sweep
 	maxerr = 1e-13							# maximum tolerable error per step in integration
 	ss = 1					  				# includes self steepening term
 	ram = 'on'				  				# Raman contribution 'on' if yes and 'off' if no
 	plots = False 							# Do you want plots, be carefull it makes the code very slow!
 	N = 14									# 2**N grid points
 	nt = 2**N 								# number of grid points
-	nplot = 10								# number of plots within fibre min is 2
+	nplot = 2								# number of plots within fibre min is 2
 	"--------------------------------------------------------------------------"
 	stable_dic = {'num_cores':num_cores, 'maxerr':maxerr, 'ss':ss, 'ram':ram, 'plots': plots,
 					'N':N, 'nt':nt,'nplot':nplot}
 	"------------------------Can be variable parameters------------------------"
 	n2 = 2.5e-20							# Nonlinear index [m/W]
 	gama = 10e-3 							# Overwirtes n2 and Aeff w/m
-	alphadB = 0*0.0011666666666666668		# loss within fibre[dB/m]
-	z = 18								# Length of the fibre
-	P_p = 4.						# Pump power [W]
+	alphadB = 0#0.0011667#666666666668		# loss within fibre[dB/m]
+	z = 18									# Length of the fibre
+	P_p = np.arange(3,5.2,0.2)				# Pump power [W]
+	#P_p = [4.3]
 	#P_p = [5.5,]
-	P_s = [10e-3,100e-3,1]							# Signal power [W]
+	P_s = 0*100e-3#[10e-3,100e-3,1]							# Signal power [W]
 	TFWHM_p = 0								# full with half max of pump
 	TFWHM_s = 0								# full with half max of signal
 	spl_losses = [[0,0,1.],[0,0,1.2],[0,0,1.3],[0,0,1.4]]					# loss of each type of splices [dB] 
-	spl_losses = [0,0,1.]
+	spl_losses = [0,0,1.4]
 	betas = np.array([0, 0, 0, 6.756e-2,	# propagation constants [ps^n/m]
 			-1.002e-4, 3.671e-7])*1e-3								
 	lamda_c = 1051.85e-9		
 				# Zero dispersion wavelength [nm]
 	#max at ls,li = 1095, 1010
+	variation = [-30,-20,-10,0,10,20,30]
 	#WDMS_pars = ([1051.5, 1095], 	# WDM up downs in wavelengths [m]
-	#			[1007.7934526,  1095],
-	#			[1007.7934526,1051.5],
-	#			[1007.7934526, 1099.16938991])
-	WDMS_pars = 'signal_locked' # lockes the WDMS to keep the max amount of signal in the cavity (seeded)
+	#			[1011.4,  1095],
+	#			[1011.4,1051.5],
+	#			[1011.4, 1095])
+	WDMS_pars = ([1048.17107345, 1200.39], 	# WDM up downs in wavelengths [m]
+				[930,  1200.39],
+				[930,1048.17107345],
+				[930, 1200.39])
+	
+
+	#WDMS_pars = []
+	#for i in variation:
+	#	WDMS_pars.append(([1051.5, 1095+i], 	# WDM up downs in wavelengths [m]
+	#					[1011.4,  1095],
+	#					[1011.4,1051.5],
+	#					[1011.4, 1095])) 
+	#print(WDMS_pars)
+	#sys.exit()
+	#WDMS_pars = 'signal_locked' # lockes the WDMS to keep the max amount of signal in the cavity (seeded)
 
 		
 
-	lamp = 1051.5							# Pump wavelengths [nm]
+	lamp = [1048.17107345, 1047.1]							# Pump wavelengths [nm]
 	#lamp = [1047.5,1047.9,1048.3,1048.6,1049,1049.5,1049.8,1050.2,1050.6,1051,1051.4]
 	#lamp = [1050,1050.5,1051,1051.5]
-	lams = np.arange(1091, 1107, 1)[:-1]
+	lams = 1200.39#np.arange(1093, 1097, 0.5)#[:-1]
 	#lams = [1094,1095,1096]
 	#lams = [1085,1115]
 	#lams = [lams[1]]									# Signal wavelength [nm]
@@ -345,8 +367,8 @@ def main():
 				  'lamda_c':lamda_c, 'WDMS_pars':WDMS_pars,
 				   'lamp':lamp, 'lams':lams}
 	"--------------------------------------------------------------------------"
-	outside_var_key = 'P_s'
-	inside_var_key = 'lams'
+	outside_var_key = 'lamp'
+	inside_var_key = 'P_p'
 	#outside_var_key, inside_var_key = inside_var_key, outside_var_key
 	inside_var = var_dic[inside_var_key]
 	outside_var = var_dic[outside_var_key]

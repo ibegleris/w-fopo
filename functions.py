@@ -7,7 +7,7 @@ from scipy.constants import pi, c
 from scipy.io import loadmat
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.integrate import simps
-from scipy.fftpack import fftshift
+from scipy.fftpack import ifftshift
 from math import factorial
 from integrand_and_rk import *
 from data_plotters_animators import *
@@ -447,7 +447,6 @@ class Splicer(WDM):
     def U_calc(self, U_in):
         """
         Operates like a beam splitter that reduces the optical power by the loss given (in dB).
-
         """
         U_out1 = U_in[0] * self.c1 + 1j * U_in[1] * self.c2
         U_out2 = 1j * U_in[0] * self.c2 + U_in[1] * self.c1
