@@ -220,23 +220,24 @@ class sim_window(object):
         #	check_ft_grid(i, np.abs(i[1] - i[0]))
 
 
-def idler_limits(sim_wind, U):
+def idler_limits(sim_wind,U_original_pump, U,noise_obj):
 
     size = len(U[:, 0])
-    max_int = np.argsort(U[(size//2 + 1):, 0])[0]
-    max_int += size//2
-    # print(sim_wind.fv[max_int])
+    pump_pos = np.argsort(U_original_pump)[-1]
+    out_int = np.argsort(U[(pump_pos + 1):, 0])[-1]
 
-    sim_wind.fv_idler_tuple = (sim_wind.fv[
-        max_int] - sim_wind.fv_idler_int,
-        sim_wind.fv[max_int] + sim_wind.fv_idler_int)
+    out_int += pump_pos
+    #print(1e-3*c/sim_wind.fv[pump_pos])
+    #print(1e-3*c/sim_wind.fv[out_int])
+    #sys.exit()
+    lhs_int = np.max(np.where(U[pump_pos+1:out_int-1,0]<= noise_obj.pquant_f)[0])
+    rhs_int = np.min(np.where(U[out_int+1:,0]<= noise_obj.pquant_f)[0])
+    lhs_int += pump_pos
+    rhs_int += out_int
+    if lhs_int > out_int:
+        lhs_int = out_int - 10
 
-    fv_id = (np.where(np.abs(sim_wind.fv - sim_wind.fv_idler_tuple[0]) ==
-                      np.min(np.abs(sim_wind.fv
-                                    - sim_wind.fv_idler_tuple[0])))[0][0],
-             np.where(np.abs(sim_wind.fv - sim_wind.fv_idler_tuple[1])
-                      == np.min(np.abs(sim_wind.fv
-                                       - sim_wind.fv_idler_tuple[1])))[0][0])
+    fv_id = (lhs_int, rhs_int)
     return fv_id
 
 
@@ -462,11 +463,12 @@ def norm_const(u, sim_wind):
 
 class Noise(object):
 
-    def __init__(self, sim_wind):
+    def __init__(self,int_fwm, sim_wind):
         self.pquant = np.sum(
             1.054e-34*(sim_wind.w*1e12 + sim_wind.w0)/(sim_wind.T*1e-12))
         #print(self.pquant**0.5)
         self.pquant = (self.pquant/2)**0.5
+        self.pquant_f = np.mean(np.abs(self.noise_func_freq(int_fwm, sim_wind))**2)
         return None
 
     def noise_func(self, int_fwm):
@@ -664,7 +666,7 @@ class create_destroy(object):
         return None
 
 
-def power_idler(spec, fv, T, fv_id):
+def power_idler(spec, fv, sim_wind, fv_id):
     """
     Set to calculate the power of the idler. The possitions
     at what you call an idler are given in fv_id
@@ -674,6 +676,6 @@ def power_idler(spec, fv, T, fv_id):
     fv_id: tuple of the starting and
     ending index at which the idler is calculated
     """
-    P_bef = simps(np.abs(spec[fv_id[0]:fv_id[1], 0])**2, fv[fv_id[0]:fv_id[1]])
-    P_bef /= 2*T
+    P_bef = simps((sim_wind.dt*np.abs(spec[fv_id[0]:fv_id[1], 0]))**2, fv[fv_id[0]:fv_id[1]])
+    P_bef /= 2*sim_wind.T
     return P_bef

@@ -67,12 +67,16 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 	ro = -1
 	min_circ_error = 0.01 # relative percentage error in power
 	P_portb,P_portb_prev = 3*min_circ_error ,min_circ_error
-	rel_error = 100
+	moving_period = 10
+	rel_error = 10
+	power = []
+	Power_large = []
+	moving_average = []
 	while ro < max_rounds:
 
 		P_portb_prev = P_portb
 		ro +=1
-		#print('round', ro)
+		print('round', ro)
 		pulse_pos_dict = [
 			'round ' + str(ro)+', ' + i for i in pulse_pos_dict_or]
 
@@ -181,10 +185,20 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 					U_portB, P0_p1, P0_s, f_p, f_s, -1, ro,P_portb,rel_error,master_index,'portB/'+str(ro),
 					'round '+str(ro)+', portB',plots=plots)
 
-		fv_id = idler_limits(sim_wind, U_portB)
-		P_portb = power_idler(U_portB,sim_wind.fv,sim_wind.T,fv_id)
-		rel_error = 100*np.abs(P_portb - P_portb_prev)/P_portb_prev
-		
+		fv_id = idler_limits(sim_wind, np.abs(U_original_pump)**2,np.abs(U_portB)**2,noise_obj)
+		P_portb = power_idler(U_portB,sim_wind.fv,sim_wind,fv_id)
+		power.append(P_portb)
+		Power_large.append(P_portb)
+		if ro >= moving_period:
+			moving_average.append(np.mean(power))
+			power.pop(0)
+		#rel_error = 100*np.abs(P_portb - P_portb_prev)/P_portb_prev
+
+	plt.plot([i for i in range(max_rounds+1)], Power_large)
+	plt.plot([i for i in range(max_rounds+1)], [0 for i in range(10)]+moving_average)
+	plt.savefig('moving_average.png')
+	plt.show()
+	
 	return None
 
 #'num_cores':num_cores, 'maxerr':maxerr, 'ss':ss, 'ram':ram, 'plots': plots
@@ -233,9 +247,7 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 	
 
 	"--------------------Noise---------------------------------"
-	pquant = np.sum(1.054e-34*(sim_wind.w*1e12 + sim_wind.w0)/
-				(sim_wind.T*1e-12))
-	noise_obj = Noise(sim_wind)
+	noise_obj = Noise(int_fwm,sim_wind)
 	"----------------------------------------------------------"
 
 
@@ -303,7 +315,7 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 def main():
 	"-----------------------------Stable parameters----------------------------"
 	num_cores = 6							# Number of computing cores for sweep
-	maxerr = 1e-8							# maximum tolerable error per step in integration
+	maxerr = 1e-9							# maximum tolerable error per step in integration
 	ss = 1					  				# includes self steepening term
 	ram = 'on'				  				# Raman contribution 'on' if yes and 'off' if no
 	plots = False 							# Do you want plots, be carefull it makes the code very slow!
@@ -319,9 +331,9 @@ def main():
 	alphadB = 0#0.0011667#666666666668		# loss within fibre[dB/m]
 	z = 18									# Length of the fibre
 	#P_p = np.arange(3.8,5.2,0.1)				# Pump power [W]
-	P_p = 2
+	P_p = 4
 	#P_p = [5.5,]
-	P_s = 100e-3#[10e-3,100e-3,1]							# Signal power [W]
+	P_s = 0*100e-3#[10e-3,100e-3,1]							# Signal power [W]
 	TFWHM_p = 0								# full with half max of pump
 	TFWHM_s = 0								# full with half max of signal
 	spl_losses = [[0,0,1.],[0,0,1.2],[0,0,1.3],[0,0,1.4]]					# loss of each type of splices [dB] 
@@ -332,6 +344,7 @@ def main():
 				# Zero dispersion wavelength [nm]
 	#max at ls,li = 1095, 1010
 	variation = np.arange(-28,42,2)
+	variation = [0]
 	WDMS_pars = ([1051.5, 1095], 	# WDM up downs in wavelengths [m]
 				[1011.4,  1095],
 				[1011.4,1051.5],
@@ -359,6 +372,7 @@ def main():
 	#lamp = [1050,1050.5,1051,1051.5]
 	lams = np.arange(1093, 1097, 0.5)#[:-1]
 	lams = [1095]
+
 	#lams = [1094,1095,1096]
 	#lams = [1085,1115]
 	#lams = [lams[1]]									# Signal wavelength [nm]

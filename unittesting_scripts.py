@@ -554,7 +554,7 @@ def test_noise():
 			self.nm = 1	
 	int_fwm = int_fwms()
 	sim_wind = sim_windows()	
-	noise = Noise(sim_wind)
+	noise = Noise(int_fwm, sim_wind)
 	n1 = noise.noise_func(int_fwm)
 	n2 = noise.noise_func(int_fwm)
 	print(n1,n2)
@@ -574,7 +574,7 @@ def test_full_trans_in_cavity():
     fv, where = fv_creator(850, lam_p1, int_fwm)
     lv = 1e-3*c/fv
     sim_wind = sim_window(fv, lam_p1, lam_p1, int_fwm,0)
-    noise_obj = Noise(sim_wind)
+    noise_obj = Noise(int_fwm, sim_wind)
     print(fv)
     WDM1 = WDM(1050, 1200, sim_wind.fv,c)
     WDM2 = WDM(930, 1200, sim_wind.fv, c)
