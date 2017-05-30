@@ -523,25 +523,17 @@
 			"file": "mm_gnlse_2D.py",
 			"settings":
 			{
-				"buffer_size": 14397,
+				"buffer_size": 14502,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "unittesting_scripts.py",
+			"file": "data_plotters_animators.py",
 			"settings":
 			{
-				"buffer_size": 16602,
+				"buffer_size": 5987,
 				"encoding": "UTF-8",
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "/home/john/storage/nextcloud/phd_years/phd_reviews/upgrade-report/Definitions.tex",
-			"settings":
-			{
-				"buffer_size": 6136,
 				"line_ending": "Unix"
 			}
 		},
@@ -664,20 +656,27 @@
 	],
 	"file_history":
 	[
+		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/0_6.png",
+		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/0_0.png",
+		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/power_per_round0_0.png",
+		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/power_per_round_casc0_0.png",
+		"/home/john/storage/nextcloud/strict-SM-FOPO/mm_gnlse_2D.py",
+		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/data_plotters_animators.py",
+		"/home/john/storage/nextcloud/strict-SM-FOPO/functions.py",
+		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/mm_gnlse_2D.py",
+		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/functions.py",
+		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/unittesting_scripts.py",
+		"/home/john/storage/nextcloud/phd_years/phd_reviews/upgrade-report/Definitions.tex",
 		"/home/john/storage/nextcloud/phd_years/Multimode codes/matlab_code/new/mm_gnlse.m",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/integrand_and_rk.py",
-		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/data_plotters_animators.py",
-		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/functions.py",
 		"/home/john/storage/nextcloud/phd_years/phd_reviews/upgrade-report/telecoms.tex",
 		"/home/john/storage/nextcloud/phd_years/Telecoms_colab/Mymodel/MMGLSE/telecoms/modulation_instability/modulation_maxima.py",
 		"/home/john/storage/nextcloud/phd_years/Telecoms_colab/Mymodel/MMGLSE/telecoms/mm_gnlse_3D.py",
 		"/home/john/storage/nextcloud/phd_years/Telecoms_colab/Mymodel/MMGLSE/telecoms/pdf_maker.py",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/strict_sm.sublime-project",
-		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/mm_gnlse_2D.py",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/fft_module.py",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/profiler.py",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/profiler.sh",
-		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/unittesting_scripts.py",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/run_oscilator.sh",
 		"/home/john/storage/nextcloud/phd_years/phd_reviews/upgrade-report/fundemental.tex",
 		"/home/john/storage/nextcloud/phd_years/Telecoms_colab/Mymodel/MMGLSE/telecoms/functions.py",
@@ -692,7 +691,6 @@
 		"/home/john/storage/nextcloud/phd_years/phd_reviews/upgrade-report/uni-fopo.tex",
 		"/home/john/storage/nextcloud/phd_years/phd_reviews/upgrade-report/Appendix.tex",
 		"/tmp/mozilla_john0/meta1.yaml",
-		"/home/john/storage/nextcloud/phd_years/phd_reviews/upgrade-report/Definitions.tex",
 		"/home/john/storage/nextcloud/phd_years/conferences&posters/nusod/Unidirectional-fopo.tex",
 		"/home/john/storage/nextcloud/phd_years/Multimode codes/matlab_code/mm_gnlse.m",
 		"/home/john/storage/nextcloud/phd_years/phd_reviews/upgrade-report/18month.bib",
@@ -729,7 +727,6 @@
 		"/home/john/storage/nextcloud/phd_years/phd_reviews/9_month_report/writting/Progress.out",
 		"/home/john/Downloads/IEEEtran/bare_conf_compsoc.tex",
 		"/home/john/Downloads/Optical_fiber_communications.bibtex",
-		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/0_0.png",
 		"/home/john/storage/nextcloud/phd_years/Fenics_mode_finder/functions_dispersion_analysis.py",
 		"/usr/local/lib/python2.7/dist-packages/numpy/__init__.py",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/mm_gnlse_2D.pyx",
@@ -786,12 +783,7 @@
 		"/home/john/storage/nextcloud/phd_years/Multimode codes/python_code/run_cython.py",
 		"/home/john/storage/nextcloud/phd_years/Multimode codes/python_code/timer.py",
 		"/home/john/storage/nextcloud/phd_years/phd_reviews/upgrade-report/Untitled Folder/phdthesis.cls",
-		"/home/john/storage/nextcloud/phd_years/phd_reviews/9_month_report/writting/Progress.glsdefs",
-		"/home/john/Downloads/license_accelerate_1486136921.txt",
-		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/code/SM-FOPO/testing_data/exact_dispersion.py",
-		"/home/john/errorbar_demo.py",
-		"/tmp/mozilla_john0/errorbar_demo.py",
-		"/home/john/storage/nextcloud/Usefull_tools/Opto6002/desktop.ini"
+		"/home/john/storage/nextcloud/phd_years/phd_reviews/9_month_report/writting/Progress.glsdefs"
 	],
 	"find":
 	{
@@ -810,6 +802,46 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"5",
+			"fv_cre",
+			"splice",
+			"wdm",
+			"disper",
+			"noise",
+			"sim_wind.dt",
+			"fv_crea",
+			"fv_cre",
+			"pulse",
+			"noise",
+			"pass",
+			"sim_wind.dt*",
+			"pass",
+			"idler_l",
+			"idler",
+			"dispersion",
+			"sim_window",
+			"class wdm",
+			"wdm",
+			"splice",
+			"splicers_vec[1]",
+			"splicers_vec[",
+			"splicers_vec",
+			"splicers_vec[2]",
+			"splicers_vec",
+			"splicers_vec[1]",
+			"sim_window",
+			"dispersion",
+			"woffset",
+			"formu",
+			"sim_wind.w_tiled",
+			"sim_wind,w_tiled",
+			"sim_window",
+			"sim_wind",
+			"w_tiled",
+			"w_tiled =",
+			"w_tiled",
+			"sim_window",
+			"dispersion",
 			"sim_\t",
 			"pulse",
 			"pulse_propagation",
@@ -897,47 +929,7 @@
 			"sim_window",
 			"sim_wind",
 			"raman",
-			"lamp",
-			"w_tiled",
-			"warn",
-			"plot",
-			"fv_cre",
-			"print",
-			"max_num",
-			"fv_cre",
-			"fv_cre\t",
-			"sim_wind.dt",
-			"wdm",
-			"WDM",
-			"pulse",
-			"raman",
-			"raman_lo",
-			"raman",
-			"test_disper",
-			"dispers",
-			"noise",
-			"sim_windo",
-			"dispersion",
-			"wdm_time",
-			"test_norm",
-			"test_splicer",
-			"dispers",
-			"rk",
-			"integrand",
-			"sim_window",
-			"disper",
-			"expe",
-			"compare",
-			"plot",
-			"plt",
-			"sim_window",
-			"sys.a",
-			"sys.",
-			"sys.a",
-			"sys.agr",
-			"sys",
-			"dispers",
-			"sim_window"
+			"lamp"
 		],
 		"highlight": false,
 		"in_selection": false,
@@ -1006,7 +998,7 @@
 	"groups":
 	[
 		{
-			"selected": 2,
+			"selected": 1,
 			"sheets":
 			[
 				{
@@ -1015,15 +1007,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 14397,
+						"buffer_size": 14502,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								0,
-								0
+								11145,
+								11145
 							]
 						],
 						"settings":
@@ -1032,73 +1024,43 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 5780.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 2,
-					"type": "text"
-				},
-				{
-					"buffer": 1,
-					"file": "unittesting_scripts.py",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 16602,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								8623,
-								8623
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Python/Python.sublime-syntax",
-							"translate_tabs_to_spaces": false
-						},
-						"translation.x": 0.0,
-						"translation.y": 5680.0,
+						"translation.y": 6100.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 1,
 					"type": "text"
 				},
 				{
-					"buffer": 2,
-					"file": "/home/john/storage/nextcloud/phd_years/phd_reviews/upgrade-report/Definitions.tex",
+					"buffer": 1,
+					"file": "data_plotters_animators.py",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 6136,
+						"buffer_size": 5987,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								0,
-								0
+								5354,
+								5354
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/LaTeXing/support/LaTeX.tmLanguage",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 2924.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
 					"type": "text"
 				},
 				{
-					"buffer": 3,
+					"buffer": 2,
 					"file": "functions.py",
 					"semi_transient": false,
 					"settings":
@@ -1110,8 +1072,8 @@
 						"selection":
 						[
 							[
-								5219,
-								5219
+								18859,
+								18859
 							]
 						],
 						"settings":
@@ -1121,10 +1083,10 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 3180.0,
+						"translation.y": 11560.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 3,
+					"stack_index": 2,
 					"type": "text"
 				}
 			]

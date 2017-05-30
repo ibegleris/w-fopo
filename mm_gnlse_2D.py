@@ -72,7 +72,7 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 
 		P_portb_prev = P_portb
 		ro +=1
-		print('round', ro)
+		#print('round', ro)
 		pulse_pos_dict = [
 			'round ' + str(ro)+', ' + i for i in pulse_pos_dict_or]
 
@@ -204,7 +204,7 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 	lamda = lamp*1e-9  # central wavelength of the grid[m]
 	fv_idler_int = 10 #safety for the idler to be spotted used only for idler power
 	"-----------------------------f-----------------------------"
-	
+	print(index)
 
 	"---------------------Aeff-Qmatrixes-----------------------"
 	M = Q_matrixes(int_fwm.nm, int_fwm.n2, lamda, gama)
@@ -272,10 +272,10 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 	#print(WDMS_pars)
 	#sys.exit()
 	#print(lamp)
-	WDMS_pars = ([lamp, 1200], 	# WDM up downs in wavelengths [m]
-				[930,  1200],
-				[930,lamp],
-				[930, 1200])
+	#WDMS_pars = ([lamp, 1200.39], 	# WDM up downs in wavelengths [m]
+	#			[930,  1200.39],
+	#			[930,lamp],
+	#			[930, 1200.39])
 	WDM_vec = [WDM(i[0], i[1],sim_wind.fv,c) for i in WDMS_pars]# WDM up downs in wavelengths [m]
 
 
@@ -303,7 +303,7 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 def main():
 	"-----------------------------Stable parameters----------------------------"
 	num_cores = 6							# Number of computing cores for sweep
-	maxerr = 1e-13							# maximum tolerable error per step in integration
+	maxerr = 1e-8							# maximum tolerable error per step in integration
 	ss = 1					  				# includes self steepening term
 	ram = 'on'				  				# Raman contribution 'on' if yes and 'off' if no
 	plots = False 							# Do you want plots, be carefull it makes the code very slow!
@@ -318,46 +318,47 @@ def main():
 	gama = 10e-3 							# Overwirtes n2 and Aeff w/m
 	alphadB = 0#0.0011667#666666666668		# loss within fibre[dB/m]
 	z = 18									# Length of the fibre
-	P_p = np.arange(3,5.2,0.2)				# Pump power [W]
-	#P_p = [4.3]
+	#P_p = np.arange(3.8,5.2,0.1)				# Pump power [W]
+	P_p = 2
 	#P_p = [5.5,]
-	P_s = 0*100e-3#[10e-3,100e-3,1]							# Signal power [W]
+	P_s = 100e-3#[10e-3,100e-3,1]							# Signal power [W]
 	TFWHM_p = 0								# full with half max of pump
 	TFWHM_s = 0								# full with half max of signal
 	spl_losses = [[0,0,1.],[0,0,1.2],[0,0,1.3],[0,0,1.4]]					# loss of each type of splices [dB] 
-	spl_losses = [0,0,1.4]
+	spl_losses = [0,0,1] 
 	betas = np.array([0, 0, 0, 6.756e-2,	# propagation constants [ps^n/m]
 			-1.002e-4, 3.671e-7])*1e-3								
 	lamda_c = 1051.85e-9		
 				# Zero dispersion wavelength [nm]
 	#max at ls,li = 1095, 1010
-	variation = [-30,-20,-10,0,10,20,30]
-	#WDMS_pars = ([1051.5, 1095], 	# WDM up downs in wavelengths [m]
-	#			[1011.4,  1095],
-	#			[1011.4,1051.5],
-	#			[1011.4, 1095])
-	WDMS_pars = ([1048.17107345, 1200.39], 	# WDM up downs in wavelengths [m]
-				[930,  1200.39],
-				[930,1048.17107345],
-				[930, 1200.39])
+	variation = np.arange(-28,42,2)
+	WDMS_pars = ([1051.5, 1095], 	# WDM up downs in wavelengths [m]
+				[1011.4,  1095],
+				[1011.4,1051.5],
+				[1011.4, 1095])
+	#WDMS_pars = ([1048.17107345, 1200.39], 	# WDM up downs in wavelengths [m]
+	#			[930,  1200.39],
+	#			[930,1048.17107345],
+	#			[930, 1200.39])
 	
 
-	#WDMS_pars = []
-	#for i in variation:
-	#	WDMS_pars.append(([1051.5, 1095+i], 	# WDM up downs in wavelengths [m]
-	#					[1011.4,  1095],
-	#					[1011.4,1051.5],
-	#					[1011.4, 1095])) 
+	WDMS_pars = []
+	for i in variation:
+		WDMS_pars.append(([1051.5, 1095+i], 	# WDM up downs in wavelengths [m]
+						[1011.4,  1095],
+						[1011.4,1051.5],
+						[1011.4, 1095])) 
 	#print(WDMS_pars)
 	#sys.exit()
 	#WDMS_pars = 'signal_locked' # lockes the WDMS to keep the max amount of signal in the cavity (seeded)
 
 		
 
-	lamp = [1048.17107345, 1047.1]							# Pump wavelengths [nm]
+	lamp = 1051.5#, 1046.1]							# Pump wavelengths [nm]
 	#lamp = [1047.5,1047.9,1048.3,1048.6,1049,1049.5,1049.8,1050.2,1050.6,1051,1051.4]
 	#lamp = [1050,1050.5,1051,1051.5]
-	lams = 1200.39#np.arange(1093, 1097, 0.5)#[:-1]
+	lams = np.arange(1093, 1097, 0.5)#[:-1]
+	lams = [1095]
 	#lams = [1094,1095,1096]
 	#lams = [1085,1115]
 	#lams = [lams[1]]									# Signal wavelength [nm]
@@ -367,8 +368,8 @@ def main():
 				  'lamda_c':lamda_c, 'WDMS_pars':WDMS_pars,
 				   'lamp':lamp, 'lams':lams}
 	"--------------------------------------------------------------------------"
-	outside_var_key = 'lamp'
-	inside_var_key = 'P_p'
+	outside_var_key = 'lams'
+	inside_var_key = 'WDMS_pars'
 	#outside_var_key, inside_var_key = inside_var_key, outside_var_key
 	inside_var = var_dic[inside_var_key]
 	outside_var = var_dic[outside_var_key]
