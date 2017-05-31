@@ -4,6 +4,42 @@
 		"selected_items":
 		[
 			[
+				"mo",
+				"moving_period\tstatement"
+			],
+			[
+				"conv",
+				"converge_accept\tstatement"
+			],
+			[
+				"conve",
+				"converge\tstatement"
+			],
+			[
+				"converge",
+				"converge_accept\tstatement"
+			],
+			[
+				"movi",
+				"moving_varience\tstatement"
+			],
+			[
+				"mov",
+				"moving_varience\tstatement"
+			],
+			[
+				"movin",
+				"moving_period\tstatement"
+			],
+			[
+				"sim",
+				"sim_window\tclass"
+			],
+			[
+				"max",
+				"max_rounds\tstatement"
+			],
+			[
 				"wdm",
 				"WDMS_pars\tparam"
 			],
@@ -14,10 +50,6 @@
 			[
 				"f",
 				"f_1\tstatement"
-			],
-			[
-				"max",
-				"maxerr\tstatement"
 			],
 			[
 				"ins",
@@ -38,10 +70,6 @@
 			[
 				"l",
 				"lamda\tstatement"
-			],
-			[
-				"sim",
-				"sim_wind\tstatement"
 			],
 			[
 				"sim_",
@@ -486,44 +514,34 @@
 			[
 				"bs_l",
 				"bs_looking\tstatement"
-			],
-			[
-				"bs_",
-				"bs_pow\tstatement"
-			],
-			[
-				"lam_p2",
-				"lam_p2_vec_num\tstatement"
-			],
-			[
-				"part",
-				"partial_lam_p2_vary\tstatement"
-			],
-			[
-				"mul",
-				"multiprocessing\tmodule"
-			],
-			[
-				"pro",
-				"process_image\tfunction"
-			],
-			[
-				"Inde",
-				"IndexError\tclass"
-			],
-			[
-				"ze",
-				"zero_D_large"
 			]
 		]
 	},
 	"buffers":
 	[
 		{
+			"file": "functions.py",
+			"settings":
+			{
+				"buffer_size": 22180,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "unittesting_scripts.py",
+			"settings":
+			{
+				"buffer_size": 16620,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
 			"file": "mm_gnlse_2D.py",
 			"settings":
 			{
-				"buffer_size": 14502,
+				"buffer_size": 16054,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -532,16 +550,7 @@
 			"file": "data_plotters_animators.py",
 			"settings":
 			{
-				"buffer_size": 5987,
-				"encoding": "UTF-8",
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "functions.py",
-			"settings":
-			{
-				"buffer_size": 22167,
+				"buffer_size": 5932,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -656,15 +665,19 @@
 	],
 	"file_history":
 	[
+		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/variences.txt",
+		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/moving_varience.txt",
+		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/fft_module.py",
+		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/test.txtn",
+		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/mm_gnlse_2D.py",
+		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/functions.py",
+		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/data_plotters_animators.py",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/0_6.png",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/0_0.png",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/power_per_round0_0.png",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/power_per_round_casc0_0.png",
 		"/home/john/storage/nextcloud/strict-SM-FOPO/mm_gnlse_2D.py",
-		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/data_plotters_animators.py",
 		"/home/john/storage/nextcloud/strict-SM-FOPO/functions.py",
-		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/mm_gnlse_2D.py",
-		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/functions.py",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/unittesting_scripts.py",
 		"/home/john/storage/nextcloud/phd_years/phd_reviews/upgrade-report/Definitions.tex",
 		"/home/john/storage/nextcloud/phd_years/Multimode codes/matlab_code/new/mm_gnlse.m",
@@ -674,7 +687,6 @@
 		"/home/john/storage/nextcloud/phd_years/Telecoms_colab/Mymodel/MMGLSE/telecoms/mm_gnlse_3D.py",
 		"/home/john/storage/nextcloud/phd_years/Telecoms_colab/Mymodel/MMGLSE/telecoms/pdf_maker.py",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/strict_sm.sublime-project",
-		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/fft_module.py",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/profiler.py",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/profiler.sh",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/run_oscilator.sh",
@@ -780,14 +792,11 @@
 		"/home/john/storage/nextcloud/phd_years/Multimode codes/python_code/mm_gnlse.py",
 		"/home/john/storage/nextcloud/phd_years/Multimode codes/python_code/testing_vs_matlab/mm_gnlse.py",
 		"/home/john/storage/nextcloud/phd_years/Multimode codes/python_code/testing_vs_matlab/fft_test.py",
-		"/home/john/storage/nextcloud/phd_years/Multimode codes/python_code/run_cython.py",
-		"/home/john/storage/nextcloud/phd_years/Multimode codes/python_code/timer.py",
-		"/home/john/storage/nextcloud/phd_years/phd_reviews/upgrade-report/Untitled Folder/phdthesis.cls",
-		"/home/john/storage/nextcloud/phd_years/phd_reviews/9_month_report/writting/Progress.glsdefs"
+		"/home/john/storage/nextcloud/phd_years/Multimode codes/python_code/run_cython.py"
 	],
 	"find":
 	{
-		"height": 36.0
+		"height": 38.0
 	},
 	"find_in_files":
 	{
@@ -799,9 +808,60 @@
 	},
 	"find_state":
 	{
-		"case_sensitive": false,
+		"case_sensitive": true,
 		"find_history":
 		[
+			"var_",
+			"var_los",
+			"loss",
+			"plotter_dbm",
+			"rel",
+			"rel_err",
+			"rel_error",
+			"10",
+			"\t\t\n",
+			"test_noise",
+			"test_full_trans",
+			"noise",
+			"idler_",
+			"rel_error",
+			"idler_",
+			"sim_window",
+			"idler_",
+			"idler",
+			"power",
+			"powe",
+			"noise",
+			"idler_l",
+			"idler_",
+			"idler",
+			"wdm",
+			"idler",
+			"sim_window",
+			"sim_wind",
+			"lam",
+			"lam_p2",
+			"idler_limits",
+			"idler",
+			"find",
+			"find_",
+			"find_idl",
+			"noise_obj = ",
+			"Noise(",
+			"Noise",
+			"noise(",
+			"noise",
+			"sim_window",
+			"2",
+			"noise",
+			"pquant",
+			"noise",
+			"idler_limi",
+			"idler_",
+			"idler",
+			"fv_id",
+			"power_id",
+			"power",
 			"5",
 			"fv_cre",
 			"splice",
@@ -878,58 +938,7 @@
 			"fv_cre",
 			"fv_",
 			"fv",
-			"read",
-			"reads",
-			"read_",
-			"read",
-			"dispers",
-			"print",
-			"how =",
-			"dz_les",
-			"prot",
-			"propagation_parameters",
-			"propagation parameters",
-			"dz = ",
-			"dz",
-			"fv_crea",
-			"dz = ",
-			"dz",
-			"fv_crea",
-			"woff",
-			"fv",
-			"pulse",
-			"dispersion",
-			"fv_crea",
-			"dispers",
-			"sim_parameters",
-			"int_fwm = ",
-			"int_fwm",
-			"int_fwm(",
-			"int_fwm",
-			"raman_object",
-			"raman_onject",
-			"raman_load",
-			"ram",
-			"fv_",
-			"freeq",
-			"freq",
-			"fre",
-			"raman",
-			"fv",
-			"pulse",
-			"pulsepro",
-			"pulse",
-			"pulse_propagations",
-			"test_solit_r0_ss0",
-			"P_portb_prev",
-			"sys.",
-			"sch",
-			"schro",
-			"raman",
-			"sim_window",
-			"sim_wind",
-			"raman",
-			"lamp"
+			"read"
 		],
 		"highlight": false,
 		"in_selection": false,
@@ -998,82 +1007,24 @@
 	"groups":
 	[
 		{
-			"selected": 1,
+			"selected": 2,
 			"sheets":
 			[
 				{
 					"buffer": 0,
-					"file": "mm_gnlse_2D.py",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 14502,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								11145,
-								11145
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Python/Python.sublime-syntax",
-							"translate_tabs_to_spaces": false
-						},
-						"translation.x": 0.0,
-						"translation.y": 6100.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 1,
-					"type": "text"
-				},
-				{
-					"buffer": 1,
-					"file": "data_plotters_animators.py",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 5987,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								5354,
-								5354
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Python/Python.sublime-syntax",
-							"translate_tabs_to_spaces": false
-						},
-						"translation.x": 0.0,
-						"translation.y": 2924.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 0,
-					"type": "text"
-				},
-				{
-					"buffer": 2,
 					"file": "functions.py",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 22167,
+						"buffer_size": 22180,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								18859,
-								18859
+								8081,
+								8081
 							]
 						],
 						"settings":
@@ -1083,10 +1034,97 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 11560.0,
+						"translation.y": 5546.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "unittesting_scripts.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 16620,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								15773,
+								15773
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 11242.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "mm_gnlse_2D.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 16054,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2659,
+								2659
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 1124.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "data_plotters_animators.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 5932,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								769,
+								769
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 230.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
 					"type": "text"
 				}
 			]

@@ -39,9 +39,11 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 
 
 	
-
 	plotter_dbm(index,int_fwm.nm, sim_wind, u, U, P0_p1,
-				P0_s, f_p, f_s, 0,0,0,0,master_index, '00', 'original pump', D_pic[0],plots)
+				P0_s, f_p, f_s, 0,0,0,master_index, '00', 'original pump', D_pic[0],plots)
+	#plotter_dbm(index,int_fwm.nm, sim_wind, u, U, P0_p1,
+	#				P0_s, f_p, f_s, 0, ro,P_portb,master_index, str(ro)+'1', pulse_pos_dict[3], D_pic[5],plots)
+
 	# Splice1
 	#(u[:, :, 0], U[:, :, 0]) = splicers_vec[1].pass_through(
 	#	(U[:, :, 0],noise_obj.noise_func_freq(int_fwm, sim_wind, fft)), sim_wind)[0]
@@ -68,11 +70,19 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 	min_circ_error = 0.01 # relative percentage error in power
 	P_portb,P_portb_prev = 3*min_circ_error ,min_circ_error
 	moving_period = 10
-	rel_error = 10
+
 	power = []
 	Power_large = []
 	moving_average = []
-	while ro < max_rounds:
+	varience = []
+	moving_varience = []
+	t_total = 0
+	if moving_period >= max_rounds:
+		sys.exit('more max rounds for the moving period!!!')
+	converge = 0
+	converge_accept = moving_period**2
+	prcnt_error = 4
+	while ro < max_rounds and converge<=converge_accept:
 
 		P_portb_prev = P_portb
 		ro +=1
@@ -81,7 +91,7 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 			'round ' + str(ro)+', ' + i for i in pulse_pos_dict_or]
 
 		plotter_dbm(index,int_fwm.nm, sim_wind, u, U, P0_p1,
-					P0_s, f_p, f_s, 0, ro,P_portb,rel_error,master_index, str(ro)+'1', pulse_pos_dict[3], D_pic[5],plots)
+					P0_s, f_p, f_s, 0, ro,P_portb,master_index, str(ro)+'1', pulse_pos_dict[3], D_pic[5],plots)
 
 		# Splice3
 		#noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
@@ -92,7 +102,7 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 			u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm)
 	
 		plotter_dbm(index,int_fwm.nm, sim_wind, u, U, P0_p1,
-					P0_s, f_p, f_s, -1,ro,P_portb,rel_error,master_index, str(ro)+'2', pulse_pos_dict[0], D_pic[2],plots)
+					P0_s, f_p, f_s, -1,ro,P_portb,master_index, str(ro)+'2', pulse_pos_dict[0], D_pic[2],plots)
 		"""
 		# Splice4
 		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
@@ -118,7 +128,7 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 		
 		
 		plotter_dbm(index,int_fwm.nm, sim_wind, u, U, P0_p1,
-					P0_s, f_p, f_s, -1, ro,P_portb,rel_error,master_index,str(ro)+'3', pulse_pos_dict[1], D_pic[3],plots)
+					P0_s, f_p, f_s, -1, ro,P_portb,master_index,str(ro)+'3', pulse_pos_dict[1], D_pic[3],plots)
 
 
 		"""
@@ -144,7 +154,7 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 		U_out = np.reshape(out2, (len(sim_wind.t), 1))
 		u_out = np.reshape(out1, (len(sim_wind.t), 1))
 		plotter_dbm(index,int_fwm.nm, sim_wind, u_out, U_out, P0_p1,
-					P0_s, f_p, f_s, -1, ro,P_portb,rel_error,master_index,str(ro)+'4', pulse_pos_dict[4], D_pic[6],plots)
+					P0_s, f_p, f_s, -1, ro,P_portb,master_index,str(ro)+'4', pulse_pos_dict[4], D_pic[6],plots)
 		"""
 		# Splice8 before WDM3
 		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
@@ -163,7 +173,7 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 		
 		
 		plotter_dbm(index,int_fwm.nm, sim_wind , u_portA,
-			U_portA, P0_p1, P0_s, f_p, f_s, -1, ro,P_portb,rel_error,master_index,'portA/'+str(ro),
+			U_portA, P0_p1, P0_s, f_p, f_s, -1, ro,P_portb,master_index,'portA/'+str(ro),
 			'round '+str(ro)+', portA',plots=plots)
 		"""
 		# Splice9 before WDM4
@@ -182,8 +192,9 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 		u_portB = np.reshape(u_portB, (len(sim_wind.t), 1))
   		
 		plotter_dbm(index,int_fwm.nm, sim_wind, u_portB,
-					U_portB, P0_p1, P0_s, f_p, f_s, -1, ro,P_portb,rel_error,master_index,'portB/'+str(ro),
+					U_portB, P0_p1, P0_s, f_p, f_s, -1, ro,P_portb,master_index,'portB/'+str(ro),
 					'round '+str(ro)+', portB',plots=plots)
+		t_start = time()
 
 		fv_id = idler_limits(sim_wind, np.abs(U_original_pump)**2,np.abs(U_portB)**2,noise_obj)
 		P_portb = power_idler(U_portB,sim_wind.fv,sim_wind,fv_id)
@@ -192,13 +203,31 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 		if ro >= moving_period:
 			moving_average.append(np.mean(power))
 			power.pop(0)
-		#rel_error = 100*np.abs(P_portb - P_portb_prev)/P_portb_prev
+			if ro%moving_period ==0:
+				varience.append(100*np.std(power[-1*moving_period:])/np.mean(power[-1*moving_period:]))
+				moving_varience.append(np.mean(varience[-1*moving_period:]))
+				if moving_varience[-1]<= prcnt_error:
+					converge += 1
+		t_total += time() - t_start
+	if converge>= converge_accept:
+		print("converged by the mean!!!")
+	print('total time to get the conversion',t_total)
 
-	plt.plot([i for i in range(max_rounds+1)], Power_large)
-	plt.plot([i for i in range(max_rounds+1)], [0 for i in range(10)]+moving_average)
-	plt.savefig('moving_average.png')
+	fig = plt.figure(figsize = (15,7.5))
+	plt.plot([i for i in range(ro+1)], Power_large, label = 'Normal power')
+	plt.plot([i for i in range(ro+1)], [0 for i in range(moving_period)]+moving_average, label = 'moving average')
+	plt.legend()
+	plt.savefig('moving_average'+str(index)+'.png')
 	plt.show()
-	
+
+	fig = plt.figure(figsize = (15,7.5))
+	plt.plot([i for i in range(0,ro,moving_period)], varience, '-x', label = 'std')
+	plt.plot([i for i in range(0,ro,moving_period)],moving_varience, '-o', label = 'moving average std')
+	plt.legend()
+	plt.savefig('moving_standards'+str(index)+'.png')
+	plt.show()
+	np.savetxt('variences.txt', varience)
+	np.savetxt('moving_varience.txt', moving_varience)
 	return None
 
 #'num_cores':num_cores, 'maxerr':maxerr, 'ss':ss, 'ram':ram, 'plots': plots
@@ -218,7 +247,7 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 	lamda = lamp*1e-9  # central wavelength of the grid[m]
 	fv_idler_int = 10 #safety for the idler to be spotted used only for idler power
 	"-----------------------------f-----------------------------"
-	print(index)
+
 
 	"---------------------Aeff-Qmatrixes-----------------------"
 	M = Q_matrixes(int_fwm.nm, int_fwm.n2, lamda, gama)
@@ -234,7 +263,7 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 
 	"---------------------Loss-in-fibres-----------------------"
 	slice_from_edge = (sim_wind.fv[-1] - sim_wind.fv[0])/100
-	loss = Loss(int_fwm, sim_wind, amax=5)
+	loss = Loss(int_fwm, sim_wind, amax=0)
 
 	int_fwm.alpha = loss.atten_func_full(fv)
 
@@ -277,9 +306,9 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 		Omega = 2*pi*c/(lamp*1e-9) - 2*pi*c/(lams*1e-9) 
 		omegai = 2*pi*c/(lamp*1e-9) +Omega
 		lami = 1e9*2*pi*c/(omegai)
-		WDMS_pars = ([lamp, lams+20], 	# WDM up downs in wavelengths [m]
-					[lami, lams ],
-					[lami,lamp],
+		WDMS_pars = ([lamp,lams], 	# WDM up downs in wavelengths [m]
+					[lami, lams],
+					[lami, lamp],
 					[lami, lams])
 	#print(WDMS_pars)
 	#sys.exit()
@@ -315,8 +344,8 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 def main():
 	"-----------------------------Stable parameters----------------------------"
 	num_cores = 6							# Number of computing cores for sweep
-	maxerr = 1e-9							# maximum tolerable error per step in integration
-	ss = 1					  				# includes self steepening term
+	maxerr = 1e-6							# maximum tolerable error per step in integration
+	ss = 1				  				# includes self steepening term
 	ram = 'on'				  				# Raman contribution 'on' if yes and 'off' if no
 	plots = False 							# Do you want plots, be carefull it makes the code very slow!
 	N = 14									# 2**N grid points
@@ -331,13 +360,13 @@ def main():
 	alphadB = 0#0.0011667#666666666668		# loss within fibre[dB/m]
 	z = 18									# Length of the fibre
 	#P_p = np.arange(3.8,5.2,0.1)				# Pump power [W]
-	P_p = 4
+	P_p = 4.3
 	#P_p = [5.5,]
 	P_s = 0*100e-3#[10e-3,100e-3,1]							# Signal power [W]
 	TFWHM_p = 0								# full with half max of pump
 	TFWHM_s = 0								# full with half max of signal
 	spl_losses = [[0,0,1.],[0,0,1.2],[0,0,1.3],[0,0,1.4]]					# loss of each type of splices [dB] 
-	spl_losses = [0,0,1] 
+	spl_losses = [[0,0,1.4],[0,0,1.5]] 
 	betas = np.array([0, 0, 0, 6.756e-2,	# propagation constants [ps^n/m]
 			-1.002e-4, 3.671e-7])*1e-3								
 	lamda_c = 1051.85e-9		
@@ -349,10 +378,6 @@ def main():
 				[1011.4,  1095],
 				[1011.4,1051.5],
 				[1011.4, 1095])
-	#WDMS_pars = ([1048.17107345, 1200.39], 	# WDM up downs in wavelengths [m]
-	#			[930,  1200.39],
-	#			[930,1048.17107345],
-	#			[930, 1200.39])
 	
 
 	WDMS_pars = []
@@ -361,17 +386,22 @@ def main():
 						[1011.4,  1095],
 						[1011.4,1051.5],
 						[1011.4, 1095])) 
+	WDMS_pars = ([1048.17107345, 1200.39], 	# WDM up downs in wavelengths [m]
+				[930,  1200.39],
+				[930,1048.17107345],
+				[930, 1200.39])
+	
 	#print(WDMS_pars)
 	#sys.exit()
 	#WDMS_pars = 'signal_locked' # lockes the WDMS to keep the max amount of signal in the cavity (seeded)
 
 		
 
-	lamp = 1051.5#, 1046.1]							# Pump wavelengths [nm]
-	#lamp = [1047.5,1047.9,1048.3,1048.6,1049,1049.5,1049.8,1050.2,1050.6,1051,1051.4]
+	lamp = [1048.17]#, 1046.1]							# Pump wavelengths [nm]
+	#lamp = [1047.5,]#1047.9,]#1048.3,1048.6,1049,1049.5,1049.8,1050.2,1050.6,1051,1051.4]
 	#lamp = [1050,1050.5,1051,1051.5]
 	lams = np.arange(1093, 1097, 0.5)#[:-1]
-	lams = [1095]
+	lams = 1200
 
 	#lams = [1094,1095,1096]
 	#lams = [1085,1115]
@@ -382,8 +412,8 @@ def main():
 				  'lamda_c':lamda_c, 'WDMS_pars':WDMS_pars,
 				   'lamp':lamp, 'lams':lams}
 	"--------------------------------------------------------------------------"
-	outside_var_key = 'lams'
-	inside_var_key = 'WDMS_pars'
+	outside_var_key = 'lamp'
+	inside_var_key = 'spl_losses'
 	#outside_var_key, inside_var_key = inside_var_key, outside_var_key
 	inside_var = var_dic[inside_var_key]
 	outside_var = var_dic[outside_var_key]
