@@ -344,7 +344,7 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 def main():
 	"-----------------------------Stable parameters----------------------------"
 	num_cores = 6							# Number of computing cores for sweep
-	maxerr = 1e-6							# maximum tolerable error per step in integration
+	maxerr = 1e-12							# maximum tolerable error per step in integration
 	ss = 1				  				# includes self steepening term
 	ram = 'on'				  				# Raman contribution 'on' if yes and 'off' if no
 	plots = False 							# Do you want plots, be carefull it makes the code very slow!
@@ -386,10 +386,10 @@ def main():
 						[1011.4,  1095],
 						[1011.4,1051.5],
 						[1011.4, 1095])) 
-	WDMS_pars = ([1048.17107345, 1200.39], 	# WDM up downs in wavelengths [m]
-				[930,  1200.39],
+	WDMS_pars = ([1048.17107345, 1200], 	# WDM up downs in wavelengths [m]
+				[930,  1200],
 				[930,1048.17107345],
-				[930, 1200.39])
+				[930, 1200])
 	
 	#print(WDMS_pars)
 	#sys.exit()

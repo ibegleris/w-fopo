@@ -22,7 +22,7 @@ except ImportError:
     pass
 
 
-def RK5mm(dAdzmm, u1, dz, M, n2, lamda, tsh, dt, hf, w_tiled):
+def RK45(dAdzmm, u1, dz, M, n2, lamda, tsh, dt, hf, w_tiled):
     """
     Propagates the nonlinear operator for 1 step using a 5th order Runge
     Kutta method
@@ -55,6 +55,41 @@ order and a 4th order integration
         A4 + (277./14336)*A5 + (1./4)*A6  # Fourth order accuracy
 
     delta = np.linalg.norm(A - Afourth, 2)
+    return A, delta
+
+
+def RK34(dAdzmm, u1, dz, M, n2, lamda, tsh, dt, hf, w_tiled):
+    """
+    Propagates the nonlinear operator for 1 step using a 5th order Runge
+    Kutta method
+    use: [A delta] = RK5mm(u1, dz)
+    where u1 is the initial time vector
+    hf is the Fourier transform of the Raman nonlinear response time
+    dz is the step over which to propagate
+
+in output: A is new time vector
+delta is the norm of the maximum estimated error between a 5th
+order and a 4th order integration
+    """
+    #third order:
+    A1 = dz*dAdzmm(u1,
+                   M, n2, lamda, tsh, dt, hf, w_tiled)
+    A2 = dz*dAdzmm(u1 + 0.5*A1,
+                   M, n2, lamda, tsh, dt, hf, w_tiled)
+
+    A3 = dz*dAdzmm(u1 - A1 + 2*A2,
+                   M, n2, lamda, tsh, dt, hf, w_tiled)
+    Athird = u1 + 1/6 * (A1 + 4 * A2 + A3)
+
+
+    A3 = dz*dAdzmm(u1 + 0.5*A2,
+                   M, n2, lamda, tsh, dt, hf, w_tiled)
+    
+    A4 = dz*dAdzmm(u1 + A3,
+                   M, n2, lamda, tsh, dt, hf, w_tiled)
+    
+    A = u1 + 1/6 * (A1 + 2 * A2 + 2* A3 +  A4) 
+    delta = np.linalg.norm(A - Athird, 2)
     return A, delta
 
 

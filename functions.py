@@ -503,7 +503,7 @@ def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm):
             while delta > int_fwm.maxerr:
 
                 u1new = ifft(np.exp(Dop*dz/2)*fft(u1))
-                A, delta = RK5mm(dAdzmm, u1new, dz, M, int_fwm.n2,
+                A, delta = RK45(dAdzmm, u1new, dz, M, int_fwm.n2,
                                  sim_wind.lamda, sim_wind.tsh,
                                  sim_wind.dt, hf, sim_wind.w_tiled)
                 if (delta > int_fwm.maxerr):

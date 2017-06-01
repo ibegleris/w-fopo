@@ -245,7 +245,7 @@ def pulse_propagations(ram,ss,N_sol = 1):
 	
 
 	fig5 = plt.figure()
-	plt.plot(fftshift(sim_wind.w),(np.abs(U[:,-1])**2 - U_start))
+	plt.plot(fftshift(sim_wind.w),(np.abs(U[:,-1])**2 - np.abs(U[:,0])**2 ))
 	plt.savefig('error.png')
 
 	
@@ -260,6 +260,8 @@ def pulse_propagations(ram,ss,N_sol = 1):
 
 def test_solit_r0_ss0():
 	u,U,maxerr = pulse_propagations('off', 0)
+	print(np.linalg.norm(np.abs(u[:,0])**2 - np.abs(u[:,-1])**2,2))
+	sys.exit()
 	assert_allclose(np.abs(u[:,0])**2 , np.abs(u[:,-1])**2,atol = 9e-4)
 
 
@@ -276,6 +278,7 @@ def test_energy_r0_ss1():
 	E = []
 	for i in range(np.shape(u)[1]):
 		E.append(np.linalg.norm(u[:,i], 2)**2)
+
 	assert np.all(x == E[0] for x in E)
 
 
