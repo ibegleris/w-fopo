@@ -28,7 +28,7 @@ plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
 plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
 
 
-def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro,P_portb, pump_wave = '',filename=None, title=None, im=0, plots = True):
+def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro, pump_wave = '',filename=None, title=None, im=0, plots = True):
 	if plots == True:
 		fig = plt.figure(figsize=(20.0, 10.0))
 
@@ -106,12 +106,12 @@ def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro,P_port
 			
 			save_variables('data_large', layer, filepath='output'+pump_wave+'/output'+str(index)+'/data/', U = U[:,which], t=sim_wind.t, u=u[:,which],
 						   fv=sim_wind.fv, lv=sim_wind.lv,
-						   which=which, nm=nm, P0_p=P0_p, P0_s=P0_s, f_p=f_p, f_s=f_s, ro = ro,P_portb = P_portb)
+						   which=which, nm=nm, P0_p=P0_p, P0_s=P0_s, f_p=f_p, f_s=f_s, ro = ro)
 		except RuntimeError:
 			os.system('rm output'+pump_wave+'/output'+str(index)+'/data/data_large.hdf5')
 			save_variables('data_large', layer, filepath='output'+pump_wave+'/output'+str(index)+'/data/', U=U[:,which], t=sim_wind.t, u=u[:,which],
 						   fv=sim_wind.fv, lv=sim_wind.lv,
-						   which=which, nm=nm, P0_p=P0_p, P0_s=P0_s, f_p=f_p, f_s=f_s, ro = ro, P_portb = P_portb)
+						   which=which, nm=nm, P0_p=P0_p, P0_s=P0_s, f_p=f_p, f_s=f_s, ro = ro)
 			pass
 
 	return 0

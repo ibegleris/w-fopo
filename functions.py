@@ -230,14 +230,22 @@ def idler_limits(sim_wind,U_original_pump, U,noise_obj):
     #print(1e-3*c/sim_wind.fv[pump_pos])
     #print(1e-3*c/sim_wind.fv[out_int])
     #sys.exit()
+
     lhs_int = np.max(np.where(U[pump_pos+1:out_int-1,0]<= noise_obj.pquant_f)[0])
+    
+      
+
     rhs_int = np.min(np.where(U[out_int+1:,0]<= noise_obj.pquant_f)[0])
+
     lhs_int += pump_pos
     rhs_int += out_int
-    if lhs_int > out_int:
-        lhs_int = out_int - 10
+    lhs_int = out_int -20
+    rhs_int = out_int +20
+    #if lhs_int > out_int:
+    #    lhs_int = out_int - 10
 
     fv_id = (lhs_int, rhs_int)
+    #print(1e-3*c/sim_wind.fv[lhs_int] - 1e-3*c/sim_wind.fv[out_int])
     return fv_id
 
 
@@ -484,7 +492,7 @@ class Noise(object):
 #import warnings
 #warnings.filterwarnings("error")
 
-#@profile
+
 def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm):
     """Pulse propagation"""
     #badz = 0  # counter for bad steps
@@ -501,9 +509,8 @@ def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm):
             # trick to do the first iteration
             delta = 2*int_fwm.maxerr
             while delta > int_fwm.maxerr:
-
                 u1new = ifft(np.exp(Dop*dz/2)*fft(u1))
-                A, delta = RK45(dAdzmm, u1new, dz, M, int_fwm.n2,
+                A, delta = RK45CK(dAdzmm, u1new, dz, M, int_fwm.n2,
                                  sim_wind.lamda, sim_wind.tsh,
                                  sim_wind.dt, hf, sim_wind.w_tiled)
                 if (delta > int_fwm.maxerr):
@@ -512,6 +519,7 @@ def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm):
                     #badz += 1
             #####################################Successful step###############
             # propagate the remaining half step
+
             u1 = ifft(np.exp(Dop*dz/2)*fft(A))
             #goodz +=1
             # update the propagated distance
@@ -676,6 +684,6 @@ def power_idler(spec, fv, sim_wind, fv_id):
     fv_id: tuple of the starting and
     ending index at which the idler is calculated
     """
-    P_bef = simps((sim_wind.dt*np.abs(spec[fv_id[0]:fv_id[1], 0]))**2, fv[fv_id[0]:fv_id[1]])
-    P_bef /= 2*sim_wind.T
+    E_out = simps((sim_wind.t[1] - sim_wind.t[0])**2 * np.abs(spec[fv_id[0]:fv_id[1], 0])**2, fv[fv_id[0]:fv_id[1]])
+    P_bef = E_out/(2*np.max(sim_wind.t))
     return P_bef
