@@ -523,8 +523,43 @@
 			"file": "mm_gnlse_2D.py",
 			"settings":
 			{
-				"buffer_size": 11216,
+				"buffer_size": 11214,
 				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "unittesting_scripts.py",
+			"settings":
+			{
+				"buffer_size": 16698,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "integrand_and_rk.py",
+			"settings":
+			{
+				"buffer_size": 8840,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "functions.py",
+			"settings":
+			{
+				"buffer_size": 22349,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/home/john/Downloads/try.py",
+			"settings":
+			{
+				"buffer_size": 1070,
 				"line_ending": "Unix"
 			}
 		},
@@ -664,6 +699,7 @@
 	],
 	"file_history":
 	[
+		"/home/john/Downloads/try.py",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/functions.py",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/integrand_and_rk.py",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/variences.txt",
@@ -790,8 +826,7 @@
 		"/home/john/storage/nextcloud/phd_years/Multimode codes/python_multimode_code_git/mmgnlse/mm_gnlse.py",
 		"/home/john/storage/nextcloud/phd_years/Multimode codes/python_code/functions.py",
 		"/home/john/storage/nextcloud/phd_years/Multimode codes/python_code/mm_gnlse.py",
-		"/home/john/storage/nextcloud/phd_years/Multimode codes/python_code/testing_vs_matlab/mm_gnlse.py",
-		"/home/john/storage/nextcloud/phd_years/Multimode codes/python_code/testing_vs_matlab/fft_test.py"
+		"/home/john/storage/nextcloud/phd_years/Multimode codes/python_code/testing_vs_matlab/mm_gnlse.py"
 	],
 	"find":
 	{
@@ -810,6 +845,10 @@
 		"case_sensitive": true,
 		"find_history":
 		[
+			"test_solit",
+			"],[",
+			"            #",
+			"delta",
 			"pulse",
 			"P_port",
 			"min_ci",
@@ -933,11 +972,7 @@
 			"sim_window",
 			"dispersion",
 			"sim_\t",
-			"pulse",
-			"pulse_propagation",
-			"pulse_pr",
-			"pulse",
-			"sim_window"
+			"pulse"
 		],
 		"highlight": false,
 		"in_selection": false,
@@ -1006,7 +1041,7 @@
 	"groups":
 	[
 		{
-			"selected": 0,
+			"selected": 1,
 			"sheets":
 			[
 				{
@@ -1015,15 +1050,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 11216,
+						"buffer_size": 11214,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								8744,
-								8744
+								9888,
+								9888
 							]
 						],
 						"settings":
@@ -1032,14 +1067,132 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 5148.0,
+						"translation.y": 4950.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "unittesting_scripts.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 16698,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								7510,
+								7510
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 5282.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
 					"type": "text"
 				},
 				{
-					"buffer": 1,
+					"buffer": 2,
+					"file": "integrand_and_rk.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 8840,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								6834,
+								6834
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 3800.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "functions.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 22349,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								21823,
+								21823
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 14517.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 4,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "/home/john/Downloads/try.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1070,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				},
+				{
+					"buffer": 5,
 					"file": "data_plotters_animators.py",
 					"semi_transient": false,
 					"settings":
@@ -1064,11 +1217,11 @@
 						"translation.y": 1892.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 2,
+					"stack_index": 6,
 					"type": "text"
 				},
 				{
-					"buffer": 2,
+					"buffer": 6,
 					"file": "profiler.sh",
 					"semi_transient": false,
 					"settings":
@@ -1092,11 +1245,11 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 1,
+					"stack_index": 5,
 					"type": "text"
 				},
 				{
-					"buffer": 3,
+					"buffer": 7,
 					"file": "run_oscilator.sh",
 					"semi_transient": false,
 					"settings":
@@ -1120,7 +1273,7 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 3,
+					"stack_index": 7,
 					"type": "text"
 				}
 			]
