@@ -253,8 +253,8 @@ def main():
 	#max at ls,li = 1095, 1010
 	variation = np.arange(-28,42,2)
 	variation = [0]
-	WDMS_pars = ([1051.5, 1095 - 10], 	# WDM up downs in wavelengths [m]
-				[1011.4,  1095- 10])
+	WDMS_pars = ([1048.17, 1200], 	
+				[930,  1200])# WDM up downs in wavelengths [m]
 	
 
 	#WDMS_pars = []
@@ -263,7 +263,7 @@ def main():
 	#					[1011.4,  1095],
 	#					[1011.4,1051.5],
 	#					[1011.4, 1095])) 
-	WDMS_pars = ([1048.17, 1200], 	# WDM up downs in wavelengths [m]
+	WDMS_pars = ([1048.17, 1200], 	
 				[930,  1200])
 	
 	#print(WDMS_pars)
