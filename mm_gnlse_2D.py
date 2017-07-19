@@ -223,7 +223,7 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 def main():
 	"-----------------------------Stable parameters----------------------------"
 	num_cores = 6							# Number of computing cores for sweep
-	maxerr = 1e-12							# maximum tolerable error per step in integration
+	maxerr = 1e-13							# maximum tolerable error per step in integration
 	ss = 1				  				# includes self steepening term
 	ram = 'on'				  				# Raman contribution 'on' if yes and 'off' if no
 	plots = False 							# Do you want plots, be carefull it makes the code very slow!
@@ -246,6 +246,8 @@ def main():
 	TFWHM_s = 0								# full with half max of signal
 	spl_losses = [[0,0,1.],[0,0,1.2],[0,0,1.3],[0,0,1.4]]					# loss of each type of splices [dB] 
 	spl_losses = [[0,0,1.4],[0,0,1.5]] 
+	spl_losses = [[0,0,1.5]] 
+	
 	betas = np.array([0, 0, 0, 6.756e-2,	# propagation constants [ps^n/m]
 			-1.002e-4, 3.671e-7])*1e-3								
 	lamda_c = 1051.85e-9		
@@ -253,8 +255,8 @@ def main():
 	#max at ls,li = 1095, 1010
 	variation = np.arange(-28,42,2)
 	variation = [0]
-	WDMS_pars = ([1048.17, 1200], 	
-				[930,  1200])# WDM up downs in wavelengths [m]
+	WDMS_pars = ([1048.17107345, 1200.39], 	
+				[930,  1200.39])# WDM up downs in wavelengths [m]
 	
 
 	#WDMS_pars = []
@@ -263,8 +265,6 @@ def main():
 	#					[1011.4,  1095],
 	#					[1011.4,1051.5],
 	#					[1011.4, 1095])) 
-	WDMS_pars = ([1048.17, 1200], 	
-				[930,  1200])
 	
 	#print(WDMS_pars)
 	#sys.exit()
@@ -272,7 +272,7 @@ def main():
 
 		
 
-	lamp = [1048.17]
+	lamp = [1048.17107345]
 	#lamp = [1051.5]#, 1046.1]							# Pump wavelengths [nm]
 	#lamp = [1047.5,]#1047.9,]#1048.3,1048.6,1049,1049.5,1049.8,1050.2,1050.6,1051,1051.4]
 	#lamp = [1050,1050.5,1051,1051.5]
