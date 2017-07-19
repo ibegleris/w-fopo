@@ -12,3 +12,4 @@ __pycache__
 output*
 anim*
 prev_anim*
+*pickle
