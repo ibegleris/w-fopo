@@ -93,6 +93,7 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 
 		# Splice7 after WDM2 for the signal
 		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
+
 		(u[:, -1], U[:, -1]) = splicers_vec[2].pass_through(
 			(U[:, -1], noise_new), sim_wind)[0]
 
@@ -117,7 +118,7 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 				 N, nt, nplot,master_index):
 	"------------------propagation paramaters------------------"
 	dzstep = z/nplot						# distance per step
-	dz_less = 1e10
+	dz_less = 1e2
 	#dz = dzstep/dz_less		 # starting guess value of the step
 	int_fwm = sim_parameters(n2, 1, alphadB)
 	int_fwm.general_options(maxerr, raman_object, ss, ram)
