@@ -2,7 +2,7 @@ import numpy as np
 import scipy.fftpack as scifft
 """
 This file was made to test the speed of the fft's before they are used. After
-Intel released their own Scipy it became obulete since intel scipy is always faster
+Intel released their own Scipy it became obsulete since intel scipy is always faster
 """
 sfft, isfft = scifft.fft, scifft.ifft
 nfft,infft = np.fft.fft, np.fft.ifft

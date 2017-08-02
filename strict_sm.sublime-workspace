@@ -520,62 +520,10 @@
 	"buffers":
 	[
 		{
-			"file": "mm_gnlse_2D.py",
+			"file": "README.md",
 			"settings":
 			{
-				"buffer_size": 11170,
-				"encoding": "UTF-8",
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "/home/john/storage/nextcloud/phd_years/Telecoms_colab/Mymodel/MMGLSE/telecoms/functions.py",
-			"settings":
-			{
-				"buffer_size": 42439,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "integrand_and_rk.py",
-			"settings":
-			{
-				"buffer_size": 8840,
-				"encoding": "UTF-8",
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "functions.py",
-			"settings":
-			{
-				"buffer_size": 22349,
-				"encoding": "UTF-8",
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "data_plotters_animators.py",
-			"settings":
-			{
-				"buffer_size": 5887,
-				"encoding": "UTF-8",
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "profiler.sh",
-			"settings":
-			{
-				"buffer_size": 161,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "run_oscilator.sh",
-			"settings":
-			{
-				"buffer_size": 182,
+				"buffer_size": 256,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -690,20 +638,25 @@
 	],
 	"file_history":
 	[
+		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/run_oscilator.sh",
+		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/profiler.sh",
+		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/data_plotters_animators.py",
+		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/functions.py",
+		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/integrand_and_rk.py",
+		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/mm_gnlse_2D.py",
+		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/build_intall.sh",
+		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/fft_module.py",
+		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/test.py",
+		"/home/john/storage/nextcloud/phd_years/Telecoms_colab/Mymodel/MMGLSE/telecoms/functions.py",
+		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/profiler.py",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/hello",
 		"/home/john/Desktop/test.tex",
 		"/home/john/storage/nextcloud/phd_years/Telecoms_colab/Mymodel/MMGLSE/telecoms/mm_gnlse_2D.py",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/unittesting_scripts.py",
 		"/home/john/Downloads/try.py",
-		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/functions.py",
-		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/integrand_and_rk.py",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/variences.txt",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/moving_varience.txt",
-		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/mm_gnlse_2D.py",
-		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/run_oscilator.sh",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/test.txt",
-		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/data_plotters_animators.py",
-		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/fft_module.py",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/test.txtn",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/0_6.png",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/0_0.png",
@@ -718,10 +671,7 @@
 		"/home/john/storage/nextcloud/phd_years/Telecoms_colab/Mymodel/MMGLSE/telecoms/mm_gnlse_3D.py",
 		"/home/john/storage/nextcloud/phd_years/Telecoms_colab/Mymodel/MMGLSE/telecoms/pdf_maker.py",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/strict_sm.sublime-project",
-		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/profiler.py",
-		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/profiler.sh",
 		"/home/john/storage/nextcloud/phd_years/phd_reviews/upgrade-report/fundemental.tex",
-		"/home/john/storage/nextcloud/phd_years/Telecoms_colab/Mymodel/MMGLSE/telecoms/functions.py",
 		"/home/john/storage/nextcloud/phd_years/Telecoms_colab/Mymodel/MMGLSE/telecoms/bash_times.sh",
 		"/home/john/storage/nextcloud/phd_years/Telecoms_colab/Mymodel/MMGLSE/telecoms/bash_as_many_as.sh",
 		"/home/john/storage/nextcloud/phd_years/Multimode codes/matlab_code/new/RK5mm.m",
@@ -815,9 +765,7 @@
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/code/SM-FOPO/README.md",
 		"/home/john/storage/nextcloud/phd_years/Multimode codes/multimode_code/functions.py",
 		"/home/john/Downloads/fodlers.py",
-		"/home/john/storage/nextcloud/phd_years/Multimode codes/multimode_code/mm_gnlse.py",
-		"/home/john/storage/nextcloud/phd_years/Multimode codes/python_multimode_code_git/mmgnlse/mm_gnlse.py",
-		"/home/john/storage/nextcloud/phd_years/Multimode codes/python_code/functions.py"
+		"/home/john/storage/nextcloud/phd_years/Multimode codes/multimode_code/mm_gnlse.py"
 	],
 	"find":
 	{
@@ -836,6 +784,14 @@
 		"case_sensitive": true,
 		"find_history":
 		[
+			"sys.",
+			"sys.agr",
+			"profile",
+			"R",
+			"RK",
+			"profile",
+			"pulse",
+			"osc",
 			"spl_losses",
 			"test_solit",
 			"],[",
@@ -955,15 +911,7 @@
 			"woffset",
 			"formu",
 			"sim_wind.w_tiled",
-			"sim_wind,w_tiled",
-			"sim_window",
-			"sim_wind",
-			"w_tiled",
-			"w_tiled =",
-			"w_tiled",
-			"sim_window",
-			"dispersion",
-			"sim_\t"
+			"sim_wind,w_tiled"
 		],
 		"highlight": false,
 		"in_selection": false,
@@ -1037,204 +985,30 @@
 			[
 				{
 					"buffer": 0,
-					"file": "mm_gnlse_2D.py",
+					"file": "README.md",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 11170,
+						"buffer_size": 256,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								8089,
-								8089
+								255,
+								255
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/Python/Python.sublime-syntax",
-							"translate_tabs_to_spaces": false
+							"syntax": "Packages/Markdown/Markdown.sublime-syntax"
 						},
 						"translation.x": 0.0,
-						"translation.y": 5106.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
-					"type": "text"
-				},
-				{
-					"buffer": 1,
-					"file": "/home/john/storage/nextcloud/phd_years/Telecoms_colab/Mymodel/MMGLSE/telecoms/functions.py",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 42439,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								0,
-								0
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Python/Python.sublime-syntax"
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 2,
-					"type": "text"
-				},
-				{
-					"buffer": 2,
-					"file": "integrand_and_rk.py",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 8840,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								6834,
-								6834
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Python/Python.sublime-syntax",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 3800.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 3,
-					"type": "text"
-				},
-				{
-					"buffer": 3,
-					"file": "functions.py",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 22349,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								21823,
-								21823
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Python/Python.sublime-syntax",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 14517.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 4,
-					"type": "text"
-				},
-				{
-					"buffer": 4,
-					"file": "data_plotters_animators.py",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 5887,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								3696,
-								3696
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Python/Python.sublime-syntax",
-							"translate_tabs_to_spaces": false
-						},
-						"translation.x": 0.0,
-						"translation.y": 1892.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 6,
-					"type": "text"
-				},
-				{
-					"buffer": 5,
-					"file": "profiler.sh",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 161,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								114,
-								114
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/ShellScript/Shell-Unix-Generic.sublime-syntax"
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 5,
-					"type": "text"
-				},
-				{
-					"buffer": 6,
-					"file": "run_oscilator.sh",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 182,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								182,
-								182
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/ShellScript/Shell-Unix-Generic.sublime-syntax"
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 1,
 					"type": "text"
 				}
 			]
