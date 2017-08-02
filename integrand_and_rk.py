@@ -23,6 +23,7 @@ except ImportError:
     generated_jit = numba.generated_jit
     pass
 
+#@profile
 
 def RK45CK(dAdzmm, u1, dz, M, n2, lamda, tsh, dt, hf, w_tiled):
     """
@@ -244,7 +245,7 @@ def add(x, y):
     return x + y
 
 
-@vectorize(['float64(float64,float64)'], target=trgt)  # default to 'cpu'
+@vectorize(['float64(float64,float64)'], target=trgt)
 def uabs(u0r, u0i):
     return u0r*u0r + u0i*u0i
 
