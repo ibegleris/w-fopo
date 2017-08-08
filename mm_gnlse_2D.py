@@ -57,7 +57,7 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 	
 	t_total = 0
 
-
+	#P_out = []
 	while ro < max_rounds:
 
 
@@ -77,12 +77,13 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 		plotter_dbm(index,int_fwm.nm, sim_wind, u, U, P0_p1,
 					P0_s, f_p, f_s, -1,ro,master_index, str(ro)+'2', pulse_pos_dict[0], D_pic[2],plots)
 
+		
 		# pass through WDM2 port 2 continues and port 1 is out of the loop
 		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
 		(out1, out2),(u[:, -1], U[:, -1])  = WDM_vec[1].pass_through(
 			(U[:, -1], noise_new), sim_wind)
 		
-	
+		#P_out.append(calc_P_out(out2, U_original_pump,sim_wind.fv,sim_wind.t))
 		
 		
 		plotter_dbm(index,int_fwm.nm, sim_wind, u, U, P0_p1,
@@ -102,16 +103,38 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 		(u[:, 0], U[:, 0]) = WDM_vec[0].pass_through(
 			(U_original_pump, U[:, -1]), sim_wind)[0]
 		
-		
 		################################The outbound stuff#####################
 		U_out = np.reshape(out2, (len(sim_wind.t), 1))
 		u_out = np.reshape(out1, (len(sim_wind.t), 1))
 		plotter_dbm(index,int_fwm.nm, sim_wind, u_out, U_out, P0_p1,
 					P0_s, f_p, f_s, -1, ro,master_index,str(ro)+'4', pulse_pos_dict[4], D_pic[6],plots)
-
+	#plt.plot(P_out)
+	#plt.savefig('power.png')
+	#plt.close()
 	return None
 
+def calc_P_out(U, U_original_pump,fv,t):
+	U = np.abs(U)**2
+	U_original_pump = np.abs(U_original_pump)**2
+	freq_band = 2
+	fp_id = np.where(U_original_pump == np.max(U_original_pump))[0][0]
+	plom = fp_id+10
+	fv_id = np.where(U[plom:] == np.max(U[plom:]))[0][0]
+	fv_id += plom-1
+	#fv_id = fp_id
+	start, end= fv[fv_id] - freq_band, fv[fv_id] + freq_band
+	i = np.where(
+	    np.abs(fv - start) == np.min(np.abs(fv - start)))[0][0]
+	j = np.where(
+	    np.abs(fv - end) == np.min(np.abs(fv - end)))[0][0]
+	E_out = simps(U[i:j]*(t[1] - t[0])**2, fv[i:j])
+	P_out = E_out/(2*np.max(t))
+	return P_out   
 
+def pos_of_idler(self):
+
+        return fv_id
+    
 
 def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,betas,
 				lamda_c, WDMS_pars, lamp, lams,num_cores, maxerr, ss, ram, plots,
@@ -241,7 +264,7 @@ def main():
 	z = 18									# Length of the fibre
 	#P_p = np.arange(3.8,5.2,0.1)				# Pump power [W]
 	P_p = np.arange(4,10.5,0.5)
-	#P_p = [4.2,]
+	#P_p = [8,]
 	P_s = 0*100e-3#[10e-3,100e-3,1]							# Signal power [W]
 	TFWHM_p = 0								# full with half max of pump
 	TFWHM_s = 0								# full with half max of signal
@@ -257,7 +280,8 @@ def main():
 	variation = np.arange(-28,42,2)
 	variation = [0]
 	WDMS_pars = ([1048.17107345, 1200.4], 	
-				[930,  1200.4])# WDM up downs in wavelengths [m]
+				[930,  1200.4],[930,  1048.17107345], [930, 1200.4]
+				)# WDM up downs in wavelengths [m]
 	
 
 	#WDMS_pars = []

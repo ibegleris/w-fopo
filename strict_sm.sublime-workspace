@@ -527,6 +527,23 @@
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
+		},
+		{
+			"file": "mm_gnlse_2D.py",
+			"settings":
+			{
+				"buffer_size": 11385,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "run_oscilator.sh",
+			"settings":
+			{
+				"buffer_size": 182,
+				"line_ending": "Unix"
+			}
 		}
 	],
 	"build_system": "Packages/LaTeXTools/LaTeX.sublime-build",
@@ -638,6 +655,7 @@
 	],
 	"file_history":
 	[
+		"/home/john/storage/nextcloud/phd_years/Multimode codes/matlab_code/mm_gnlse.m",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/run_oscilator.sh",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/profiler.sh",
 		"/home/john/storage/nextcloud/phd_years/FOPO/single-mode-fibre-opo/Single-mode-only/strict-SM-FOPO/data_plotters_animators.py",
@@ -683,7 +701,6 @@
 		"/home/john/storage/nextcloud/phd_years/phd_reviews/upgrade-report/Appendix.tex",
 		"/tmp/mozilla_john0/meta1.yaml",
 		"/home/john/storage/nextcloud/phd_years/conferences&posters/nusod/Unidirectional-fopo.tex",
-		"/home/john/storage/nextcloud/phd_years/Multimode codes/matlab_code/mm_gnlse.m",
 		"/home/john/storage/nextcloud/phd_years/phd_reviews/upgrade-report/18month.bib",
 		"/home/john/storage/nextcloud/phd_years/phd_reviews/upgrade-report/abbreviations.tex",
 		"/home/john/storage/nextcloud/phd_years/phd_reviews/upgrade-report/Introduction.tex",
@@ -784,6 +801,8 @@
 		"case_sensitive": true,
 		"find_history":
 		[
+			"h5py",
+			"plot",
 			"sys.",
 			"sys.agr",
 			"profile",
@@ -909,9 +928,7 @@
 			"sim_window",
 			"dispersion",
 			"woffset",
-			"formu",
-			"sim_wind.w_tiled",
-			"sim_wind,w_tiled"
+			"formu"
 		],
 		"highlight": false,
 		"in_selection": false,
@@ -980,7 +997,7 @@
 	"groups":
 	[
 		{
-			"selected": 0,
+			"selected": 1,
 			"sheets":
 			[
 				{
@@ -1008,7 +1025,64 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "mm_gnlse_2D.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 11385,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								7913,
+								7913
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 4818.0,
+						"zoom_level": 1.0
+					},
 					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "run_oscilator.sh",
+					"semi_transient": true,
+					"settings":
+					{
+						"buffer_size": 182,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								19,
+								19
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/ShellScript/Shell-Unix-Generic.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
 					"type": "text"
 				}
 			]
