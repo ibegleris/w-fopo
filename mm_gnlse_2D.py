@@ -325,7 +325,7 @@ def main():
 	alphadB = 0#0.0011667#666666666668		# loss within fibre[dB/m]
 	z = 18									# Length of the fibre
 	#P_p = np.arange(3.8,5.2,0.1)				# Pump power [W]
-	P_p = np.arange(4,11.5,0.5)
+	P_p = np.arange(4,11.5,0.1)
 	#P_p = [4,6,8]
 	P_s = 0*100e-3#[10e-3,100e-3,1]							# Signal power [W]
 	TFWHM_p = 0								# full with half max of pump
