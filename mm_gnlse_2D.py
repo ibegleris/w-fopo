@@ -57,8 +57,10 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 	
 	t_total = 0
 
-	#P_out = []
-	while ro < max_rounds:
+	P_out = []
+	w= Window(20)
+	converged = False
+	while ro < max_rounds and not(converged):
 
 
 		ro +=1
@@ -83,7 +85,7 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 		(out1, out2),(u[:, -1], U[:, -1])  = WDM_vec[1].pass_through(
 			(U[:, -1], noise_new), sim_wind)
 		
-		#P_out.append(calc_P_out(out2, U_original_pump,sim_wind.fv,sim_wind.t))
+		P_out.append(calc_P_out(out2, U_original_pump,sim_wind.fv,sim_wind.t))
 		
 		
 		plotter_dbm(index,int_fwm.nm, sim_wind, u, U, P0_p1,
@@ -108,10 +110,70 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 		u_out = np.reshape(out1, (len(sim_wind.t), 1))
 		plotter_dbm(index,int_fwm.nm, sim_wind, u_out, U_out, P0_p1,
 					P0_s, f_p, f_s, -1, ro,master_index,str(ro)+'4', pulse_pos_dict[4], D_pic[6],plots)
-	#plt.plot(P_out)
-	#plt.savefig('power.png')
-	#plt.close()
+		#if ro >= w.size_vec[0]:
+		#	converged = converge_checker(w,P_out, 0.002)
+	plt.plot(P_out)
+	plt.savefig('power.png')
+	plt.close()
 	return None
+
+
+def converge_checker(w,P_out,tol):
+	
+	if len(P_out) -1 == w.size_vec[0]:
+		w.found(P_out)
+		w.size_update(w.size +1)
+		return False
+
+	w.found(P_out)
+	
+	print(w.error[-1])
+	print('sizes', w.size)
+
+	if w.error[-1] <= tol:
+		print('converged!')
+		return True
+	elif w.error[-1] > w.error[-2]:
+		w.size -=1#int(w.size*0.01)
+	else:
+		w.size +=1#int(w.size*0.01)
+	if w.size <= 0:
+		w.size = 10
+	return False
+
+
+class Window(object):
+	def __init__(self, size):
+		self.size = size
+		self.size_vec = [size]
+		self.averages = []
+		self.error = []
+
+	def size_update(self,size):
+		self.size = int(size)
+		if self.size < 0:
+			print('warning!!!')
+			self.size = 2
+		self.size_vec.append(self.size)
+		return None
+
+	def straight_line(self):
+		try:
+			alpha = (self.error[-1] - self.error[-2])/(self.size_vec[-1] - self.size_vec[-2])
+		except RuntimeWarning:
+			alpha = (self.error[-1] - self.error[-2])
+		beta = self.error[-1] - alpha * self.size_vec[-2]
+		self.size_update(-beta/alpha)
+		return None
+
+	def found(self,A):
+		print(self.size)
+		mean = np.mean(A[-self.size:])
+		#var = np.std(A[-self.size:])
+		self.averages.append(mean)
+		self.error.append(100*np.std(self.averages)/np.mean(self.averages))
+		return None
+
 
 def calc_P_out(U, U_original_pump,fv,t):
 	U = np.abs(U)**2
@@ -263,8 +325,8 @@ def main():
 	alphadB = 0#0.0011667#666666666668		# loss within fibre[dB/m]
 	z = 18									# Length of the fibre
 	#P_p = np.arange(3.8,5.2,0.1)				# Pump power [W]
-	P_p = np.arange(4,10.5,0.5)
-	#P_p = [8,]
+	P_p = np.arange(4,11.5,0.5)
+	#P_p = [4,6,8]
 	P_s = 0*100e-3#[10e-3,100e-3,1]							# Signal power [W]
 	TFWHM_p = 0								# full with half max of pump
 	TFWHM_s = 0								# full with half max of signal
