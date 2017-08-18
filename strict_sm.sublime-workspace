@@ -4,6 +4,10 @@
 		"selected_items":
 		[
 			[
+				"s",
+				"size_vec\tstatement"
+			],
+			[
 				"mo",
 				"moving_period\tstatement"
 			],
@@ -320,10 +324,6 @@
 				"U_portA\tstatement"
 			],
 			[
-				"s",
-				"s_pos\tparam"
-			],
-			[
 				"calc_",
 				"calc_P_out"
 			],
@@ -532,16 +532,25 @@
 			"file": "mm_gnlse_2D.py",
 			"settings":
 			{
-				"buffer_size": 11385,
+				"buffer_size": 12130,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "run_oscilator.sh",
+			"file": "unused_functions.py",
 			"settings":
 			{
-				"buffer_size": 182,
+				"buffer_size": 1622,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "data_plotters_animators.py",
+			"settings":
+			{
+				"buffer_size": 5887,
 				"line_ending": "Unix"
 			}
 		}
@@ -786,7 +795,7 @@
 	],
 	"find":
 	{
-		"height": 38.0
+		"height": 36.0
 	},
 	"find_in_files":
 	{
@@ -801,6 +810,9 @@
 		"case_sensitive": true,
 		"find_history":
 		[
+			"output",
+			"output_",
+			"output",
 			"h5py",
 			"plot",
 			"sys.",
@@ -925,10 +937,7 @@
 			"splicers_vec[2]",
 			"splicers_vec",
 			"splicers_vec[1]",
-			"sim_window",
-			"dispersion",
-			"woffset",
-			"formu"
+			"sim_window"
 		],
 		"highlight": false,
 		"in_selection": false,
@@ -997,7 +1006,7 @@
 	"groups":
 	[
 		{
-			"selected": 1,
+			"selected": 2,
 			"sheets":
 			[
 				{
@@ -1025,7 +1034,7 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 2,
+					"stack_index": 3,
 					"type": "text"
 				},
 				{
@@ -1034,55 +1043,88 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 11385,
+						"buffer_size": 12130,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								7913,
-								7913
+								1686,
+								1686
 							]
 						],
 						"settings":
 						{
+							"show_definitions": false,
 							"syntax": "Packages/Python/Python.sublime-syntax",
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 4818.0,
+						"translation.y": 720.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "unused_functions.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1622,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								227,
+								227
+							]
+						],
+						"settings":
+						{
+							"show_definitions": false,
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
 					"type": "text"
 				},
 				{
-					"buffer": 2,
-					"file": "run_oscilator.sh",
+					"buffer": 3,
+					"file": "data_plotters_animators.py",
 					"semi_transient": true,
 					"settings":
 					{
-						"buffer_size": 182,
+						"buffer_size": 5887,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								19,
-								19
+								3917,
+								3917
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/ShellScript/Shell-Unix-Generic.sublime-syntax"
+							"show_definitions": false,
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 3860.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 1,
+					"stack_index": 2,
 					"type": "text"
 				}
 			]
