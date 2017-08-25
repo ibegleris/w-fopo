@@ -269,8 +269,9 @@ def main():
 	z = 18									# Length of the fibre
 	#P_p = np.arange(3.8,5.2,0.1)				# Pump power [W]
 	P_p = np.arange(4,4.8,0.05)
-	P_p = np.arange(4.8,8.4,0.1)
-	P_p = np.arange(8.4,14.8,0.1)
+	P_p = [5,6,7,8]
+	#P_p = np.arange(4.8,8.4,0.1)
+	#P_p = np.arange(8.4,14.8,0.1)
 	#P_p = [6]
 	
 	P_s = 0*100e-3#[10e-3,100e-3,1]							# Signal power [W]
@@ -304,11 +305,10 @@ def main():
 
 		
 
-	#lamp1 = 1048.
-	#lamp2 = 1046.
-	#lamp3 = 1050.
-	#lamp = [lamp2,lamp3] 
-	lamp = 1048
+	lamp1 = 1048.
+	lamp2 = 1046.
+	lamp3 = 1050.5
+	lamp = [lamp2,lamp3] 
 	#lamp = [1051.5]#, 1046.1]							# Pump wavelengths [nm]
 	#lamp = [1047.5,]#1047.9,]#1048.3,1048.6,1049,1049.5,1049.8,1050.2,1050.6,1051,1051.4]
 	#lamp = [1050,1050.5,1051,1051.5]
@@ -327,7 +327,7 @@ def main():
 	"--------------------------------------------------------------------------"
 	outside_var_key = 'lamp'
 	inside_var_key = 'P_p'
-	outside_var_key, inside_var_key = inside_var_key, outside_var_key
+	#outside_var_key, inside_var_key = inside_var_key, outside_var_key
 	inside_var = var_dic[inside_var_key]
 	outside_var = var_dic[outside_var_key]
 	del var_dic[outside_var_key]
