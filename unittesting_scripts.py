@@ -13,7 +13,12 @@ from scipy.interpolate import InterpolatedUnivariateSpline
 from data_plotters_animators import *
 import matplotlib.pyplot as plt
 from scipy.integrate import simps
+import warnings
+warnings.filterwarnings("ignore")
 "---------------------------------W and dbm conversion tests--------------"
+def test_mpi4py_futures():
+	import mpi4py.futures
+	
 def test_dbm2w():
 	assert dbm2w(30) == 1
 
@@ -476,7 +481,7 @@ class Test_splicer():
 
 
 def test_read_write1():
-	os.system('rm testing_data/hh51_test.hdf5')
+	#os.system('rm testing_data/hh51_test.hdf5')
 	A = np.random.rand(10,3,5) + 1j* np.random.rand(10,3,5)
 	B  = np.random.rand(10)
 	C = 1
@@ -487,13 +492,13 @@ def test_read_write1():
 	D = read_variables('hh51_test', '0', filepath='testing_data/')
 
 	A,B,C = D['A'], D['B'], D['C']
-	#locals().update(D)
+	os.system('rm testing_data/hh51_test.hdf5')
 	assert_allclose(A,A_copy)
 
 
 def test_read_write2():
 
-	os.system('rm testing_data/hh52_test.hdf5')
+	#os.system('rm testing_data/hh52_test.hdf5')
 	A = np.random.rand(10,3,5) + 1j* np.random.rand(10,3,5)
 	B  = np.random.rand(10)
 	C = 1
@@ -504,13 +509,13 @@ def test_read_write2():
 	D = read_variables('hh52_test', '0', filepath='testing_data/')
 	A,B,C = D['A'], D['B'], D['C']
 	#locals().update(D)
-	assert_allclose(B,B_copy)
+	os.system('rm testing_data/hh52_test.hdf5')
 	return None
 
 
 def test_read_write3():
 
-	os.system('rm testing_data/hh53_test.hdf5')
+
 	A = np.random.rand(10,3,5) + 1j* np.random.rand(10,3,5)
 	B  = np.random.rand(10)
 	C = 1
@@ -520,7 +525,7 @@ def test_read_write3():
 	del A,B,C
 	D = read_variables('hh53_test', '0', filepath='testing_data/')
 	A,B,C = D['A'], D['B'], D['C']
-	#locals().update(D)
+	os.system('rm testing_data/hh53_test.hdf5')
 	assert C == C_copy
 	return None
 

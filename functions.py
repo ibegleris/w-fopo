@@ -16,8 +16,54 @@ from time import time
 from scipy.fftpack import fft, ifft
 phasor = np.vectorize(cmath.polar)
 import warnings
+from functools import wraps
+from mpi4py import MPI
+rank = MPI.COMM_WORLD.Get_rank()
+# Pass through the @profile decorator if line profiler (kernprof) is not in use
+# Thanks Paul!!
+try:
+    builtins.profile
+except AttributeError:
+    def profile(func):
+        return func
 
-warnings.filterwarnings('error')
+def arguments_determine(j):
+    """
+    Makes sence of the arguments that are passed through from sys.agrv. 
+    Is used to fix the mpi4py extra that is given. Takes in the possition 
+    FROM THE END of the sys.argv inputs that you require (-1 would be the rounds
+    for the oscillator).
+    """
+    A = []
+    a = np.copy(sys.argv)
+    #a.reverse()
+    for i in a[::-1]:
+        try:
+            A.append(int(i))
+        except ValueError:
+            continue
+    return A[j]
+
+def unpack_args(func):
+    if 'mpi' in sys.argv:
+        @wraps(func)
+        def wrapper(args):
+            return func(**args)
+
+        return wrapper
+    else:
+        return func
+def my_arange(a, b, dr, decimals=6):
+   res = [a]
+   k = 1
+   while res[-1] < b:
+       tmp = round(a + k*dr,decimals)
+       if tmp > b:
+           break  
+       res.append(tmp)
+       k+=1
+
+   return np.asarray(res)
 
 def dbm2w(dBm):
     """This function converts a power given in dBm to a power given in W.

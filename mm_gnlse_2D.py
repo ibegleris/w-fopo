@@ -1,20 +1,22 @@
 from __future__ import division, print_function
 import numpy as np
-#import matplotlib as mpl
-#mpl.use('Agg')
+import sys
 from scipy.constants import c, pi
 from joblib import Parallel, delayed
+from mpi4py.futures import MPIPoolExecutor
+from mpi4py import MPI
 from scipy.fftpack import fftshift, fft
 import os
 import time as timeit
 os.system('export FONTCONFIG_PATH=/etc/fonts')
 from functions import *
 from fft_module import *
-import sys
+
 from time import time,sleep
 
 def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p1,P0_s, f_p, f_s,p_pos,s_pos,splicers_vec,
 			WDM_vec,M, hf, Dop, dAdzmm,D_pic,pulse_pos_dict_or,plots):
+
 	u = np.zeros(
 		[len(sim_wind.t), len(sim_wind.zv)], dtype='complex128')
 	U = np.zeros([len(sim_wind.t),
@@ -52,7 +54,8 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 		(U[:, 0], noise_new), sim_wind)[0]
 	
 
-	max_rounds = int(sys.argv[1])
+	max_rounds = arguments_determine(-1)
+
 	ro = -1
 	
 	t_total = 0
@@ -85,8 +88,6 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 		(out1, out2),(u[:, -1], U[:, -1])  = WDM_vec[1].pass_through(
 			(U[:, -1], noise_new), sim_wind)
 		
-		#P_out.append(calc_P_out(out2, U_original_pump,sim_wind.fv,sim_wind.t))
-		
 		
 		plotter_dbm(index,int_fwm.nm, sim_wind, u, U, P0_p1,
 					P0_s, f_p, f_s, -1, ro,master_index,str(ro)+'3', pulse_pos_dict[1], D_pic[3],plots)
@@ -104,7 +105,7 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 		# Pass again through WDM1 with the signal now
 		(u[:, 0], U[:, 0]) = WDM_vec[0].pass_through(
 			(U_original_pump, U[:, -1]), sim_wind)[0]
-		
+
 		################################The outbound stuff#####################
 		U_out = np.reshape(out2, (len(sim_wind.t), 1))
 		u_out = np.reshape(out1, (len(sim_wind.t), 1))
@@ -113,8 +114,6 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 		#if ro == np.sum(w.size_vec):
 		#	converged = converge_checker(w,P_out, 20)
 		#	print('next check on', np.sum(w.size_vec))
-
-
 	return None
 
 
@@ -140,7 +139,7 @@ def calc_P_out(U, U_original_pump,fv,t):
 
 
     
-
+@unpack_args
 def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,betas,
 				lamda_c, WDMS_pars, lamp, lams,num_cores, maxerr, ss, ram, plots,
 				 N, nt, nplot,master_index):
@@ -236,7 +235,6 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 	"------------------------------------------------------------"
 	
 	f_p,f_s = 1e-3*c/lamp, 1e-3*c/lams
-
 	oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P_p,P_s, f_p, f_s,p_pos,s_pos,splicers_vec,
 			WDM_vec,M, hf, Dop, dAdzmm,D_pic,pulse_pos_dict_or,plots)
 
@@ -251,14 +249,20 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 
 def main():
 	"-----------------------------Stable parameters----------------------------"
-	num_cores = 6							# Number of computing cores for sweep
+	num_cores = arguments_determine(1)	 	# Number of computing cores for sweep
 	maxerr = 1e-13							# maximum tolerable error per step in integration
-	ss = 1				  				# includes self steepening term
+	ss = 1				  					# includes self steepening term
 	ram = 'on'				  				# Raman contribution 'on' if yes and 'off' if no
 	plots = False 							# Do you want plots, be carefull it makes the code very slow!
 	N = 12									# 2**N grid points
 	nt = 2**N 								# number of grid points
 	nplot = 2								# number of plots within fibre min is 2
+	if 'mpi' in sys.argv:
+		method = 'mpi'
+	elif 'joblib' in sys.argv:
+		method = 'joblib'
+	else:
+		method = 'single'
 	"--------------------------------------------------------------------------"
 	stable_dic = {'num_cores':num_cores, 'maxerr':maxerr, 'ss':ss, 'ram':ram, 'plots': plots,
 					'N':N, 'nt':nt,'nplot':nplot}
@@ -267,19 +271,12 @@ def main():
 	gama = 10e-3 							# Overwirtes n2 and Aeff w/m
 	alphadB = 0#0.0011667#666666666668		# loss within fibre[dB/m]
 	z = 18									# Length of the fibre
-	#P_p = np.arange(3.8,5.2,0.1)				# Pump power [W]
-	P_p = np.arange(4,4.8,0.05)
-	P_p = [5,6,7,8]
-	#P_p = np.arange(4.8,8.4,0.1)
-	#P_p = np.arange(8.4,14.8,0.1)
-	#P_p = [6]
-	
-	P_s = 0*100e-3#[10e-3,100e-3,1]							# Signal power [W]
+	P_p = my_arange(5.2,5.45,0.01)
+	P_s = 0#*my_arange(100e-3,1100e-3, 100e-3)							# Signal power [W]
 	TFWHM_p = 0								# full with half max of pump
 	TFWHM_s = 0								# full with half max of signal
 	spl_losses = [[0,0,1.],[0,0,1.2],[0,0,1.3],[0,0,1.4]]					# loss of each type of splices [dB] 
 	spl_losses = [0,0,1.4]
-	#spl_losses = [[0,0,1.5]] 
 
 	betas = np.array([0, 0, 0, 6.756e-2,	# propagation constants [ps^n/m]
 			-1.002e-4, 3.671e-7])*1e-3								
@@ -288,8 +285,8 @@ def main():
 	#max at ls,li = 1095, 1010
 	variation = np.arange(-28,42,2)
 	variation = [0]
-	WDMS_pars = ([1048., 1198.64], 	
-				[930.998,  1198.64])# WDM up downs in wavelengths [m]
+	WDMS_pars = ([1048., 1199.32], 	
+				[930.996,  1199.32])# WDM up downs in wavelengths [m]
 	
 
 	#WDMS_pars = []
@@ -305,19 +302,11 @@ def main():
 
 		
 
-	lamp1 = 1048.
-	lamp2 = 1046.
-	lamp3 = 1050.5
-	lamp = [lamp2,lamp3] 
-	#lamp = [1051.5]#, 1046.1]							# Pump wavelengths [nm]
-	#lamp = [1047.5,]#1047.9,]#1048.3,1048.6,1049,1049.5,1049.8,1050.2,1050.6,1051,1051.4]
-	#lamp = [1050,1050.5,1051,1051.5]
-	#lams = np.arange(1093, 1097, 0.5)#[:-1]
-	lams = 1198.64
-
-	#lams = [1094,1095,1096]
-	#lams = [1085,1115]
-	#lams = [lams[1]]									# Signal wavelength [nm]
+	lamp = [1046,1048,1050]
+	lams = [1241.09,1199.32,1149.35]
+	lamp = [lamp[2]]
+		
+	lams = lams[2]
 	var_dic = {'n2':n2, 'gama':gama, 'alphadB':alphadB, 'z':z, 'P_p':P_p,
 				 'P_s':P_s,'TFWHM_p':TFWHM_p, 'TFWHM_s':TFWHM_s,
 				 'spl_losses':spl_losses, 'betas':betas,
@@ -327,7 +316,6 @@ def main():
 	"--------------------------------------------------------------------------"
 	outside_var_key = 'lamp'
 	inside_var_key = 'P_p'
-	#outside_var_key, inside_var_key = inside_var_key, outside_var_key
 	inside_var = var_dic[inside_var_key]
 	outside_var = var_dic[outside_var_key]
 	del var_dic[outside_var_key]
@@ -340,11 +328,8 @@ def main():
 
 	if len(inside_var) < num_cores:
 		num_cores = len(inside_var)
-	
-	#division_of_cores = len()//max_num_cores
-	#while division_of_cores !=
-	#num_cores = max_num_cores
-	profiler_bool = float(sys.argv[2])
+
+	profiler_bool = arguments_determine(0)
 	for kk,variable in enumerate(outside_var):
 		create_file_structure(kk)
 
@@ -352,13 +337,14 @@ def main():
 		_temps.prepare_folder()
 		large_dic ['master_index'] = kk
 		large_dic [outside_var_key] = variable
-		#formulate(**{**D_ins[0],** large_dic})
 		if profiler_bool:
-			#print('profiling')
 			for i in range(len(D_ins)):
 				formulate(**{**D_ins[i],** large_dic})
+		elif method == 'mpi' :
+			iterables = ({**D_ins[i],** large_dic} for i in range(len(D_ins)))
+			with MPIPoolExecutor() as executor:
+				A = executor.map(formulate,iterables)
 		else:
-			#print('not profiling')
 			A = Parallel(n_jobs = num_cores)(delayed(formulate)(**{**D_ins[i],** large_dic}) for i in range(len(D_ins)))
 		_temps.cleanup_folder()
 	

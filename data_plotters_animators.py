@@ -29,6 +29,7 @@ plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
 
 
 def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro, pump_wave = '',filename=None, title=None, im=0, plots = True):
+	#u, U = np.reshape(u,(np.shape(u)[-1], np.shape(u)[0])), np.reshape(u,(np.shape(U)[-1], np.shape(U)[0]))
 	if plots == True:
 		fig = plt.figure(figsize=(20.0, 10.0))
 

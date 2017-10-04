@@ -4,6 +4,7 @@ from scipy.constants import pi
 from numpy.fft import fftshift
 from scipy.fftpack import fft, ifft
 
+from six.moves import builtins
 
 try:
     import accelerate
@@ -14,7 +15,6 @@ try:
     vectorize = accelerate.numba.vectorize
     import mkl
     max_threads = mkl.get_max_threads()
-    # mkl.set_num_threads(1)
 except ImportError:
     import numba
     vectorize = numba.vectorize
@@ -22,9 +22,15 @@ except ImportError:
     cfunc = numba.cfunc
     generated_jit = numba.generated_jit
     pass
+# Pass through the @profile decorator if line profiler (kernprof) is not in use
+# Thanks Paul!
+try:
+    builtins.profile
+except AttributeError:
+    def profile(func):
+        return func
 
-#@profile
-
+@profile
 def RK45CK(dAdzmm, u1, dz, M, n2, lamda, tsh, dt, hf, w_tiled):
     """
     Propagates the nonlinear operator for 1 step using a 5th order Runge
@@ -65,53 +71,40 @@ def RK45CK(dAdzmm, u1, dz, M, n2, lamda, tsh, dt, hf, w_tiled):
 trgt = 'cpu'
 #trgt = 'parallel'
 #trgt = 'cuda'
-#@vectorize(['complex128(complex128,complex128,complex128,complex128,complex128,complex128)'], target=trgt)
+
 @jit
 def Afourth_temp(u1, A1, A3, A4,A5, A6):
     return u1 + (2825./27648)*A1 + (18575./48384)*A3 + (13525./55296) * \
         A4 + (277./14336)*A5 + (1./4)*A6
 
-
-
-#@vectorize(['complex128(complex128,complex128,complex128,complex128,complex128)'], target=trgt)
 @jit
 def A_temp(u1, A1, A3, A4, A6):
     return u1 + (37./378)*A1 + (250./621)*A3 + (125./594) * \
         A4 + (512./1771)*A6
 
-
-
-
-#@vectorize(['complex128(complex128,complex128)'], target=trgt)
 @jit
 def A2_temp(u1, A1):
     return u1 + (1./5)*A1
 
-
-#@vectorize(['complex128(complex128,complex128,complex128)'], target=trgt)
 @jit
 def A3_temp(u1, A1, A2):
     return u1 + (3./40)*A1 + (9./40)*A2
 
-
-#@vectorize(['complex128(complex128,complex128,complex128,complex128)'], target=trgt)
 @jit
 def A4_temp(u1, A1, A2, A3):
     return u1 + (3./10)*A1 - (9./10)*A2 + (6./5)*A3
 
-#@vectorize(['complex128(complex128,complex128,complex128,complex128,complex128)'], target=trgt)
 @jit
 def A5_temp(u1, A1, A2, A3, A4):
     return u1 - (11./54)*A1 + (5./2)*A2 - (70./27)*A3 + (35./27)*A4
 
 
-#@vectorize(['complex128(complex128,complex128,complex128,complex128,complex128,complex128)'], target=trgt)
 @jit
 def A6_temp(u1, A1, A2, A3, A4, A5):
     return u1 + (1631./55296)*A1 + (175./512)*A2 + (575./13824)*A3 +\
                    (44275./110592)*A4 + (253./4096)*A5
 
-
+@profile
 def RK34(dAdzmm, u1, dz, M, n2, lamda, tsh, dt, hf, w_tiled):
     """
     Propagates the nonlinear operator for 1 step using a 5th order Runge
@@ -146,7 +139,7 @@ def RK34(dAdzmm, u1, dz, M, n2, lamda, tsh, dt, hf, w_tiled):
     delta = np.linalg.norm(A - Athird, 2)
     return A, delta
 
-
+@profile
 def dAdzmm_roff_s0(u0, M, n2, lamda, tsh, dt, hf, w_tiled):
     """
     calculates the nonlinear operator for a given field u0
@@ -159,7 +152,7 @@ def dAdzmm_roff_s0(u0, M, n2, lamda, tsh, dt, hf, w_tiled):
     return N
 
 
-#@profile
+@profile
 def dAdzmm_roff_s1(u0, M, n2, lamda, tsh, dt, hf, w_tiled):
     """
     calculates the nonlinear operator for a given field u0
@@ -171,7 +164,7 @@ def dAdzmm_roff_s1(u0, M, n2, lamda, tsh, dt, hf, w_tiled):
     N = -1j*n2*2*pi/lamda*(N + tsh*ifft((w_tiled)*fft(N)))
     return N
 
-
+@profile
 def dAdzmm_ron_s0(u0, M, n2, lamda, tsh, dt, hf, w_tiled):
     """
     calculates the nonlinear operator for a given field u0
@@ -187,48 +180,12 @@ def dAdzmm_ron_s0(u0, M, n2, lamda, tsh, dt, hf, w_tiled):
     N = nonlin_ram(M, u0, M3, dt, temp)
     N *= -1j*n2*2*pi/lamda
     return N
-"""
-def dAdzmm_ron_s1(u0,M,n2,lamda,tsh,dt,hf, w_tiled):
-	M3 =  np.abs(u0)**2
-	N = (0.82*M3 + 0.18*dt*fftshift(ifft(fft(M3)*hf)))*M *u0
-	N = -1j*n2*2*pi/lamda*(N + tsh*ifft((w_tiled)*fft(N)))
-	return N
-"""
-#from time import time
-#import sys
-#@vectorize('complex128(complex128,float64,float64,float64,float64,float64,complex128,float64)')
-
-
-#@profile
+@profile
 def dAdzmm_ron_s1(u0, M, n2, lamda, tsh, dt, hf, w_tiled):
-
-    # calculates the nonlinear operator for a given field u0
-    # use: dA = dAdzmm(u0)
-    #t1 = time()
-    #M3 =  np.abs(u0)**2
-    #print(u0.real.flags)
-    #print(u0.imag.flags)
     M3 = uabs(u0.real, u0.imag)
-    # print(np.isfortran(u0))
-    # print(np.isfortran(M3))
-    # print(np.isfortran(fft(M3)*hf))
-
     temp = fftshift(ifft(fft(M3)*hf))
-    # for i in (M, u0,M3, dt, temp):
-    #	print(i.dtype)
     N = nonlin_ram(M, u0, M3, dt, temp)
-    # print(np.isfortran(N))
-    #print(np.isfortran(w_tiled * fft(N)))
-    # sys.exit()
-    #N = M*u0*(0.82*M3 + 0.18*dt*temp)
-    #temp = multi(w_tiled,fft(N))
-
     N = -1j*n2*2*pi/lamda * (N + tsh*ifft(w_tiled * fft(N)))
-    #temp = ifft(w_tiled*fft(N))
-    #N = self_step(n2, lamda,N, tsh, temp,np.pi )
-    #t2 = time() - t1
-    # print(t2)
-    # sys.exit()
     return N
 trgt = 'cpu'
 #trgt = 'parallel'
@@ -268,9 +225,8 @@ def self_step(n2, lamda, N, tsh, temp, rp):
 
 
 
-#Dormant-Prince-Not found to be faster than cash-karp
-#@autojit
-#
+#Dormant-Prince, Not found to be faster than cash-karp
+@profile
 def RK45DP(dAdzmm, u1, dz, M, n2, lamda, tsh, dt, hf, w_tiled):
 	A1 = dz*dAdzmm(u1,
                    M, n2, lamda, tsh, dt, hf, w_tiled)
