@@ -18,6 +18,7 @@ then
 	echo "running with" 1 "MKL core and" $2 "Multiprocessing cores, for" $1 "rounds"
 	python main_oscillator.py $3 $1 $2 0
 elif [ "$3" == "mkl" ]
+then
 	echo "running with MKL cores for" $1 "rounds" 
 	python main_oscillator.py $3 $1 1 0
 fi

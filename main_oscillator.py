@@ -10,37 +10,35 @@ import os
 import time as timeit
 os.system('export FONTCONFIG_PATH=/etc/fonts')
 from functions import *
-from fft_module import *
 
 from time import time,sleep
 
 def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p1,P0_s, f_p, f_s,p_pos,s_pos,splicers_vec,
-			WDM_vec,M, hf, Dop, dAdzmm,D_pic,pulse_pos_dict_or,plots):
+			WDM_vec,M1,M2, hf, Dop, dAdzmm,D_pic,pulse_pos_dict_or,plots):
 
-	u = np.zeros(
-		[len(sim_wind.t), len(sim_wind.zv)], dtype='complex128')
-	U = np.zeros([len(sim_wind.t),
-				  len(sim_wind.zv)], dtype='complex128')	#
+	u = np.empty(
+		[ len(sim_wind.zv), int_fwm.nm,len(sim_wind.t)], dtype='complex128')
+	U = np.empty([len(sim_wind.zv), int_fwm.nm,len(sim_wind.t)], dtype='complex128')	#
 	
 	T0_p = TFWHM_p/2/(np.log(2))**0.5
 	T0_s = TFWHM_s/2/(np.log(2))**0.5
 	noise_new = noise_obj.noise_func(int_fwm)
-	u[:, 0] = noise_new
+	u[0,:, :] = noise_new
 
 	woff1 = (p_pos+(int_fwm.nt)//2)*2*pi*sim_wind.df
-	u[:, 0] += (P0_p1)**0.5  * np.exp(1j*(woff1)*sim_wind.t)
+	u[0,:,:] += (P0_p1)**0.5  * np.exp(1j*(woff1)*sim_wind.t)
 
 
 	woff2 = -(s_pos - (int_fwm.nt-1)//2)*2*pi*sim_wind.df
-	u[:, 0] += (P0_s)**0.5 * np.exp(-1j*(woff2)*sim_wind.t)#*np.exp(-sim_wind.t**2/T0_s)
+	u[0,:,:] += (P0_s)**0.5 * np.exp(-1j*(woff2)*sim_wind.t)#*np.exp(-sim_wind.t**2/T0_s)
 
 
-	U[:, 0] = fftshift(fft(u[:,0]))
+	U[0,:,:] = fftshift(fft(u[0,:,:]))
 	
 	sim_wind.w_tiled = sim_wind.w + sim_wind.woffset
 	master_index = str(master_index)
 
-
+	sys.exit()
 	
 	plotter_dbm(index,int_fwm.nm, sim_wind, u, U, P0_p1,
 				P0_s, f_p, f_s, 0,0,master_index, '00', 'original pump', D_pic[0],plots)
@@ -142,12 +140,12 @@ def calc_P_out(U, U_original_pump,fv,t):
 @unpack_args
 def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,betas,
 				lamda_c, WDMS_pars, lamp, lams,num_cores, maxerr, ss, ram, plots,
-				 N, nt, nplot,master_index):
+				 N, nt, nplot,master_index, nm):
 	"------------------propagation paramaters------------------"
 	dzstep = z/nplot						# distance per step
 	dz_less = 1e2
 	#dz = dzstep/dz_less		 # starting guess value of the step
-	int_fwm = sim_parameters(n2, 1, alphadB)
+	int_fwm = sim_parameters(n2, nm, alphadB)
 	int_fwm.general_options(maxerr, raman_object, ss, ram)
 	int_fwm.propagation_parameters(N, z, nplot, dz_less)
 	lamda = lamp*1e-9  # central wavelength of the grid[m]
@@ -156,7 +154,7 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 
 
 	"---------------------Aeff-Qmatrixes-----------------------"
-	M = Q_matrixes(int_fwm.nm, int_fwm.n2, lamda, gama)
+	M1,M2 = Q_matrixes(int_fwm.nm, int_fwm.n2, lamda, gama)
 	"----------------------------------------------------------"
 
 
@@ -169,7 +167,7 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 
 	"---------------------Loss-in-fibres-----------------------"
 	slice_from_edge = (sim_wind.fv[-1] - sim_wind.fv[0])/100
-	loss = Loss(int_fwm, sim_wind, amax=0)
+	loss = Loss(int_fwm, sim_wind, amax = None)
 
 	int_fwm.alpha = loss.atten_func_full(fv)
 
@@ -183,6 +181,7 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 
 	"--------------------Noise---------------------------------"
 	noise_obj = Noise(int_fwm,sim_wind)
+	a = noise_obj.noise_func_freq(int_fwm, sim_wind)
 	"----------------------------------------------------------"
 
 
@@ -236,7 +235,7 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 	
 	f_p,f_s = 1e-3*c/lamp, 1e-3*c/lams
 	oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P_p,P_s, f_p, f_s,p_pos,s_pos,splicers_vec,
-			WDM_vec,M, hf, Dop, dAdzmm,D_pic,pulse_pos_dict_or,plots)
+			WDM_vec,M1,M2, hf, Dop, dAdzmm,D_pic,pulse_pos_dict_or,plots)
 
 	
 	#while cop !=0:
@@ -257,6 +256,7 @@ def main():
 	N = 12									# 2**N grid points
 	nt = 2**N 								# number of grid points
 	nplot = 2								# number of plots within fibre min is 2
+	nm = 2									# Number of modes (include degenerate polarisation)
 	if 'mpi' in sys.argv:
 		method = 'mpi'
 	elif 'joblib' in sys.argv:
@@ -265,11 +265,11 @@ def main():
 		method = 'single'
 	"--------------------------------------------------------------------------"
 	stable_dic = {'num_cores':num_cores, 'maxerr':maxerr, 'ss':ss, 'ram':ram, 'plots': plots,
-					'N':N, 'nt':nt,'nplot':nplot}
+					'N':N, 'nt':nt,'nplot':nplot, 'nm':nm}
 	"------------------------Can be variable parameters------------------------"
 	n2 = 2.5e-20							# Nonlinear index [m/W]
 	gama = 10e-3 							# Overwirtes n2 and Aeff w/m
-	alphadB = 0#0.0011667#666666666668		# loss within fibre[dB/m]
+	alphadB = np.array([0,0])#0.0011667#666666666668		# loss within fibre[dB/m]
 	z = 18									# Length of the fibre
 	#P_p = my_arange(5.2,5.45,0.01)
 	P_p = [60]
@@ -281,11 +281,14 @@ def main():
 
 	betas = np.array([0, 0, 0, 6.756e-2,	# propagation constants [ps^n/m]
 			-1.002e-4, 3.671e-7])*1e-3								
+	
+	betas = np.tile(betas,(2,1))
+	print(np.shape(betas))
 	lamda_c = 1051.85e-9		
 				# Zero dispersion wavelength [nm]
 	#max at ls,li = 1095, 1010
-	variation = np.arange(-28,42,2)
-	variation = [0]
+	#variation = np.arange(-28,42,2)
+	#variation = [0]
 	WDMS_pars = ([1048., 1199.32], 	
 				[930.996,  1199.32])# WDM up downs in wavelengths [m]
 	

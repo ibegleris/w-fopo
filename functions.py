@@ -103,7 +103,6 @@ class raman_object(object):
 
     def raman_load(self, t, dt):
         if self.on == 'on':
-            #print('Raman on')
             if self.how == 'analytic':
                 print(self.how)
                 t11 = 12.2e-3	  # [ps]
@@ -133,7 +132,7 @@ class raman_object(object):
 def dispersion_operator(betas, lamda_c, int_fwm, sim_wind):
     """
     Calculates the dispersion operator in rad/m units
-    INputed are the dispersion operators at the omega0
+    Inputed are the dispersion operators at the omega0
     Local include the taylor expansion to get these opeators at omegac 
     Returns Dispersion operator
     """
@@ -145,26 +144,26 @@ def dispersion_operator(betas, lamda_c, int_fwm, sim_wind):
 
     betap = np.zeros_like(betas)
 
-    for j in range(len(betas.T)):
+    for j in range(len(betas[0,:])):
         if j == 0:
-            betap[j] = betas[j]
+            betap[:,j] = betas[:,j]
         fac = 0
         for k in range(j, len(betas.T)):
-            betap[j] += (1/factorial(fac)) * \
-                betas[k] * (wc - w0)**(fac)
+            betap[:,j] += (1/factorial(fac)) * \
+                betas[:,k] * (wc - w0)**(fac)
             fac += 1
 
     w = sim_wind.w + sim_wind.woffset
 
-    Dop = np.zeros(int_fwm.nt, dtype=np.complex)
+    Dop = np.zeros((int_fwm.nm, int_fwm.nt), dtype=np.complex)
     alpha = np.reshape(int_fwm.alpha, np.shape(Dop))
+    
     Dop -= fftshift(alpha/2)
-    #Dop -=alpha/2
-    betap[0] -= betap[0]
-    betap[1] -= betap[1]
-
-    for j, bb in enumerate(betap):
-        Dop -= 1j*(w**j * bb / factorial(j))
+    betap[:,0] -= betap[:,0]
+    betap[:,1] -= betap[:,1]
+    for i in range(int_fwm.nm):
+        for k, bb in enumerate(betap.T):
+            Dop[i,:] -= 1j*(w**k * bb[i] / factorial(k))
     return Dop
 
 
@@ -192,7 +191,8 @@ def Q_matrixes(nm, n2, lamda, gama=None):
         M2[:] -= 1
         M1[:4, :] -= 1
         M1[6, :] -= 1
-    return M
+
+    return M1,M2
 
 
 class sim_parameters(object):
@@ -225,20 +225,17 @@ class sim_window(object):
     def __init__(self, fv, lamda, lamda_c, int_fwm, fv_idler_int):
         self.fv = fv
         self.lamda = lamda
-        # self.lmin = 1e-3*c/np.max(fv)  # [nm]
-        # self.lmax = 1e-3*c/np.min(fv)  # [nm]
+
 
         self.fmed = 0.5*(fv[-1] + fv[0])*1e12  # [Hz]
         self.deltaf = np.max(self.fv) - np.min(self.fv)  # [THz]
         self.df = self.deltaf/int_fwm.nt  # [THz]
         self.T = 1/self.df  # Time window (period)[ps]
-        #print(self.fmed,c/lamda)
-        #sys.exit()
+
         self.woffset = 2*pi*(self.fmed - c/lamda)*1e-12  # [rad/ps]
-        # [rad/ps] Offset of central freequency and that of the experiment
+
         self.woffset2 = 2*pi*(self.fmed - c/lamda_c)*1e-12
-        # wavelength limits (for plots) (nm)
-        #self.fv = fv
+
         self.w0 = 2*pi*self.fmed  # central angular frequency [rad/s]
 
         self.tsh = 1/self.w0*1e12  # shock time [ps]
@@ -273,9 +270,6 @@ def idler_limits(sim_wind,U_original_pump, U,noise_obj):
     out_int = np.argsort(U[(pump_pos + 1):, 0])[-1]
 
     out_int += pump_pos
-    #print(1e-3*c/sim_wind.fv[pump_pos])
-    #print(1e-3*c/sim_wind.fv[out_int])
-    #sys.exit()
 
     lhs_int = np.max(np.where(U[pump_pos+1:out_int-1,0]<= noise_obj.pquant_f)[0])
     
@@ -302,11 +296,13 @@ class Loss(object):
         Initialise the calss Loss, takes in the general parameters and 
         the freequenbcy window. From that it determines where the loss will become
         freequency dependent. With the default value being an 8th of the difference
-        of max and min. 
+        of max and min.
+        Note: From w-fopo onwards we introduce loss per mode which means we look at
+        a higher dim array. 
 
         """
         self.alpha = int_fwm.alphadB/4.343
-        if amax == None:
+        if amax is None:
             self.amax = self.alpha
         else:
             self.amax = amax/4.343
@@ -324,21 +320,24 @@ class Loss(object):
             self.end = self.flims_large[1] - self.apart
 
     def atten_func_full(self, fv):
-        aten = []
+        aten = np.zeros([len(fv),len(self.alpha)])
 
         a_s = ((self.amax - self.alpha) / (self.flims_large[0] - self.begin),
 
                (self.amax - self.alpha) / (self.flims_large[1] - self.end))
         b_s = (-a_s[0] * self.begin, -a_s[1] * self.end)
 
-        for f in fv:
+        for i,f in enumerate(fv):
             if f <= self.begin:
-                aten.append(a_s[0] * f + b_s[0])
+                aten[i,:] = a_s[0][:] * f + b_s[0][:]
             elif f >= self.end:
-                aten.append(a_s[1] * f + b_s[1])
+                aten[i,:] = a_s[1][:] * f + b_s[1][:]
             else:
-                aten.append(0)
-        return np.asanyarray(aten) + self.alpha
+                aten[i,:] = 0
+        for i in range(len(self.alpha)):
+            aten[:,i] += self.alpha[i]
+       
+        return  aten
 
     def plot(self, fv):
         fig = plt.figure()
@@ -527,8 +526,8 @@ class Noise(object):
 
     def noise_func(self, int_fwm):
         seed = np.random.seed(int(time()*np.random.rand()))
-        noise =  self.pquant * (np.random.randn(int_fwm.nt)
-                               + 1j*np.random.randn(int_fwm.nt))
+        noise =  self.pquant * (np.random.randn(int_fwm.nm,int_fwm.nt)
+                               + 1j*np.random.randn(int_fwm.nm,int_fwm.nt))
         return noise
 
     def noise_func_freq(self, int_fwm, sim_wind):

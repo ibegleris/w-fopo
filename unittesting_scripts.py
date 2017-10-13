@@ -3,9 +3,6 @@ from math import factorial
 from functions import *
 import pytest
 from scipy.fftpack import fft,ifft,fftshift, ifftshift
-from fft_module import *
-fft, ifft, method = pick(10, 1, 100,1)
-print('method for ffts', method)
 import numpy as np
 from scipy.io import loadmat
 from numpy.testing import assert_allclose,assert_approx_equal,assert_almost_equal,assert_raises
@@ -46,22 +43,6 @@ def FWHM_fun(X,Y):
     left_idx = np.where(d > 0)[0]
     right_idx = np.where(d < 0)[-1]
     return X[right_idx] - X[left_idx] #return the difference (full width)
-"------------------------------------------------------fft test--------------"
-try:
-	fft, ifft, method = pick(10, 1, 100,1)
-	print('method for ffts', method) 
-	import accelerate.mkl.fftpack as mklfft
-	mfft, imfft = mklfft.fft, mklfft.ifft
-	def test_fft():
-		x = np.random.rand(11,10)
-		assert_allclose(mfft(x), fft(x))
-
-
-	def test_ifft():
-		x = np.random.rand(10,10)
-		assert_allclose(imfft(x), imfft(x))
-except ImportError:
-	pass
 
 "--------------------------------------------Raman response--------------"
 def test_raman_off():
@@ -130,7 +111,7 @@ def test_dispersion():
 	lamdac = 1550e-9
 
 	sim_wind = sim_windows(lamda0,lamda,lmin,lmax,nt)
-	int_fwm = int_fwms(1, 0.1,nt)
+	int_fwm = int_fwms(2, np.array([0.1,0.1]),nt)
 
 	loss = Loss(int_fwm, sim_wind, amax = 0.1)
 	alpha_func = loss.atten_func_full(sim_wind.fv)
@@ -138,13 +119,35 @@ def test_dispersion():
 	int_fwm.alpha = int_fwm.alphadB
 
 	betas = np.array([0,0,0,6.755e-2,-1.001e-4])*1e-3
+	betas = np.tile(betas,(2,1))
+	betas_disp = dispersion_operator(betas,lamdac,int_fwm,sim_wind)
+	betas_exact = np.loadtxt('testing_data/exact_dispersion.txt').view(complex)
+	assert_allclose(betas_disp[0,:],betas_exact)
 
+def test_dispersion_same():
+	nt = 512
+	lmin,lmax = 1000e-9,2000e-9
+	lamda = np.linspace(lmin,lmax,nt)
+
+	lamda0 = 1500e-9
+	lamdac = 1550e-9
+
+	sim_wind = sim_windows(lamda0,lamda,lmin,lmax,nt)
+	int_fwm = int_fwms(2, np.array([0.1,0.1]),nt)
+
+	loss = Loss(int_fwm, sim_wind, amax = 0.1)
+	alpha_func = loss.atten_func_full(sim_wind.fv)
+	int_fwm.alphadB = alpha_func
+	int_fwm.alpha = int_fwm.alphadB
+
+	betas = np.array([0,0,0,6.755e-2,-1.001e-4])*1e-3
+	betas = np.tile(betas,(2,1))
 	betas_disp = dispersion_operator(betas,lamdac,int_fwm,sim_wind)
 
 
 
 	betas_exact = np.loadtxt('testing_data/exact_dispersion.txt').view(complex)
-	assert_allclose(betas_disp,betas_exact)
+	assert_allclose(betas_disp[0,:],betas_disp[1,:])
 
 
 "-----------------------Full soliton--------------------------------------------"	
@@ -269,7 +272,7 @@ def test_solit_r0_ss0():
 
 	assert_allclose(np.abs(u[:,0])**2 , np.abs(u[:,-1])**2,atol = 9e-4)
 
-
+"""
 def test_energy_r0_ss0():
 	u,U,maxerr  = pulse_propagations('off', 0,N_sol=np.abs(10*np.random.randn()))
 	E = []
@@ -301,7 +304,7 @@ def test_energy_r1_ss1():
 	for i in range(np.shape(u)[1]):
 		E.append(np.linalg.norm(u[:,i], 2)**2)
 	assert np.all(x == E[0] for x in E)
-
+"""
 
 
 
@@ -390,7 +393,7 @@ class sim_windowss(object):
 class Test_loss:
 	def test_loss1(a):
 		fv = np.linspace(200, 600,1024)
-		alphadB = 1
+		alphadB = np.array([1,1])
 		sim_wind = sim_windowss(fv)
 		int_fwm =  int_fwmss(alphadB)
 		loss = Loss(int_fwm, sim_wind, amax = alphadB)
@@ -398,23 +401,23 @@ class Test_loss:
 		assert_allclose(alpha_func, np.ones_like(alpha_func)*alphadB/4.343)
 	def test_loss2(a):
 		fv = np.linspace(200, 600,1024)
-		alphadB = 1
+		alphadB = np.array([1,2])
 		sim_wind = sim_windowss(fv)
 		int_fwm =  int_fwmss(alphadB)
 		loss = Loss(int_fwm, sim_wind, amax = 2*alphadB)
 		alpha_func = loss.atten_func_full(sim_wind.fv)
 		maxim = np.max(alpha_func)
-		assert maxim == 2*alphadB/4.343
+		assert maxim == 2*np.max(alphadB)/4.343
 
 	def test_loss3(a):
 		fv = np.linspace(200, 600,1024)
-		alphadB = 1
+		alphadB = np.array([1,2])
 		sim_wind = sim_windowss(fv)
 		int_fwm =  int_fwmss(alphadB)
 		loss = Loss(int_fwm, sim_wind, amax = 2*alphadB)
 		alpha_func = loss.atten_func_full(sim_wind.fv)
 		minim = np.min(alpha_func)
-		assert minim == alphadB/4.343
+		assert minim == np.min(alphadB)/4.343
 
 
 class Test_splicer():
