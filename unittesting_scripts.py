@@ -265,14 +265,14 @@ def pulse_propagations(ram,ss,N_sol = 1):
 	"""
 	return u,U,maxerr
 
-
+"""
 def test_solit_r0_ss0():
 	u,U,maxerr = pulse_propagations('off', 0)
 	print(np.linalg.norm(np.abs(u[:,0])**2 - np.abs(u[:,-1])**2,2))
 
 	assert_allclose(np.abs(u[:,0])**2 , np.abs(u[:,-1])**2,atol = 9e-4)
 
-"""
+
 def test_energy_r0_ss0():
 	u,U,maxerr  = pulse_propagations('off', 0,N_sol=np.abs(10*np.random.randn()))
 	E = []
@@ -338,8 +338,63 @@ class Test_WDM(object):
 		sim_wind = sim_windows(lamda,self.lv,900, 1250,self.nt)
 		WDMS = WDM(self.x1, self.x2,self.fv, c)
 		
-		U1 = 10*(np.random.randn(self.nt) + 1j * np.random.randn(self.nt))
-		U2 = 0 *(np.random.randn(self.nt) + 1j * np.random.randn(self.nt))
+		U1 = 10*(np.random.randn(1,self.nt) + 1j * np.random.randn(1,self.nt))
+		U2 = 0 *(np.random.randn(1,self.nt) + 1j * np.random.randn(1,self.nt))
+		U_in = (U1, U2)
+
+
+		a,b = WDMS.pass_through(U_in,sim_wind)
+		U_out1,U_out2 = a[1], b[1]
+
+		U_in_tot = np.abs(U1)**2 + np.abs(U2)**2
+		U_out_tot = np.abs(U_out1)**2 + np.abs(U_out2)**2
+		assert_allclose(U_in_tot,U_out_tot)
+
+
+	def test1_WDM_time(self):
+		self.x1 = 950
+		self.x2 = 1050
+		self.nt = 2**24
+		l1, l2 = 900, 1250
+		f1, f2 = 1e-3 * c /l1, 1e-3 *c /l2
+
+		self.fv = np.linspace(f1, f2, self.nt)
+		self.lv = 1e3 * c /self.fv
+
+		lamda = (self.lv[-1] + self.lv[0])/2
+		sim_wind = sim_windows(lamda,self.lv,900, 1250,self.nt)
+		WDMS = WDM(self.x1, self.x2,self.fv, c)
+		
+		U1 = 10*(np.random.randn(1,self.nt) + 1j * np.random.randn(1,self.nt))
+		U2 = 10*(np.random.randn(1,self.nt) + 1j * np.random.randn(1,self.nt))
+		U_in = (U1, U2)
+
+		u_in1 = ifft(fftshift(U1))
+		u_in2 = ifft(fftshift(U2))
+		u_in_tot = simps(np.abs(u_in1)**2, sim_wind.t) + simps(np.abs(u_in2)**2,sim_wind.t)
+
+		a,b = WDMS.pass_through(U_in,sim_wind)
+		u_out1,u_out2 = a[0], b[0]
+
+		u_out_tot =  simps(np.abs(u_out1)**2, sim_wind.t) + simps(np.abs(u_out2)**2,sim_wind.t)
+		assert_allclose(u_in_tot, u_out_tot, rtol=1e-06)
+
+	def test2_WDM_freq(self):
+		self.x1 = 950
+		self.x2 = 1050
+		self.nt = 2**10
+		l1, l2 = 900, 1250
+		f1, f2 = 1e-3 * c /l1, 1e-3 *c /l2
+
+		self.fv = np.linspace(f1, f2, self.nt)
+		self.lv = 1e3 * c /self.fv
+
+		lamda = (self.lv[-1] + self.lv[0])/2
+		sim_wind = sim_windows(lamda,self.lv,900, 1250,self.nt)
+		WDMS = WDM(self.x1, self.x2,self.fv, c)
+		
+		U1 = 10*(np.random.randn(2,self.nt) + 1j * np.random.randn(2,self.nt))
+		U2 = 0 *(np.random.randn(2,self.nt) + 1j * np.random.randn(2,self.nt))
 		U_in = (U1, U2)
 
 
@@ -365,8 +420,8 @@ class Test_WDM(object):
 		sim_wind = sim_windows(lamda,self.lv,900, 1250,self.nt)
 		WDMS = WDM(self.x1, self.x2,self.fv, c)
 		
-		U1 = 10*(np.random.randn(self.nt) + 1j * np.random.randn(self.nt))
-		U2 = 10*(np.random.randn(self.nt) + 1j * np.random.randn(self.nt))
+		U1 = 10*(np.random.randn(2,self.nt) + 1j * np.random.randn(2,self.nt))
+		U2 = 10*(np.random.randn(2,self.nt) + 1j * np.random.randn(2,self.nt))
 		U_in = (U1, U2)
 
 		u_in1 = ifft(fftshift(U1))
@@ -421,8 +476,29 @@ class Test_loss:
 
 
 class Test_splicer():
-
 	def test1_splicer_freq(self):
+		self.x1 = 930
+		self.x2 = 1050
+		self.nt = 2**3
+		self.lv = np.linspace(900, 1250,2**self.nt)
+		lamda = (self.lv[-1] + self.lv[0])/2
+		sim_wind = sim_windows(lamda,self.lv,900, 1250,self.nt)
+		splicer = Splicer(loss = np.random.rand()*10)
+		
+		U1 = 10*(np.random.randn(1,2**self.nt) + 1j * np.random.randn(1,2**self.nt))
+		U2 = 10 *(np.random.randn(1,2**self.nt) + 1j * np.random.randn(1,2**self.nt))
+		U_in = (U1, U2)
+		U1 = U1[:,np.newaxis]
+		U2 = U2[:,np.newaxis]
+		a,b = splicer.pass_through(U_in,sim_wind)
+		U_out1,U_out2 = a[1], b[1]
+
+		U_in_tot = np.abs(U1)**2 + np.abs(U2)**2
+		U_out_tot = np.abs(U_out1)**2 + np.abs(U_out2)**2
+
+		assert_allclose(U_in_tot[:,0],U_out_tot)
+
+	def test1_splicer_time(self):
 		self.x1 = 930
 		self.x2 = 1050
 		self.nt = 2**3
@@ -431,12 +507,30 @@ class Test_splicer():
 		lamda = (self.lv[-1] + self.lv[0])/2
 		sim_wind = sim_windows(lamda,self.lv,900, 1250,self.nt)
 		splicer = Splicer(loss = np.random.rand()*10)
+		U1 = 10*(np.random.randn(1,2**self.nt) + 1j * np.random.randn(1,2**self.nt))
+		U2 = 10 *(np.random.randn(1,2**self.nt) + 1j * np.random.randn(1,2**self.nt))
+		U_in = (U1, U2)
+		U1 = U1
+		U2 = U2
+		u_in1 = ifft(ifftshift(U1))
+		u_in2 = ifft(ifftshift(U2))
+		u_in_tot = np.abs(u_in1)**2 + np.abs(u_in2)**2
+		a,b = splicer.pass_through(U_in,sim_wind)
+		u_out1,u_out2 = a[0], b[0]
+		u_out_tot = np.abs(u_out1)**2 + np.abs(u_out2)**2
+		assert_allclose(u_in_tot, u_out_tot)
+	
+	def test2_splicer_freq(self):
+		self.x1 = 930
+		self.x2 = 1050
+		self.nt = 2**3
+		self.lv = np.linspace(900, 1250,2**self.nt)
+		lamda = (self.lv[-1] + self.lv[0])/2
+		sim_wind = sim_windows(lamda,self.lv,900, 1250,self.nt)
+		splicer = Splicer(loss = np.random.rand()*10)
 		
-		U1 = 10*(np.random.randn(2**self.nt) + 1j * np.random.randn(2**self.nt))
-		U2 = 10 *(np.random.randn(2**self.nt) + 1j * np.random.randn(2**self.nt))
-		
-		
-		
+		U1 = 10*(np.random.randn(2,2**self.nt) + 1j * np.random.randn(2,2**self.nt))
+		U2 = 10 *(np.random.randn(2,2**self.nt) + 1j * np.random.randn(2,2**self.nt))
 		U_in = (U1, U2)
 		U1 = U1[:,np.newaxis]
 		U2 = U2[:,np.newaxis]
@@ -457,28 +551,21 @@ class Test_splicer():
 		lamda = (self.lv[-1] + self.lv[0])/2
 		sim_wind = sim_windows(lamda,self.lv,900, 1250,self.nt)
 		splicer = Splicer(loss = np.random.rand()*10)
-	
-		
-		U1 = 10*(np.random.randn(2**self.nt) + 1j * np.random.randn(2**self.nt))
-		U2 = 10 *(np.random.randn(2**self.nt) + 1j * np.random.randn(2**self.nt))
-		
-
-
-
+		U1 = 10*(np.random.randn(2,2**self.nt) + 1j * np.random.randn(2,2**self.nt))
+		U2 = 10 *(np.random.randn(2,2**self.nt) + 1j * np.random.randn(2,2**self.nt))
 		U_in = (U1, U2)
-		U1 = U1#[:,np.newaxis]
-		U2 = U2#[:,np.newaxis]
+		U1 = U1
+		U2 = U2
 		u_in1 = ifft(ifftshift(U1))
 		u_in2 = ifft(ifftshift(U2))
 		u_in_tot = np.abs(u_in1)**2 + np.abs(u_in2)**2
-
 		a,b = splicer.pass_through(U_in,sim_wind)
 		u_out1,u_out2 = a[0], b[0]
+		u_out_tot = np.abs(u_out1)**2 + np.abs(u_out2)**2
+		assert_allclose(u_in_tot, u_out_tot)
 
 		
-		u_out_tot = np.abs(u_out1)**2 + np.abs(u_out2)**2
 
-		assert_allclose(u_in_tot, u_out_tot)
 	
 
 
@@ -572,7 +659,7 @@ def test_noise():
 	assert_raises(AssertionError, assert_almost_equal, n1, n2)
 
 
-def test_full_trans_in_cavity():
+def test_full_trans_in_cavity_1():
     N = 12
     nt = 2**N
     #fft,ifft,method = pick(nt, 1,100, 1)
@@ -595,7 +682,7 @@ def test_full_trans_in_cavity():
     splicer2 = Splicer(loss=0.142225011896)
 
 
-    U = (1/2)**0.5 * (1 + 1j) * np.ones(nt)
+    U = (1/2)**0.5 * (1 + 1j) * np.ones((1,nt))
 
     U = splicer1.pass_through((U,np.zeros_like(U)), sim_wind)[0][1]
     U = splicer1.pass_through((U,np.zeros_like(U)), sim_wind)[0][1]
@@ -609,4 +696,45 @@ def test_full_trans_in_cavity():
 
     U  = WDM1.pass_through((np.zeros_like(U),U), sim_wind)[0][1]
  
-    assert_allclose(max(np.abs(U)**2), 0.7234722042243035)
+    assert_allclose(np.max(np.abs(U)**2), 0.7234722042243035)
+
+def test_full_trans_in_cavity_2():
+	N = 12
+	nt = 2**N
+	#fft,ifft,method = pick(nt, 1,100, 1)
+	from scipy.constants import c, pi
+	int_fwm = sim_parameters(2.5e-20, 1, 0)
+	int_fwm.general_options(1e-6, raman_object, 0, 0)
+	int_fwm.propagation_parameters(N, 18, 1, 1)
+
+	lam_p1 = 1048.17107345
+	fv, where = fv_creator(850, lam_p1, int_fwm)
+	lv = 1e-3*c/fv
+	sim_wind = sim_window(fv, lam_p1, lam_p1, int_fwm,0)
+	noise_obj = Noise(int_fwm, sim_wind)
+	print(fv)
+	WDM1 = WDM(1050, 1200, sim_wind.fv,c)
+	WDM2 = WDM(930, 1200, sim_wind.fv, c)
+	WDM3 = WDM(930, 1050, sim_wind.fv, c)
+	WDM4 = WDM(930, 1200, sim_wind.fv, c)
+	splicer1 = Splicer(loss=0.4895)
+	splicer2 = Splicer(loss=0.142225011896)
+
+
+	U = (1/2)**0.5 * (1 + 1j) * np.ones((2,nt))
+
+	U = splicer1.pass_through((U,np.zeros_like(U)), sim_wind)[0][1]
+	U = splicer1.pass_through((U,np.zeros_like(U)), sim_wind)[0][1]
+	U = splicer2.pass_through((U,np.zeros_like(U)), sim_wind)[0][1]
+	U = splicer2.pass_through((U,np.zeros_like(U)), sim_wind)[0][1]
+
+	U  = WDM2.pass_through((U, np.zeros_like(U)), sim_wind)[1][1]
+
+	U = splicer2.pass_through((U,np.zeros_like(U)), sim_wind)[0][1]
+
+
+	U  = WDM1.pass_through((np.zeros_like(U),U), sim_wind)[0][1]
+	U_abs = np.abs(U)**2
+
+	Umax1, Umax2 = np.max(U_abs[0,:]), np.max(U_abs[1,:])
+	assert_allclose((Umax1, Umax2), (0.7234722042243035, 0.7234722042243035))

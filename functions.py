@@ -352,11 +352,11 @@ class Loss(object):
 
 class WDM(object):
 
-    def __init__(self, x1, x2, fv, c, modes=1):
+    def __init__(self, x1, x2, fv, c, nm=1):
         """
-                This class represents a 2x2 WDM coupler. The minimum and maximums are
-                given and then the object represents the class with WDM_pass the calculation
-                done.
+        This class represents a 2x2 WDM coupler. The minimum and maximums are
+        given and then the object represents the class with WDM_pass the calculation
+        done.
         """
         self.l1 = x1   # High part of port 1
         self.l2 = x2  # Low wavelength of port 1
@@ -366,17 +366,14 @@ class WDM(object):
         self.phi = 2*pi - self.omega*self.f2
         self.fv = fv
         self.fv_wdm = self.omega*fv+self.phi
-
-        # self.A = np.array([[np.reshape(np.cos(self.fv), (len(self.fv), modes)),
-        #						np.reshape(np.sin(self.fv), (len(self.fv), modes))],
-        #					   [-np.reshape(np.sin(self.fv), (len(self.fv), modes)),
-        #						np.reshape(np.cos(self.fv), (len(self.fv), modes))]])
-
+        nt = len(self.fv)
+        shape = (nm,nt)
         eps = np.sin(self.fv_wdm)
         eps2 = 1j*np.cos(self.fv_wdm)
+        eps = np.tile(eps, (nm,1))
+        eps2 = np.tile(eps2, (nm,1))
         self.A = np.array([[eps, eps2],
                            [eps2, eps]])
-
         return None
 
     def U_calc(self, U_in):

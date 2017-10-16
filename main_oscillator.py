@@ -47,8 +47,8 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 
 	# Pass the original pump through the WDM1, port1 is in to the loop, port2 junk
 	noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
-	u[:, 0], U[:, 0] = WDM_vec[0].pass_through(
-		(U[:, 0], noise_new), sim_wind)[0]
+	u[0,:,:], U[0,:,:] = WDM_vec[0].pass_through(
+		(U[0,:,:], noise_new), sim_wind)[0]
 	
 
 	max_rounds = arguments_determine(-1)
@@ -57,7 +57,7 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 	
 	t_total = 0
 	converged = False
-	sys.exit()
+
 	while ro < max_rounds and not(converged):
 
 
@@ -68,24 +68,23 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 			'round ' + str(ro)+', ' + i for i in pulse_pos_dict_or]
 
 		plotter_dbm(index,int_fwm.nm, sim_wind, u, U, P0_p1,
-					P0_s, f_p, f_s, 0, ro,master_index, str(ro)+'1', pulse_pos_dict[3], D_pic[5],plots)
+					P0_s, f_p, f_s, 0, ro,  mode_names,master_index, str(ro)+'1', pulse_pos_dict[3], D_pic[5],plots)
 
 
-		u, U = pulse_propagation(
-			u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm)
+		#u, U = pulse_propagation(
+		#	u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm)
 	
 		plotter_dbm(index,int_fwm.nm, sim_wind, u, U, P0_p1,
-					P0_s, f_p, f_s, -1,ro,master_index, str(ro)+'2', pulse_pos_dict[0], D_pic[2],plots)
+					P0_s, f_p, f_s, -1,ro, mode_names,master_index, str(ro)+'2', pulse_pos_dict[0], D_pic[2],plots)
 
 		
 		# pass through WDM2 port 2 continues and port 1 is out of the loop
 		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
-		(out1, out2),(u[:, -1], U[:, -1])  = WDM_vec[1].pass_through(
-			(U[:, -1], noise_new), sim_wind)
-		
-		
+		(out1, out2),(u[-1,:,:], U[-1,:,:])  = WDM_vec[1].pass_through(
+			(U[-1,:,:], noise_new), sim_wind)
+
 		plotter_dbm(index,int_fwm.nm, sim_wind, u, U, P0_p1,
-					P0_s, f_p, f_s, -1, ro,master_index,str(ro)+'3', pulse_pos_dict[1], D_pic[3],plots)
+					P0_s, f_p, f_s, -1, ro,  mode_names,master_index,str(ro)+'3', pulse_pos_dict[1], D_pic[3],plots)
 
 
 
@@ -93,19 +92,21 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 		# Splice7 after WDM2 for the signal
 		noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
 
-		(u[:, -1], U[:, -1]) = splicers_vec[2].pass_through(
-			(U[:, -1], noise_new), sim_wind)[0]
+		(u[-1,:,:], U[-1,:,:]) = splicers_vec[2].pass_through(
+			(U[-1,:,:], noise_new), sim_wind)[0]
 
 
 		# Pass again through WDM1 with the signal now
-		(u[:, 0], U[:, 0]) = WDM_vec[0].pass_through(
-			(U_original_pump, U[:, -1]), sim_wind)[0]
+		(u[0,:,:], U[0,:,:]) = WDM_vec[0].pass_through(
+			(U_original_pump, U[-1,:,:]), sim_wind)[0]
 
 		################################The outbound stuff#####################
-		U_out = np.reshape(out2, (len(sim_wind.t), 1))
-		u_out = np.reshape(out1, (len(sim_wind.t), 1))
+	
+
+		U_out = np.reshape(out2, (1,)+U.shape[1:])
+		u_out = np.reshape(out1, (1,)+u.shape[1:])
 		plotter_dbm(index,int_fwm.nm, sim_wind, u_out, U_out, P0_p1,
-					P0_s, f_p, f_s, -1, ro,master_index,str(ro)+'4', pulse_pos_dict[4], D_pic[6],plots)
+					P0_s, f_p, f_s, -1, ro,  mode_names,master_index,str(ro)+'4', pulse_pos_dict[4], D_pic[6],plots)
 		#if ro == np.sum(w.size_vec):
 		#	converged = converge_checker(w,P_out, 20)
 		#	print('next check on', np.sum(w.size_vec))
@@ -219,7 +220,7 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 	#			[930,  1200.39],
 	#			[930,lamp],
 	#			[930, 1200.39])
-	WDM_vec = [WDM(i[0], i[1],sim_wind.fv,c) for i in WDMS_pars]# WDM up downs in wavelengths [m]
+	WDM_vec = [WDM(i[0], i[1],sim_wind.fv,c,nm) for i in WDMS_pars]# WDM up downs in wavelengths [m]
 
 	#print(WDMS_pars)
 	#sys.exit()
@@ -280,8 +281,7 @@ def main():
 	betas = np.array([0, 0, 0, 6.756e-2,	# propagation constants [ps^n/m]
 			-1.002e-4, 3.671e-7])*1e-3								
 	
-	betas = np.tile(betas,(2,1))
-	print(np.shape(betas))
+	betas = np.tile(betas,(nm,1))
 	lamda_c = 1051.85e-9		
 				# Zero dispersion wavelength [nm]
 	#max at ls,li = 1095, 1010

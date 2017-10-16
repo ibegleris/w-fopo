@@ -6,7 +6,8 @@ import os
 from scipy.constants import c
 import h5py
 import sys
-
+import warnings
+warnings.simplefilter("ignore", UserWarning)
 font = {'size'   : 18}
 
 mpl.rc('font', **font)
