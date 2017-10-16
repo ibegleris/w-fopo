@@ -5,6 +5,11 @@ import numpy as np
 import os
 from scipy.constants import c
 import h5py
+import sys
+
+font = {'size'   : 18}
+
+mpl.rc('font', **font)
 
 def w2dbm(W, floor=-100):
 	"""This function converts a power given in W to a power given in dBm.
@@ -24,105 +29,86 @@ def w2dbm(W, floor=-100):
 	a = 10. * (np.ma.log10(W)).filled(floor/10-3) + 30
 	return a
 
-plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
-plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
 
-
-def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro, pump_wave = '',filename=None, title=None, im=0, plots = True):
-	#u, U = np.reshape(u,(np.shape(u)[-1], np.shape(u)[0])), np.reshape(u,(np.shape(U)[-1], np.shape(U)[0]))
-	if plots == True:
-		fig = plt.figure(figsize=(20.0, 10.0))
-
-		plt.plot(1e-3*c/sim_wind.fv, 
-				w2dbm(np.abs(U[:,which])**2), '-*')
-		#plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
-		#plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
-		plt.xlabel(r'$\lambda (nm)$', fontsize=18)
-		plt.ylabel(r'$Spectrum (a.u.)$', fontsize=18)
-		plt.ylim([-80, 100])
-		plt.xlim([np.min(sim_wind.lv), np.max(sim_wind.lv)])
-		plt.xlim([900, 1250])
-		plt.title(title)
-		plt.grid()
-		if type(im) != int:
-			newax = fig.add_axes([0.8, 0.8, 0.2, 0.2], anchor='NE')
-			newax.imshow(im)
-			newax.axis('off')
-		if filename == None:
-			plt.show()
-		else:
-			plt.savefig('output'+pump_wave+'/output'+str(index)+'/figures/wavelength/'+filename, bbox_inched='tight')
-
-		plt.close(fig)
-
-		fig = plt.figure(figsize=(20.0, 10.0))
-		plt.plot(sim_wind.fv, w2dbm(np.abs(U[:,which])**2), '-*')
-		#plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
-		#plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
-		plt.xlabel(r'$f (THz)$', fontsize=18)
-		plt.ylabel(r'$Spectrum (a.u.)$', fontsize=18)
-		#plt.xlim([np.min(sim_wind.fv), np.max(sim_wind.fv)])
-		plt.ylim([-20, 120])
-		#plt.xlim(270,300)
-		plt.title(str(f_p)+' ' +str(f_s))
-		plt.grid()
-		if type(im) != int:
-			newax = fig.add_axes([0.8, 0.8, 0.2, 0.2], anchor='NE')
-			newax.imshow(im)
-			newax.axis('off')
-		if filename == None:
-			plt.show()
-		else:
-			plt.savefig('output'+pump_wave+'/output'+str(index)+'/figures/freequency/'+filename, bbox_inched='tight')
-		plt.close(fig)
-
-		fig = plt.figure(figsize=(20.0, 10.0))
+def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro, mode_names,pump_wave = '',filename=None, title=None, im=0, plots = True):
+	"""
+	Provides inputs to what is to be plotted and saves the variables to the according hdf5 file
+	"""
+	if plots:
+		#Wavelength
+		x, y = 1e-3*c/sim_wind.fv, w2dbm(np.abs(U[which,:,:])**2)
+		xlim,ylim = [900, 1250], [-80, 100]
+		xlabel,ylabel = r'$\lambda (nm)$', r'$Spectrum (a.u.)$'
+		filesave = 'output'+pump_wave+'/output'+str(index) + '/figures/wavelength/'+filename
+		plot_multiple_modes(nm, x, y, which, mode_names, ylim, xlim, xlabel, ylabel, title, filesave,im)
 		
-		plt.plot(sim_wind.t,np.abs(u[:, which])**2, '*-')
-		#plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
-		plt.title('time space')
-		#plt.ylim([0, 160])
-		plt.grid()
-		plt.xlabel(r'$t(ps)$')
-		plt.ylabel(r'$Spectrum$')
-		if type(im) != int:
-			newax = fig.add_axes([0.8, 0.8, 0.2, 0.2], anchor='NE')
-			newax.imshow(im)
-			newax.axis('off')
+		#Frequency
+		x, y = sim_wind.fv, w2dbm(np.abs(U[which,:,:])**2)
+		xlim,ylim = [np.min(x), np.max(x)], [-20, 120]
+		xlabel,ylabel = r'$f (THz)$', r'$Spectrum (a.u.)$'
+		filesave = 'output'+pump_wave+'/output'+str(index) + '/figures/frequency/'+filename
+		plot_multiple_modes(nm, x, y, which, mode_names, ylim, xlim, xlabel, ylabel, title, filesave,im)
+		
+		#Time
+		x, y = sim_wind.t, np.abs(u[which,:,:])**2
+		xlim,ylim = [np.min(x), np.max(x)], [np.min(y),np.max(y)]
+		xlabel,ylabel = r'$\lambda (nm)$', r'$Spectrum (W)$'
+		filesave = 'output'+pump_wave+'/output'+str(index) + '/figures/time/'+filename
+		plot_multiple_modes(nm, x, y, which, mode_names, ylim, xlim, xlabel, ylabel, title, filesave,im)
 
-		if filename == None:
-			plt.show()
-		else:
+		# Dump to HDF5 for postproc
+		if filename is not(None):
+			if filename[:4] != 'port': 
+				layer = filename[-1]+'/'+filename[:-1]
+			else:
+				layer = filename
+			try:
+				
+				save_variables('data_large', layer, filepath='output'+pump_wave+'/output'+str(index)+'/data/', U = U[:,which], t=sim_wind.t, u=u[:,which],
+							   fv=sim_wind.fv, lv=sim_wind.lv,
+							   which=which, nm=nm, P0_p=P0_p, P0_s=P0_s, f_p=f_p, f_s=f_s, ro = ro)
+			except RuntimeError:
+				os.system('rm output'+pump_wave+'/output'+str(index)+'/data/data_large.hdf5')
+				save_variables('data_large', layer, filepath='output'+pump_wave+'/output'+str(index)+'/data/', U=U[:,which], t=sim_wind.t, u=u[:,which],
+							   fv=sim_wind.fv, lv=sim_wind.lv,
+							   which=which, nm=nm, P0_p=P0_p, P0_s=P0_s, f_p=f_p, f_s=f_s, ro = ro)
+				pass
+		return None
 
-			plt.savefig('output'+pump_wave+'/output'+str(index)+'/figures/time/'+filename)
-		plt.close(fig)
-			
-
-	if filename is not(None):
-		if filename[:4] != 'port': 
-			layer = filename[-1]+'/'+filename[:-1]
-		else:
-			layer = filename
-		try:
-			
-			save_variables('data_large', layer, filepath='output'+pump_wave+'/output'+str(index)+'/data/', U = U[:,which], t=sim_wind.t, u=u[:,which],
-						   fv=sim_wind.fv, lv=sim_wind.lv,
-						   which=which, nm=nm, P0_p=P0_p, P0_s=P0_s, f_p=f_p, f_s=f_s, ro = ro)
-		except RuntimeError:
-			os.system('rm output'+pump_wave+'/output'+str(index)+'/data/data_large.hdf5')
-			save_variables('data_large', layer, filepath='output'+pump_wave+'/output'+str(index)+'/data/', U=U[:,which], t=sim_wind.t, u=u[:,which],
-						   fv=sim_wind.fv, lv=sim_wind.lv,
-						   which=which, nm=nm, P0_p=P0_p, P0_s=P0_s, f_p=f_p, f_s=f_s, ro = ro)
-			pass
-
-	return 0
-
-
-def plotter_dbm_load():
-	# class sim_window(object):
-	plotter_dbm(nm, sim_wind, Uabs, u, which)
-	return None
-
+def plot_multiple_modes(nm, x, y, which, mode_names, ylim, xlim, xlabel, ylabel, title, filesave=None,im = None):
+    """
+    Dynamically plots what is asked of it for multiple modes given at set point.
+    """
+    fig = plt.figure(figsize=(20.0, 10.0))
+    plt.subplots_adjust(hspace=0.1)
+    for i, v in enumerate(range(nm)):
+        v = v+1
+        ax1 = plt.subplot(nm, 1, v)
+        plt.plot(x, y[i,:], '-', label=mode_names[i])
+        ax1.legend(loc=2)
+        ax1.set_ylim(ylim)
+        ax1.set_xlim(xlim)
+        if i != nm - 1:
+            ax1.get_xaxis().set_visible(False)
+    ax = fig.add_subplot(111, frameon=False)
+    ax.axes.get_xaxis().set_ticks([])
+    ax.axes.get_yaxis().set_ticks([])
+    ax.set_title(title)
+    plt.grid()
+    ax.yaxis.set_label_coords(-0.05, 0.5)
+    ax.xaxis.set_label_coords(0.5, -0.05)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    if type(im) != int:
+        newax = fig.add_axes([0.8, 0.8, 0.2, 0.2], anchor='NE')
+        newax.imshow(im)
+        newax.axis('off')
+    if filesave == None:
+        plt.show()
+    else:
+        plt.savefig(filesave, bbox_inched='tight')
+    plt.close(fig)
+    return None
 
 
 def animator_pdf_maker(rounds, pump_index):

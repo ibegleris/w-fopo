@@ -479,7 +479,7 @@ def create_file_structure(kk=''):
     folders_large += (folders_large[-2] + '/figures',)
 
     outs = folders_large[-1]
-    folders_figures = ('/freequency', '/time', '/wavelength')
+    folders_figures = ('/frequency', '/time', '/wavelength')
     for i in folders_figures:
         folders_figures += (i+'/portA', i+'/portB')
     for i in folders_figures:

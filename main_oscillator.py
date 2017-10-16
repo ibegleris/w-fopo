@@ -14,7 +14,7 @@ from functions import *
 from time import time,sleep
 
 def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p1,P0_s, f_p, f_s,p_pos,s_pos,splicers_vec,
-			WDM_vec,M1,M2, hf, Dop, dAdzmm,D_pic,pulse_pos_dict_or,plots):
+			WDM_vec,M1,M2, hf, Dop, dAdzmm,D_pic,pulse_pos_dict_or,plots,mode_names):
 
 	u = np.empty(
 		[ len(sim_wind.zv), int_fwm.nm,len(sim_wind.t)], dtype='complex128')
@@ -38,13 +38,12 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 	sim_wind.w_tiled = sim_wind.w + sim_wind.woffset
 	master_index = str(master_index)
 
-	sys.exit()
+	
 	
 	plotter_dbm(index,int_fwm.nm, sim_wind, u, U, P0_p1,
-				P0_s, f_p, f_s, 0,0,master_index, '00', 'original pump', D_pic[0],plots)
+				P0_s, f_p, f_s, 0,0,  mode_names,master_index,'00','original pump', D_pic[0],plots)
 
-
-	U_original_pump = np.copy(U[:, 0])
+	U_original_pump = np.copy(U[0,:,:])
 
 	# Pass the original pump through the WDM1, port1 is in to the loop, port2 junk
 	noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
@@ -57,10 +56,8 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 	ro = -1
 	
 	t_total = 0
-
-	#P_out = []
-	#w= Window(40)
 	converged = False
+	sys.exit()
 	while ro < max_rounds and not(converged):
 
 
@@ -140,7 +137,7 @@ def calc_P_out(U, U_original_pump,fv,t):
 @unpack_args
 def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,betas,
 				lamda_c, WDMS_pars, lamp, lams,num_cores, maxerr, ss, ram, plots,
-				 N, nt, nplot,master_index, nm):
+				 N, nt, nplot,master_index, nm,mode_names):
 	"------------------propagation paramaters------------------"
 	dzstep = z/nplot						# distance per step
 	dz_less = 1e2
@@ -235,7 +232,7 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 	
 	f_p,f_s = 1e-3*c/lamp, 1e-3*c/lams
 	oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P_p,P_s, f_p, f_s,p_pos,s_pos,splicers_vec,
-			WDM_vec,M1,M2, hf, Dop, dAdzmm,D_pic,pulse_pos_dict_or,plots)
+			WDM_vec,M1,M2, hf, Dop, dAdzmm,D_pic,pulse_pos_dict_or,plots,mode_names)
 
 	
 	#while cop !=0:
@@ -257,6 +254,7 @@ def main():
 	nt = 2**N 								# number of grid points
 	nplot = 2								# number of plots within fibre min is 2
 	nm = 2									# Number of modes (include degenerate polarisation)
+	mode_names = ['LP01a', 'LP01b']			# Names of modes for plotting
 	if 'mpi' in sys.argv:
 		method = 'mpi'
 	elif 'joblib' in sys.argv:
@@ -265,7 +263,7 @@ def main():
 		method = 'single'
 	"--------------------------------------------------------------------------"
 	stable_dic = {'num_cores':num_cores, 'maxerr':maxerr, 'ss':ss, 'ram':ram, 'plots': plots,
-					'N':N, 'nt':nt,'nplot':nplot, 'nm':nm}
+					'N':N, 'nt':nt,'nplot':nplot, 'nm':nm, 'mode_names':mode_names}
 	"------------------------Can be variable parameters------------------------"
 	n2 = 2.5e-20							# Nonlinear index [m/W]
 	gama = 10e-3 							# Overwirtes n2 and Aeff w/m
