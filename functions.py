@@ -101,7 +101,7 @@ class raman_object(object):
         self.how = b
         self.hf = None
 
-    def raman_load(self, t, dt):
+    def raman_load(self, t, dt,M2):
         if self.on == 'on':
             if self.how == 'analytic':
                 print(self.how)
@@ -123,6 +123,7 @@ class raman_object(object):
                 htmeas /= (dt*np.sum(htmeas))  # normalised
                 # Fourier transform of the measured nonlinear response
                 self.hf = fft(htmeas)
+                self.hf = np.tile(self.hf,(len(M2[1,:]),1))
             else:
                 self.hf = None
 
@@ -176,7 +177,7 @@ def Q_matrixes(nm, n2, lamda, gama=None):
         M1 = np.real(mat['M1'])
         M2 = mat['M2']
         M2[:, :] -= 1
-        M1[0:4] -= 1
+        M1[:4] -= 1
         M1[-1] -= 1
         gamma_or = 3*n2*(2*pi/lamda)*M1[4]
         if gama is not None:
@@ -186,13 +187,22 @@ def Q_matrixes(nm, n2, lamda, gama=None):
 
     if nm == 2:
         mat = loadmat("loading_data/M1_M2_new_2m.mat")
-        M1 = np.real(mat['M1'])
+        M1_temp = np.real(mat['M1'])
         M2 = mat['M2']
         M2[:] -= 1
-        M1[:4, :] -= 1
-        M1[6, :] -= 1
-
-    return M1,M2
+        M1 = np.empty([np.shape(M1_temp)[0]-2,\
+             np.shape(M1_temp)[1]], dtype = np.int8)
+        M1[:4, :] = M1_temp[:4,:] - 1
+        M1[4, :] = M1_temp[6, :] -  1
+        Q = M1_temp[4:6, :]
+        if gama is not None:
+            Q[:,:]  = gama / (3*n2*(2*pi/lamda))
+        Q[0,1:-1] = 0
+        Q[1,1:-1] = 0
+        #print(M1)
+        #print(Q)
+        #sys.exit()
+    return M1,M2,Q
 
 
 class sim_parameters(object):
@@ -535,7 +545,7 @@ class Noise(object):
 #warnings.filterwarnings("error")
 
 
-def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm):
+def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf, Dop, dAdzmm):
     """Pulse propagation"""
     #badz = 0  # counter for bad steps
     #goodz = 0  # counter for good steps
@@ -543,7 +553,7 @@ def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm):
     #dzv = np.zeros(1)
     #dzv[0] = int_fwm.dz
     Safety = 0.95
-    u1 = np.ascontiguousarray(u[:, 0])
+    u1 = u[0,:,:]
     dz = int_fwm.dz * 1
     for jj in range(int_fwm.nplot):
         exitt = False
@@ -552,9 +562,11 @@ def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm):
             delta = 2*int_fwm.maxerr
             while delta > int_fwm.maxerr:
                 u1new = ifft(np.exp(Dop*dz/2)*fft(u1))
-                A, delta = RK45CK(dAdzmm, u1new, dz, M, int_fwm.n2,
+
+                A, delta = RK45CK(dAdzmm, u1new, dz, M1,M2,Q, int_fwm.n2,
                                  sim_wind.lamda, sim_wind.tsh,
                                  sim_wind.dt, hf, sim_wind.w_tiled)
+        
                 if (delta > int_fwm.maxerr):
                     # calculate the step (shorter) to redo
                     dz *= Safety*(int_fwm.maxerr/delta)**0.25
@@ -589,8 +601,8 @@ def pulse_propagation(u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm):
             #dz = np.copy(dz2)
             ###################################################################
 
-        u[:, jj+1] = u1
-        U[:, jj+1] = fftshift(fft(u[:, jj+1]))
+        u[jj+1,:] = u1
+        U[jj+1,:] = fftshift(fft(u[jj+1,:]))
     int_fwm.dz = dz*1
 
     return u, U

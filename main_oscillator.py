@@ -14,7 +14,7 @@ from functions import *
 from time import time,sleep
 
 def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p1,P0_s, f_p, f_s,p_pos,s_pos,splicers_vec,
-			WDM_vec,M1,M2, hf, Dop, dAdzmm,D_pic,pulse_pos_dict_or,plots,mode_names):
+			WDM_vec,M1,M2,Q, hf, Dop, dAdzmm,D_pic,pulse_pos_dict_or,plots,mode_names):
 
 	u = np.empty(
 		[ len(sim_wind.zv), int_fwm.nm,len(sim_wind.t)], dtype='complex128')
@@ -35,7 +35,7 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 
 	U[0,:,:] = fftshift(fft(u[0,:,:]))
 	
-	sim_wind.w_tiled = sim_wind.w + sim_wind.woffset
+	sim_wind.w_tiled = np.tile(sim_wind.w + sim_wind.woffset,(int_fwm.nm,1))
 	master_index = str(master_index)
 
 	
@@ -71,8 +71,8 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 					P0_s, f_p, f_s, 0, ro,  mode_names,master_index, str(ro)+'1', pulse_pos_dict[3], D_pic[5],plots)
 
 
-		#u, U = pulse_propagation(
-		#	u, U, int_fwm, M, sim_wind, hf, Dop, dAdzmm)
+		u, U = pulse_propagation(
+			u, U, int_fwm, M1,M2,Q, sim_wind, hf, Dop, dAdzmm)
 	
 		plotter_dbm(index,int_fwm.nm, sim_wind, u, U, P0_p1,
 					P0_s, f_p, f_s, -1,ro, mode_names,master_index, str(ro)+'2', pulse_pos_dict[0], D_pic[2],plots)
@@ -152,7 +152,7 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 
 
 	"---------------------Aeff-Qmatrixes-----------------------"
-	M1,M2 = Q_matrixes(int_fwm.nm, int_fwm.n2, lamda, gama)
+	M1,M2,Q = Q_matrixes(int_fwm.nm, int_fwm.n2, lamda, gama)
 	"----------------------------------------------------------"
 
 
@@ -199,7 +199,7 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 
 	dAdzmm = func_dict[string]
 	raman = raman_object(int_fwm.ram, int_fwm.how)
-	raman.raman_load(sim_wind.t, sim_wind.dt)
+	raman.raman_load(sim_wind.t, sim_wind.dt, M2)
 	hf = raman.hf
 	"--------------------------------------------------------"
 
@@ -233,7 +233,7 @@ def formulate(index,n2,gama, alphadB, z, P_p, P_s, TFWHM_p,TFWHM_s,spl_losses,be
 	
 	f_p,f_s = 1e-3*c/lamp, 1e-3*c/lams
 	oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P_p,P_s, f_p, f_s,p_pos,s_pos,splicers_vec,
-			WDM_vec,M1,M2, hf, Dop, dAdzmm,D_pic,pulse_pos_dict_or,plots,mode_names)
+			WDM_vec,M1, M2, Q, hf, Dop, dAdzmm,D_pic,pulse_pos_dict_or,plots,mode_names)
 
 	
 	#while cop !=0:
