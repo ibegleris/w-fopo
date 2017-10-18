@@ -29,7 +29,7 @@ try:
 except AttributeError:
     def profile(func):
         return func
-
+import sys
 @profile
 def RK45CK(dAdzmm, u1, dz, M1,M2,Q, n2, lamda, tsh, dt, hf, w_tiled):
     """
@@ -150,9 +150,16 @@ def dAdzmm_roff_s0(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
     calculates the nonlinear operator for a given field u0
     use: dA = dAdzmm(u0)
     """
-    M3 = uabs(np.ascontiguousarray(u0.real), np.ascontiguousarray(u0.imag))
-    N = nonlin_ker(M1, M2, Q, u0, M3)
+    M3 = np.zeros([len(M2[0,:]),u0.shape[1]])   
+    for ii in range(M2.shape[1]):
+        M3[ii,:] = np.real(u0[M2[0,ii],:]*np.conj(u0[M2[1,ii],:]))
+    fr = 0.18
+    N = np.zeros(np.shape(u0),dtype='complex')
+    for ii in range(M1.shape[1]):
+        N[M1[0,ii],:] += (1-fr)*(2*Q[0,ii] + Q[1,ii]) \
+                                *u0[M1[1,ii],:]*M3[M1[4,ii],:]
     N *= -1j*n2*2*pi/lamda
+    #print(N)
     return N
 
 
@@ -162,10 +169,16 @@ def dAdzmm_roff_s1(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
     calculates the nonlinear operator for a given field u0
     use: dA = dAdzmm(u0)
     """
-    #print('no')
-    M3 = uabs(np.ascontiguousarray(u0.real), np.ascontiguousarray(u0.imag))
-    N = nonlin_ker(M1, M2, Q, u0, M3)
-    N = -1j*n2*2*pi/lamda*(N + tsh*ifft((w_tiled)*fft(N)))
+    M3 = np.zeros([len(M2[0,:]),u0.shape[1]])   
+    for ii in range(M2.shape[1]):
+        M3[ii,:] = np.real(u0[M2[0,ii],:]*np.conj(u0[M2[1,ii],:]))
+    fr = 0.18
+    N = np.zeros(np.shape(u0),dtype='complex')
+    for ii in range(M1.shape[1]):
+        N[M1[0,ii],:] += (1-fr)*(2*Q[0,ii] + Q[1,ii]) \
+                                *u0[M1[1,ii],:]*M3[M1[4,ii],:]
+                               
+    N = -1j*n2*2*pi/lamda * (N + tsh*ifft(w_tiled * fft(N)))
     return N
 
 @profile
@@ -174,13 +187,20 @@ def dAdzmm_ron_s0(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
     calculates the nonlinear operator for a given field u0
     use: dA = dAdzmm(u0)
             """
-    print(u0.real.flags)
-    print(u0.imag.flags)
-    M3 = uabs(np.ascontiguousarray(u0.real), np.ascontiguousarray(u0.imag))
-
-    temp = fftshift(ifft(fft(M3)*hf))
-    N = nonlin_ram(M1, M2, Q, u0, M3, dt, temp)
+    
+    M3 = np.zeros([len(M2[0,:]),u0.shape[1]])   
+    for ii in range(M2.shape[1]):
+        M3[ii,:] = np.real(u0[M2[0,ii],:]*np.conj(u0[M2[1,ii],:]))
+    M4 = dt*fftshift(ifft(fft(M3)*hf)) # creates matrix M4
+    fr = 0.18
+    N = np.zeros(np.shape(u0),dtype='complex')
+    for ii in range(M1.shape[1]):
+        N[M1[0,ii],:] += (1-fr)*(2*Q[0,ii] + Q[1,ii]) \
+                                *u0[M1[1,ii],:]*M3[M1[4,ii],:] + \
+                               3*fr*Q[0,ii]*u0[M1[1,ii],:]*M4[M1[4,ii],:]
+    
     N *= -1j*n2*2*pi/lamda
+    print(N)
     return N
 
 @profile
@@ -189,8 +209,8 @@ def dAdzmm_ron_s1(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
 
     M3 = np.zeros([len(M2[0,:]),u0.shape[1]])   
     for ii in range(M2.shape[1]):
-        M3[ii,:] = u0[M2[0,ii],:]*np.conj(u0[M2[1,ii],:])
-    M4 = fftshift(ifft(fft(M3)*hf)) # creates matrix M4
+        M3[ii,:] = np.real(u0[M2[0,ii],:]*np.conj(u0[M2[1,ii],:]))
+    M4 = dt*fftshift(ifft(fft(M3)*hf)) # creates matrix M4
     fr = 0.18
     N = np.zeros(np.shape(u0),dtype='complex')
     for ii in range(M1.shape[1]):

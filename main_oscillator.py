@@ -248,7 +248,7 @@ def main():
 	"-----------------------------Stable parameters----------------------------"
 	num_cores = arguments_determine(1)	 	# Number of computing cores for sweep
 	maxerr = 1e-13							# maximum tolerable error per step in integration
-	ss = 1				  					# includes self steepening term
+	ss = 0				  					# includes self steepening term
 	ram = 'on'				  				# Raman contribution 'on' if yes and 'off' if no
 	plots = True 							# Do you want plots, be carefull it makes the code very slow!
 	N = 12									# 2**N grid points
