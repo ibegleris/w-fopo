@@ -181,9 +181,9 @@ def Q_matrixes(nm, n2, lamda, gama=None):
         M1[-1] -= 1
         gamma_or = 3*n2*(2*pi/lamda)*M1[4]
         if gama is not None:
-            M1[4] = gama / (n2*(2*pi/lamda))
-            M1[5] = gama / (n2*(2*pi/lamda))
-        M = M1[4, 0]
+            M1[4] = gama / (3*n2*(2*pi/lamda))
+            M1[5] = gama / (3*n2*(2*pi/lamda))
+        
 
     if nm == 2:
         mat = loadmat("loading_data/M1_M2_new_2m.mat")

@@ -248,9 +248,9 @@ def main():
 	"-----------------------------Stable parameters----------------------------"
 	num_cores = arguments_determine(1)	 	# Number of computing cores for sweep
 	maxerr = 1e-13							# maximum tolerable error per step in integration
-	ss = 0				  					# includes self steepening term
+	ss = 1				  					# includes self steepening term
 	ram = 'on'				  				# Raman contribution 'on' if yes and 'off' if no
-	plots = True 							# Do you want plots, be carefull it makes the code very slow!
+	plots = False 							# Do you want plots, be carefull it makes the code very slow!
 	N = 12									# 2**N grid points
 	nt = 2**N 								# number of grid points
 	nplot = 2								# number of plots within fibre min is 2
@@ -271,7 +271,7 @@ def main():
 	alphadB = np.array([0,0])#0.0011667#666666666668		# loss within fibre[dB/m]
 	z = 18									# Length of the fibre
 	#P_p = my_arange(5.2,5.45,0.01)
-	P_p = [60]
+	P_p = [10]
 	P_s = 0#*my_arange(100e-3,1100e-3, 100e-3)							# Signal power [W]
 	TFWHM_p = 0								# full with half max of pump
 	TFWHM_s = 0								# full with half max of signal
