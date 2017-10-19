@@ -170,21 +170,20 @@ def dispersion_operator(betas, lamda_c, int_fwm, sim_wind):
 
 def Q_matrixes(nm, n2, lamda, gama=None):
     """Calculates the Q matrices from importing them from a file.
-     CHnages the gama if given"""
+     Changes the gama if given"""
     if nm == 1:
         # loads M1 and M2 matrices
         mat = loadmat('loading_data/M1_M2_1m_new.mat')
-        M1 = np.real(mat['M1'])
+        M1_temp = np.real(mat['M1'])
         M2 = mat['M2']
         M2[:, :] -= 1
-        M1[:4] -= 1
-        M1[-1] -= 1
-        gamma_or = 3*n2*(2*pi/lamda)*M1[4]
+        M1 = np.empty([np.shape(M1_temp)[0]-2,\
+             np.shape(M1_temp)[1]], dtype = np.int8)
+        M1[:4] = M1_temp[:4] - 1
+        M1[-1] = M1_temp[6, :] -  1
+        Q = M1_temp[4:6, :]
         if gama is not None:
-            M1[4] = gama / (3*n2*(2*pi/lamda))
-            M1[5] = gama / (3*n2*(2*pi/lamda))
-        
-
+            Q[:,:]  = gama / (3*n2*(2*pi/lamda))
     if nm == 2:
         mat = loadmat("loading_data/M1_M2_new_2m.mat")
         M1_temp = np.real(mat['M1'])
@@ -199,9 +198,7 @@ def Q_matrixes(nm, n2, lamda, gama=None):
             Q[:,:]  = gama / (3*n2*(2*pi/lamda))
         Q[0,1:-1] = 0
         Q[1,1:-1] = 0
-        #print(M1)
-        #print(Q)
-        #sys.exit()
+
     return M1,M2,Q
 
 
@@ -211,7 +208,20 @@ class sim_parameters(object):
         self.n2 = n2
         self.nm = nm
         self.alphadB = alphadB
-
+        try:
+            temp = len(self.alphadB)
+        except TypeError:
+            self.alphadB = np.array([self.alphadB])
+        if self.nm > len(self.alphadB):
+            print('Assering same loss per mode')
+            self.alphadB = np.empty(nm)
+            self.alphadB = np.tile(alphadB,(nm))
+        elif self.nm < len(self.alphadB):
+            print('To many losses for modes, apending!')
+            for i in range(nm):
+                self.alphadB[i] = alphadB[i]
+        else:
+            self.alphadB = alphadB
     def general_options(self, maxerr, raman_object,
                         ss='1', ram='on', how='load'):
         self.maxerr = maxerr

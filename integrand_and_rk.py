@@ -12,9 +12,9 @@ autojit, jit = numba.autojit, numba.jit
 cfunc = numba.cfunc
 generated_jit = numba.generated_jit
 guvectorize = numba.guvectorize
+
 # Pass through the @profile decorator if line profiler (kernprof) is not in use
 # Thanks Paul!
-
 try:
     builtins.profile
 except AttributeError:
@@ -137,13 +137,15 @@ def dAdzmm_ron_s0(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
     N *= -1j*n2*2*pi/lamda
     return N
 
-
+import sys
 @profile
 def dAdzmm_ron_s1(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
     """
     calculates the nonlinear operator for a given field u0
     use: dA = dAdzmm(u0)
     """
+    #print(u0.shape,M2.shape)
+    #sys.exit()
     M3 = uabs(u0,M2)
     M4 = dt*fftshift(ifft(fft(M3)*hf)) # creates matrix M4
     N = nonlin_ram(M1, Q, u0, M3, M4)
@@ -151,10 +153,8 @@ def dAdzmm_ron_s1(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
     return N
 
 
-
-
 @guvectorize(['void(complex128[:,:], uint8[:,:], float64[:,:])'],\
-                 '(n,m),(n,l)->(l,m)',target = trgt)
+                 '(n,m),(o,l)->(l,m)',target = trgt)
 def uabs(u0,M2,M3):
     for ii in range(M2.shape[1]):
         M3[ii,:] = (u0[M2[0,ii],:]*np.conj(u0[M2[1,ii],:])).real
@@ -162,7 +162,7 @@ def uabs(u0,M2,M3):
 
 @guvectorize(['void(int8[:,:], float64[:,:], complex128[:,:],\
             float64[:,:], complex128[:,:], complex128[:,:])'],\
-            '(w,a),(m,a),(m,n),(l,n),(l,n)->(m,n)',target = trgt)
+            '(w,a),(i,a),(m,n),(l,n),(l,n)->(m,n)',target = trgt)
 def nonlin_ram(M1, Q, u0, M3, M4, N):
     N[:,:] = 0
     for ii in range(M1.shape[1]):
@@ -171,18 +171,15 @@ def nonlin_ram(M1, Q, u0, M3, M4, N):
                                0.54*Q[0,ii]*u0[M1[1,ii],:]*M4[M1[4,ii],:]
 
 
-
 @guvectorize(['void(int8[:,:], float64[:,:], complex128[:,:],\
             float64[:,:], complex128[:,:])'],\
-            '(w,a),(m,a),(m,n),(l,n)->(m,n)',target = trgt)
+            '(w,a),(i,a),(m,n),(l,n)->(m,n)',target = trgt)
 def nonlin_kerr(M1, Q, u0, M3, N):
     N[:,:] = 0
     for ii in range(M1.shape[1]):
         N[M1[0,ii],:] += 0.82*(2*Q[0,ii] + Q[1,ii]) \
                                 *u0[M1[1,ii],:]*M3[M1[4,ii],:]
-                 
-
-
+                
 
 @vectorize(['complex128(float64,float64,complex128,\
 			float64,complex128,float64)'], target=trgt)

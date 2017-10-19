@@ -250,11 +250,11 @@ def main():
 	maxerr = 1e-13							# maximum tolerable error per step in integration
 	ss = 1				  					# includes self steepening term
 	ram = 'on'				  				# Raman contribution 'on' if yes and 'off' if no
-	plots = False 							# Do you want plots, be carefull it makes the code very slow!
+	plots = True 							# Do you want plots, be carefull it makes the code very slow!
 	N = 12									# 2**N grid points
 	nt = 2**N 								# number of grid points
 	nplot = 2								# number of plots within fibre min is 2
-	nm = 2									# Number of modes (include degenerate polarisation)
+	nm = 1									# Number of modes (include degenerate polarisation)
 	mode_names = ['LP01a', 'LP01b']			# Names of modes for plotting
 	if 'mpi' in sys.argv:
 		method = 'mpi'
@@ -268,7 +268,7 @@ def main():
 	"------------------------Can be variable parameters------------------------"
 	n2 = 2.5e-20							# Nonlinear index [m/W]
 	gama = 10e-3 							# Overwirtes n2 and Aeff w/m
-	alphadB = np.array([0,0])#0.0011667#666666666668		# loss within fibre[dB/m]
+	alphadB = np.array([0])#0.0011667#666666666668		# loss within fibre[dB/m]
 	z = 18									# Length of the fibre
 	#P_p = my_arange(5.2,5.45,0.01)
 	P_p = [10]
