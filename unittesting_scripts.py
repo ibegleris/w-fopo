@@ -497,7 +497,7 @@ class Test_WDM(object):
 		u_out1,u_out2 = a[0], b[0]
 
 		u_out_tot =  simps(np.abs(u_out1)**2, sim_wind.t) + simps(np.abs(u_out2)**2,sim_wind.t)
-		assert_allclose(u_in_tot, u_out_tot)
+		assert_allclose(u_in_tot, u_out_tot,rtol = 1e-6)
 	
 
 		
