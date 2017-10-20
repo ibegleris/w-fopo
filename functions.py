@@ -196,9 +196,11 @@ def Q_matrixes(nm, n2, lamda, gama=None):
         Q = M1_temp[4:6, :]
         if gama is not None:
             Q[:,:]  = gama / (3*n2*(2*pi/lamda))
-        Q[0,1:-1] = 0
-        Q[1,1:-1] = 0
-
+        Q[0,2:-2] = 0
+        Q[1,2:-2] = 0
+        # This is because of the l<->n exchange in the derivation
+        Q[1,1],Q[1,3] = Q[1,3] , Q[1,1]
+        Q[1,-2],Q[1,-4] = Q[1,-4],Q[1,-2]
     return M1,M2,Q
 
 
@@ -213,7 +215,7 @@ class sim_parameters(object):
         except TypeError:
             self.alphadB = np.array([self.alphadB])
         if self.nm > len(self.alphadB):
-            print('Assering same loss per mode')
+            print('Asserting same loss per mode')
             self.alphadB = np.empty(nm)
             self.alphadB = np.tile(alphadB,(nm))
         elif self.nm < len(self.alphadB):

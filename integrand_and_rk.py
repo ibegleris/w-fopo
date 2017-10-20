@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.constants import pi
 from numpy.fft import fftshift
-from scipy.fftpack import fft, ifft
+from scipy.fftpack import fft, ifft, rfft
 
 from six.moves import builtins
 
@@ -147,6 +147,7 @@ def dAdzmm_ron_s1(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
     #print(u0.shape,M2.shape)
     #sys.exit()
     M3 = uabs(u0,M2)
+
     M4 = dt*fftshift(ifft(fft(M3)*hf)) # creates matrix M4
     N = nonlin_ram(M1, Q, u0, M3, M4)
     N = -1j*n2*2*pi/lamda * (N + tsh*ifft(w_tiled * fft(N)))

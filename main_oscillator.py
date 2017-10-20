@@ -254,7 +254,7 @@ def main():
 	N = 12									# 2**N grid points
 	nt = 2**N 								# number of grid points
 	nplot = 2								# number of plots within fibre min is 2
-	nm = 1									# Number of modes (include degenerate polarisation)
+	nm = 2									# Number of modes (include degenerate polarisation)
 	mode_names = ['LP01a', 'LP01b']			# Names of modes for plotting
 	if 'mpi' in sys.argv:
 		method = 'mpi'
