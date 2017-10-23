@@ -40,7 +40,7 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 
 	
 	
-	plotter_dbm(index,int_fwm.nm, sim_wind, u, U, P0_p1,
+	plotter_dbm(index,int_fwm, sim_wind, u, U, P0_p1,
 				P0_s, f_p, f_s, 0,0,  mode_names,master_index,'00','original pump', D_pic[0],plots)
 
 	U_original_pump = np.copy(U[0,:,:])
@@ -67,14 +67,14 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 		pulse_pos_dict = [
 			'round ' + str(ro)+', ' + i for i in pulse_pos_dict_or]
 
-		plotter_dbm(index,int_fwm.nm, sim_wind, u, U, P0_p1,
+		plotter_dbm(index,int_fwm, sim_wind, u, U, P0_p1,
 					P0_s, f_p, f_s, 0, ro,  mode_names,master_index, str(ro)+'1', pulse_pos_dict[3], D_pic[5],plots)
 
 
 		u, U = pulse_propagation(
 			u, U, int_fwm, M1,M2,Q, sim_wind, hf, Dop, dAdzmm)
 	
-		plotter_dbm(index,int_fwm.nm, sim_wind, u, U, P0_p1,
+		plotter_dbm(index,int_fwm, sim_wind, u, U, P0_p1,
 					P0_s, f_p, f_s, -1,ro, mode_names,master_index, str(ro)+'2', pulse_pos_dict[0], D_pic[2],plots)
 
 		
@@ -83,7 +83,7 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 		(out1, out2),(u[-1,:,:], U[-1,:,:])  = WDM_vec[1].pass_through(
 			(U[-1,:,:], noise_new), sim_wind)
 
-		plotter_dbm(index,int_fwm.nm, sim_wind, u, U, P0_p1,
+		plotter_dbm(index,int_fwm, sim_wind, u, U, P0_p1,
 					P0_s, f_p, f_s, -1, ro,  mode_names,master_index,str(ro)+'3', pulse_pos_dict[1], D_pic[3],plots)
 
 
@@ -105,7 +105,7 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 
 		U_out = np.reshape(out2, (1,)+U.shape[1:])
 		u_out = np.reshape(out1, (1,)+u.shape[1:])
-		plotter_dbm(index,int_fwm.nm, sim_wind, u_out, U_out, P0_p1,
+		plotter_dbm(index,int_fwm, sim_wind, u_out, U_out, P0_p1,
 					P0_s, f_p, f_s, -1, ro,  mode_names,master_index,str(ro)+'4', pulse_pos_dict[4], D_pic[6],plots)
 		#if ro == np.sum(w.size_vec):
 		#	converged = converge_checker(w,P_out, 20)
