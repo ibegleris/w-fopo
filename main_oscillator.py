@@ -26,11 +26,11 @@ def oscilate(sim_wind,int_fwm,noise_obj,TFWHM_p, TFWHM_s,index,master_index,P0_p
 	u[0,:, :] = noise_new
 
 	woff1 = (p_pos+(int_fwm.nt)//2)*2*pi*sim_wind.df
-	u[0,:,:] += (P0_p1)**0.5  * np.exp(1j*(woff1)*sim_wind.t)
+	u[0,:,:] += (0.5*P0_p1)**0.5  * np.exp(1j*(woff1)*sim_wind.t)
 
 
 	woff2 = -(s_pos - (int_fwm.nt-1)//2)*2*pi*sim_wind.df
-	u[0,:,:] += (P0_s)**0.5 * np.exp(-1j*(woff2)*sim_wind.t)#*np.exp(-sim_wind.t**2/T0_s)
+	u[0,:,:] += (0.5*P0_s)**0.5 * np.exp(-1j*(woff2)*sim_wind.t)#*np.exp(-sim_wind.t**2/T0_s)
 
 
 	U[0,:,:] = fftshift(fft(u[0,:,:]))
@@ -271,7 +271,7 @@ def main():
 	alphadB = np.array([0])#0.0011667#666666666668		# loss within fibre[dB/m]
 	z = 18									# Length of the fibre
 	#P_p = my_arange(5.2,5.45,0.01)
-	P_p = [10]
+	P_p = [10,11]
 	P_s = 0#*my_arange(100e-3,1100e-3, 100e-3)							# Signal power [W]
 	TFWHM_p = 0								# full with half max of pump
 	TFWHM_s = 0								# full with half max of signal

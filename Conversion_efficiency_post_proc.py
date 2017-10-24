@@ -19,7 +19,7 @@ import matplotlib.cm as cm
 from matplotlib.colors import LogNorm
 from numpy.fft import fftshift
 import scipy
-
+from os import listdir
 
 font = {'size'   : 16}
 matplotlib.rc('font'
@@ -34,7 +34,8 @@ def selmier(l):
 
 
 class Conversion_efficiency(object):
-    def __init__(self, freq_band, last,safety, possition, filename=None, filepath='',                 filename2 = 'CE',filepath2 = 'output_final/'):
+    def __init__(self, freq_band, last, safety, possition, filename=None, filepath='',                 filename2 = 'CE',filepath2 = 'output_final/'):
+        self.mode_names = ('LP01x', 'LP01y')
         self.n = 1.444
         self.last = last
         self.safety = safety
@@ -57,55 +58,71 @@ class Conversion_efficiency(object):
         self.nt = np.shape(self.spec)[1]
         self.possition = possition
 
-        if possition == '2' or possition == '1':
-            print('finding signal')
-            self.pos_of_signal()
-            self.P_in = self.P0_p + self.P0_s
-            fv_id = self.fs_id
-        else:
-            print('finding idler')
-            self.pos_of_idler()
-            self.P_in = self.P0_p + self.P0_s
-            fv_id = self.fi_id
+        
 
-        lami = 1e-3*c/self.fv[fv_id]
-        self.lam_wanted = lami
-        self.n = selmier(1e-3*self.lam_wanted)
-        self.time_trip = self.L*self.n/c
+        self.P_in = self.P0_p + self.P0_s
+        self.pos_of_signal()
+        self.pos_of_idler()
+        self.pos_of_cascades()
+        if possition == '2' or possition == '1':
+            fv_id = self.fs_id
+            fv_id_c = self.fv_id_c[0]
+        else:
+            fv_id = self.fi_id
+            fv_id_c = self.fv_id_c[1]
+        self.lam_wanted = 1e-3*c/self.fv[fv_id]
         self.lamp = 1e-3*c/self.f_p
         self.l_s = 1e-3*c/self.f_s
         self.U_large_norm = np.empty_like(U_large)
+
+        self.n = selmier(1e-3*self.lam_wanted)
+        self.time_trip = self.L*self.n/c
+        
+        
         for i,P_max in enumerate(self.P_max):
-            self.U_large_norm =\
-              w2dbm(np.abs(self.U_large[:,i,:])**2) - P_max
-        sys.exit()
+            self.U_large_norm[:,i,:] =\
+                    w2dbm(np.abs(self.U_large[:,i,:])**2) - P_max
+
         P_out_vec = []
         P_out_vec_casc = []
-        self.fv_id = fv_id
-        start, end= self.fv[fv_id] - freq_band, self.fv[fv_id] + freq_band
-        try:
-            fv_id_c = self.pos_of_cascade()
-        except ValueError:
-            fv_id_c = 0
+        start, end = self.fv[fv_id] - freq_band, self.fv[fv_id] + freq_band
+
         start_c, end_c = self.fv[fv_id_c] - freq_band, self.fv[fv_id_c] + freq_band
-        for i in U_large:
-            self.spec = np.abs(i)**2
-            P_out_vec.append(self.calc_P_out(start,end))
-            P_out_vec_casc.append(self.calc_P_out(start_c,end_c))
+        
+        start_i = [np.argmin(np.abs(self.fv - i)) for i in start]
+        end_i = [np.argmin(np.abs(self.fv - i)) for i in end]
+        start_c_i = [np.argmin(np.abs(self.fv - i)) for i in start_c]
+        end_c_i = [np.argmin(np.abs(self.fv - i)) for i in end_c]
+
+        Uabs_large = np.abs(U_large)**2
+        for i in Uabs_large:
+            self.spec = i
+            P_out_vec.append(self.calc_P_out(start_i,end_i))
+            P_out_vec_casc.append(self.calc_P_out(start_c_i,end_c_i))
+
         self.P_out_vec_casc = np.asanyarray(P_out_vec_casc)
         self.P_out_vec = np.asanyarray(P_out_vec)
-        self.P_out = np.mean(P_out_vec[::-1][:500])
-        self.CE = self.calc_CE()
+
+        
+        #for l, la in enumerate(last):
+        self.P_out = np.mean(self.P_out_vec[-last::,:], axis = 0)
+        self.CE = 100*self.P_out/ (self.P0_p + self.P0_s)
+        
         self.std = { i : None for i in self.variables}
-        self.std['P_out'] = np.std(P_out_vec[-500:])
+        self.std['P_out'] = np.std(P_out_vec[-last::])
         self.std['CE'] = self.std['P_out']*self.CE/self.P_in
+        
         self.rin = self.time_trip*self.std['P_out']**2 / self.P_out**2
+
         self.std['rin'] = self.rin
-        read_write_CE_table(filename2,var = None, rin = self.rin,P_p = self.P0_p, P_s = self.P0_s, f_p = self.f_p,
+        
+        write_CE_table(filename2,var = None, rin = self.rin,P_p = self.P0_p, P_s = self.P0_s, f_p = self.f_p,
                                          f_s = self.f_s,P_out = self.P_out,P_bef = self.P_bef, CE = self.CE, var2 = 'CE',std = self.std,file_path=filepath2)
-        self.spec = np.mean(np.abs(U_large[0:][:])**2, axis = 0)
-        self.spec = np.abs(U_large[-1][:])**2
-        self.spec_s = w2dbm(self.spec)-self.P_max 
+        self.spec = np.abs(U_large[-1,:,:])**2
+        
+        self.spec_s = np.empty_like(self.spec)
+        for i in range(len(self.P_max)):
+           self.spec_s[i,:] = w2dbm(self.spec[i,:]) - w2dbm(self.P_max[i])
         return None
 
     def pos_of_pump(self):
@@ -115,27 +132,29 @@ class Conversion_efficiency(object):
         return None
     
     def pos_of_idler(self):
-        U_av = np.average(np.abs(self.U_large[self.last:,:,:])**2,axis = 0)
-        plom = self.safety + self.fp_id
-        fi_id = [np.argmax(U_av[i,plom[i]:])\
-                         for i in range(U_av.shape[0])]
-        self.fi_id = np.array([i + plom -1 for i in fi_id])
+        plom =  self.fp_id + self.safety
+        self.fi_id = np.array([np.argmax(self.U_av[i,plom[i]:])\
+                         for i in range(self.U_av.shape[0])])
+        self.fi_id += plom -1#np.array([i +  for i in fi_id])
         return None   
     
     def pos_of_signal(self):
-        U_av = np.average(np.abs(self.U_large[self.last:,:,:])**2,axis = 0)
-        plom = - self.safety + self.fp_id
-        self.fs_id = [np.argmax(U_av[i,:plom[i]])\
-                         for i in range(U_av.shape[0])]
+        self.U_av = np.average(np.abs(self.U_large[self.last:,:,:])**2,axis = 0)
+        plom =  self.fp_id - self.safety
+        self.fs_id = np.array([np.argmax(self.U_av[i,:plom[i]])\
+                         for i in range(self.U_av.shape[0])])
         return None   
     
 
-    def pos_of_cascade(self):
-        sig_id = self.pos_of_signal() - 50
-        U_sum = np.sum(np.abs(self.U_large)**2, axis = 0)
-        plom = sig_id
-        fv_id = np.where(U_sum[:plom] == np.max(U_sum[:plom]))[0][0]
-        return fv_id
+    def pos_of_cascades(self):
+        plom = self.fs_id -self.safety
+        self.fv_id_c = []
+        self.fv_id_c.append([np.argmax(self.U_av[i,:plom[i]])\
+                         for i in range(self.U_av.shape[0])])
+        plom = self.fi_id + self.safety
+        self.fv_id_c.append([np.argmax(self.U_av[i,plom[i]:])\
+                     for i in range(self.U_av.shape[0])])
+        return None
     
     
     def load_spectrum(self, possition,filename='data_large', filepath=''):
@@ -169,65 +188,94 @@ class Conversion_efficiency(object):
 
     
     def calc_P_out(self,start,end):
-        i = np.where(
-            np.abs(self.fv - start) == np.min(np.abs(self.fv - start)))[0][0]
-        j = np.where(
-            np.abs(self.fv - end) == np.min(np.abs(self.fv - end)))[0][0]
-        E_out = simps(self.spec[i:j]*(self.tt[1] - self.tt[0])**2, self.fv[i:j])
-        P_out = E_out/(2*np.max(self.tt))
+        P_out = []
+        for i,j,sp in zip(start,end,self.spec):
+            P_out.append(simps(sp[i:j]*(self.tt[1] - self.tt[0])**2,\
+                         self.fv[i:j])/(2*np.max(self.tt)))
         return P_out   
 
-
-    def calc_CE(self):
-        CE = 100*self.P_out/ (self.P0_p + self.P0_s)
-        return CE
-
     
-    def P_out_round(self,filepath,filesave):
+    def P_out_round(self,P,filepath,filesave):
         """Plots the output average power with respect to round trip number"""
-        self.l_p = 1e-3*c/self.f_p
-        fig = plt.figure(figsize=(20,10))
-        plt.plot(range(len(self.P_out_vec)), self.P_out_vec)
-        plt.xlabel('Rounds')
-        plt.ylabel('Output Power')
-        plt.title(f"$P_p=$ {float(CE.P0_p):.{6}} W, $P_s=$ {float(CE.P0_s*1e3):.{2}} mW, $\\lambda_p=$ {float(CE.lamp):.{6}} nm,  $\\lambda_s=$ {float(CE.l_s):.{6}} nm, maximum output at: {float(CE.lam_wanted):.{6}} nm ({float(1e-3*c/CE.lam_wanted):.6} Thz)")
+        l_p = 1e-3*c/self.f_p
+        x = range(len(P))
+        y = np.asanyarray(P)
+        fig = plt.figure(figsize=(20.0, 10.0))
+        plt.subplots_adjust(hspace=0.1)
+        for i, v in enumerate(range(y.shape[1])):
+            v = v+1
+            ax1 = plt.subplot(y.shape[1], 1, v)
+            plt.plot(x, y[:,i], '-', label = self.mode_names[i])
+            ax1.legend(loc=2)
+            if i != y.shape[1] - 1:
+                ax1.get_xaxis().set_visible(False)
+        ax = fig.add_subplot(111, frameon=False)
+        ax.axes.get_xaxis().set_ticks([])
+        ax.axes.get_yaxis().set_ticks([])
+        ax.set_title(f"$P_p=$ {float(CE.P0_p):.{6}} W, $P_s=$ {float(CE.P0_s*1e3):.{2}} mW, $\\lambda_p=$ {float(CE.lamp):.{6}} nm,  $\\lambda_s=$ {float(CE.l_s):.{6}} nm, maximum output at: {float(CE.lam_wanted[i]):.{6}} nm ({float(1e-3*c/CE.lam_wanted[i]):.6} Thz)")
+        plt.grid()
+        ax.yaxis.set_label_coords(-0.05, 0.5)
+        ax.xaxis.set_label_coords(0.5, -0.05)
+        ax.set_xlabel('Rounds')
+        ax.set_ylabel('Output Power (W)')
         plt.savefig(filepath+'power_per_round'+filesave+'.png')
-
-        data = (range(len(self.P_out_vec)), self.P_out_vec)
-        _data ={'pump_power':self.P0_p, 'pump_wavelength': self.l_p, 'out_wave': self.lam_wanted}
+        data = (range(len(P)), P)
+        _data ={'pump_power':self.P0_p, 'pump_wavelength': l_p, 'out_wave': self.lam_wanted}
         with open(filepath+'power_per_round'+filesave+'.pickle','wb') as f:
-            pl.dump(fig,f)
+            pl.dump((data,_data),f)
         plt.clf()
         plt.close('all')
+        return None
+
+
+    def final_1D_spec(self,filename,wavelengths = None):
+        l_p = 1e-3*c/self.f_p
+        x,y = self.fv, self.spec_s
+        fig = plt.figure(figsize=(20.0, 10.0))
+        for i, v in enumerate(range(y.shape[0])):
+            v = v+1
+            ax1 = plt.subplot(y.shape[0], 1, v)
+            plt.plot(x,y[i,:], '-', label = self.mode_names[i])
+            ax1.legend(loc=2)
+            if i is 0:
+                axl = ax1.twiny()
+                axl.set_xlim(ax1.get_xlim())
+                if wavelengths is None:
+                    new_tick_locations = ax1.get_xticks()
+                    axl.set_xticks(new_tick_locations)
+                    axl.set_xticklabels(tick_function(new_tick_locations))
+                else:
+                    new_tick_locations = [1e-3*c/i for i in wavelengths]
+                    axl.set_xticks(new_tick_locations)
+                    axl.set_xticklabels(wavelengths)
+                axl.set_xlabel(r"$\lambda (nm)$")
+            if i != y.shape[0] - 1:
+                ax1.get_xaxis().set_visible(False)
+        ax = fig.add_subplot(111, frameon=False)
+        ax.axes.get_xaxis().set_ticks([])
+        ax.axes.get_yaxis().set_ticks([])
+        #ax.set_title(f"$P_p=$ {float(CE.P0_p):.{6}} W, $P_s=$ {float(CE.P0_s*1e3):.{2}} mW, $\\lambda_p=$ {float(CE.lamp):.{6}} nm,  $\\lambda_s=$ {float(CE.l_s):.{6}} nm, maximum output at: {float(CE.lam_wanted[i]):.{6}} nm ({float(1e-3*c/CE.lam_wanted[i]):.6} Thz)")
+        plt.grid()
+        ax.yaxis.set_label_coords(-0.05, 0.5)
+        ax.xaxis.set_label_coords(0.5, -0.05)
+        ax.set_xlabel(r'$f (THz)$')
+        ax.set_ylabel(r'Spec (dB)')
+        plt.savefig(filename+'.png', bbox_inches = 'tight')
         
-        #diff = [self.P_out_vec[i+1] - self.P_out_vec[i] for i in range(len(self.P_out_vec) - 1)]
-        #fig = plt.figure(figsize=(20,10))
-        #plt.plot(diff)
-        #plt.title('mean and std of the last 100: '+str(np.std(diff))+' '+str(np.mean(diff)))
-        #plt.savefig(filepath+'finite_dif'+filesave+'.png')
-    def P_out_round_casc(self,filepath,filesave):
-        """Plots the output average power with respect to round trip number"""
-        self.l_p = 1e-3*c/self.f_p
-        fig = plt.figure(figsize=(20,10))
-        plt.plot(range(len(self.P_out_vec)), self.P_out_vec_casc)
-        plt.xlabel('Rounds')
-        plt.ylabel('Output Power')
-        plt.title(f"$P_p=$ {float(CE.P0_p):.{2}} W, $P_s=$ {float(CE.P0_s*1e3):.{2}} mW, $\\lambda_p=$ {float(CE.lamp):.{6}} nm,  $\\lambda_s=$ {float(CE.l_s):.{6}} nm, maximum output at: {float(CE.lam_wanted):.{6}} nm ({float(1e-3*c/CE.lam_wanted):.6} Thz)")
-        plt.savefig(filepath+'power_per_round_casc'+filesave+'.png')
-        data = (range(len(self.P_out_vec)), self.P_out_vec)
-        _data ={'pump_power':self.P0_p, 'pump_wavelength': self.l_p, 'out_wave': self.lam_wanted}
-        with open(filepath+'power_per_round_casc'+filesave+'.pickle','wb') as f:
-            pl.dump(fig,f)
+
+        data = (x, y)
+        _data ={'pump_power':self.P0_p, 'pump_wavelength': l_p, 'out_wave': self.lam_wanted}
+        with open(filename+str(ii)+'.pickle','wb') as f:
+            pl.dump((data,_data),f)
         plt.clf()
         plt.close('all')
+        return None
 
-
-def read_write_CE_table(filename,var = None,rin = None, P_p = None, P_s = None, f_p = None, f_s = None,P_out = None, P_bef = None,CE = None, var2 = 'CE',std = None,file_path=''):
+def write_CE_table(filename,var = None,rin = None, P_p = None, P_s = None, f_p = None, f_s = None,P_out = None, P_bef = None,CE = None, var2 = 'CE',std = None,file_path=''):
         
         """ Given values of the parameters this function uses pandas to open an
             hdf5 file and append to the dataframe there. It also returns the full data
-            for post-processing. 
-            
+            for post-processing.
             It returns a tuple of 2 numpy arrays the first with the variable var and the second with
             the conversion efficiencty (as default). If no input is given( default then it just reads the )
         """
@@ -241,15 +289,14 @@ def read_write_CE_table(filename,var = None,rin = None, P_p = None, P_s = None, 
         except TypeError:
             l_p = None
             pass
-        print(l_s)
-        A = np.array([P_p, P_s, f_p, f_s,l_s,l_p, P_out, P_bef, CE,rin]).T
-        a = pd.DataFrame(A, index = ['P_p', 'P_s','f_p', 'f_s','l_s','l_p', 'P_out','P_bef', 'CE','rin']).T
+        A = {'P_p':P_p, 'P_s':P_s,'f_p':f_p,'f_s':f_s,'l_s':l_s,'l_p':l_p, 'P_out':P_out,'P_bef':P_bef, 'CE':CE,'rin':rin}
+        a = pd.DataFrame(A)
         try:
             ab = pd.read_hdf(file_path+filename+'.hdf5')
-            if not(A.any() == None):
+            if not(None in A.values()):
                 ab = ab.append(a, ignore_index=True)
         except IOError:
-            if not(A.any() == None):
+            if not(None in A.values()):
                 ab = a
             else: 
                 sys.exit("There is no data in file or given")
@@ -258,10 +305,10 @@ def read_write_CE_table(filename,var = None,rin = None, P_p = None, P_s = None, 
         b = pd.DataFrame.from_dict([std])
         try:
             ba = pd.read_hdf(file_path+filename+'_std.hdf5', key = 'b')
-            if not(A.any() == None):
+            if not(None in A.values()):
                 ba = ba.append(b, ignore_index=True)
         except IOError:
-            if not(A.any() == None):
+            if not(None in A.values()):
                 ba = b
             else: 
                 sys.exit("There is no data in file or given")
@@ -273,9 +320,31 @@ def read_write_CE_table(filename,var = None,rin = None, P_p = None, P_s = None, 
         else:
             return ab[var].as_matrix(),ab[var2].as_matrix(),ba
 
+def read_CE_table(filename,var = None,rin = None, P_p = None, P_s = None, f_p = None, f_s = None,P_out = None, P_bef = None,CE = None, var2 = 'CE',std = None,file_path=''):
+        
+        """ Given values of the parameters this function uses pandas to open an
+            hdf5 file and append to the dataframe there. It also returns the full data
+            for post-processing.
+            It returns a tuple of 2 numpy arrays the first with the variable var and the second with
+            the conversion efficiencty (as default). If no input is given( default then it just reads the )
+        """
+        try:
+            ab = pd.read_hdf(file_path+filename+'.hdf5')
+        except IOError:
+            sys.exit("There is no data in file of file in place")
+
+
+        b = pd.DataFrame.from_dict([std])
+        try:
+            ba = pd.read_hdf(file_path+filename+'_std.hdf5', key = 'b')
+        except IOError:
+            sys.exit("There is no data in file or given")
+
+        return ab[var].as_matrix(),ab[var2].as_matrix(),ba
+
 
 def plot_rin(var,var2 = 'rin',filename = 'CE', filepath='output_final/', filesave= None):
-    var_val, CE,std = read_write_CE_table(filename,var,var2 = var2,file_path=filepath)
+    var_val, CE,std = read_CE_table(filename,var,var2 = var2,file_path=filepath)
     std = std[var2].as_matrix()
     if var is 'arb':
         var_val = [i for i in range(len(CE))] 
@@ -297,13 +366,43 @@ def plot_rin(var,var2 = 'rin',filename = 'CE', filepath='output_final/', filesav
         
 
 def plot_CE(var,var2 = 'CE',filename = 'CE', filepath='output_final/', filesave= None):
-    var_val, CE,std = read_write_CE_table(filename,var,var2 = var2,file_path=filepath)
+    var_val, CE,std = read_CE_table(filename,var,var2 = var2,file_path=filepath)
     std = std[var2].as_matrix()
-    
+    for i in (var_val, CE,std):
+        print(i.shape)
+        print(i)
     if var is 'arb':
         var_val = [i for i in range(len(CE))] 
+    x,y = var_val, CE
     fig = plt.figure(figsize=(20.0, 10.0))
-    plt.errorbar(var_val, CE, yerr=std, capsize= 10)
+    plt.subplots_adjust(hspace=0.1)
+    for i, v in enumerate(range(y.shape[1])):
+        v = v+1
+        ax1.errorbar(x,y, yerr=std, capsize= 10)
+        ax1.legend(loc=2)
+        if i != y.shape[1] - 1:
+            ax1.get_xaxis().set_visible(False)
+    ax = fig.add_subplot(111, frameon=False)
+    ax.axes.get_xaxis().set_ticks([])
+    ax.axes.get_yaxis().set_ticks([])
+    ax.set_title(f"$P_p=$ {float(CE.P0_p):.{6}} W, $P_s=$ {float(CE.P0_s*1e3):.{2}} mW, $\\lambda_p=$ {float(CE.lamp):.{6}} nm,  $\\lambda_s=$ {float(CE.l_s):.{6}} nm, maximum output at: {float(CE.lam_wanted[i]):.{6}} nm ({float(1e-3*c/CE.lam_wanted[i]):.6} Thz)")
+    plt.grid()
+    ax.yaxis.set_label_coords(-0.05, 0.5)
+    ax.xaxis.set_label_coords(0.5, -0.05)
+    ax.set_xlabel('Rounds')
+    ax.set_ylabel('Output Power (W)')
+    plt.savefig(filepath+'power_per_round'+filesave+'.png')
+    data = (range(len(P)), P)
+    _data ={'pump_power':self.P0_p, 'pump_wavelength': l_p, 'out_wave': self.lam_wanted}
+    with open(filepath+'power_per_round'+filesave+'.pickle','wb') as f:
+        pl.dump((data,_data),f)
+    plt.clf()
+    plt.close('all')
+
+
+
+    fig = plt.figure(figsize=(20.0, 10.0))
+    plt.errorbar
     plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
     plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
     plt.xlabel(var)
@@ -319,7 +418,7 @@ def plot_CE(var,var2 = 'CE',filename = 'CE', filepath='output_final/', filesave=
 
 
 
-def contor_plot(CE,fmin = None,fmax = None,  rounds = None,filename = None):
+def contor_plot(CE,fmin = None,fmax = None,  rounds = None,folder = None,filename = None):
     if not(fmin):
         fmin = CE.fv[CE.fv_id] - CE.freq_band
     if not(fmax):
@@ -335,34 +434,130 @@ def contor_plot(CE,fmin = None,fmax = None,  rounds = None,filename = None):
    
     CE.ro = range(rounds)
     x,y = np.meshgrid(CE.ro[:rounds], CE.fv[i:j])
-    z = CE.U_large_norm[:rounds,i:j].T
-    #print(np.shape(x), np.shape(z))
+    z = CE.U_large_norm[:rounds,:,i:j]
+    
     low_values_indices = z < -60  # Where values are low
     z[low_values_indices] = -60  # All low values set to 0
-    fig = plt.figure(figsize=(20,10))
-    plt.contourf(x,y, z, np.arange(-60,2,2),extend = 'min',cmap=plt.cm.jet)
-    plt.xlabel(r'$rounds$')
-    plt.ylim(fmin,fmax)
-    #plt.xlim(0,200)
-    plt.ylabel(r'$f(THz)$')
-    plt.colorbar()
-    l_p = 1e-3*c/CE.f_p
-    plt.title(f"$P_p=$ {float(CE.P0_p):.{2}} W, $P_s=$ {float(CE.P0_s*1e3):.{2}} mW, $\\lambda_p=$ {float(CE.lamp):.{6}} nm,  $\\lambda_s=$ {float(CE.l_s):.{6}} nm, maximum output at: {float(CE.lam_wanted):.{6}} nm")
-    data = (CE.ro, CE.fv, z )
-    _data ={'pump_power':CE.P0_p, 'pump_wavelength': l_p, 'out_wave': CE.lam_wanted}
+    for nm in range(z.shape[1]):
+        fig = plt.figure(figsize=(20,10))
+        plt.contourf(x,y, z[:,nm,:].T, np.arange(-60,2,2),extend = 'min',cmap=plt.cm.jet)
+        plt.xlabel(r'$rounds$')
+        plt.ylim(fmin,fmax)
+        plt.ylabel(r'$f(THz)$')
+        plt.colorbar()
+        l_p = 1e-3*c/CE.f_p
+        plt.title(f"$P_p=$ {float(CE.P0_p):.{2}} W, $P_s=$ {float(CE.P0_s*1e3):.{2}} mW, $\\lambda_p=$ {float(CE.lamp):.{6}} nm,  $\\lambda_s=$ {float(CE.l_s):.{6}} nm, maximum output at: {float(CE.lam_wanted[nm]):.{6}} nm")
+        data = (CE.ro, CE.fv, z)
+        _data ={'pump_power':CE.P0_p, 'pump_wavelength': l_p, 'out_wave': CE.lam_wanted}
+        if filename is not None:
+            plt.savefig(folder+str(nm)+'_'+filename, bbox_inches = 'tight')
+            plt.clf()
+            plt.close('all')
+        else:
+            plt.show()
+
     if filename is not None:
-        plt.savefig(str(filename), bbox_inches = 'tight')
-        plt.clf()
-        plt.close('all')
-        with open(str(filename)+'.pickle','wb') as f:
+        with open(str(folder+filename)+'.pickle','wb') as f:
             pl.dump((data,_data),f)
-
-
-    else:
-        plt.show()
     return None
 
 
+def P_out_round_anim(CE,iii,filesave):
+    """Plots the output average power with respect to round trip number"""
+    tempy = CE.P_out_vec[:iii]
+    
+    fig = plt.figure(figsize=(7,1.5))
+    plt.plot(range(len(tempy)), tempy)
+    plt.xlabel('Oscillations')
+    plt.ylabel('Power')
+    plt.ylim(0,np.max(CE.P_out_vec)+0.1*np.max(CE.P_out_vec))
+    plt.xlim(0,len(CE.P_out_vec))
+    plt.savefig(filesave+'.png',bbox_inches = 'tight')
+    plt.close('all')
+    plt.clf()
+    return None
+
+
+def tick_function(X):
+    l = 1e-3*c/X
+    return ["%.2f" % z for z in l]
+
+
+#from os.path import , join
+data_dump =  'output_dump'
+outside_dirs = [f for f in listdir(data_dump)]
+inside_dirs = [[f for f in listdir(data_dump+ '/'+out_dir)] for out_dir in outside_dirs ]
+
+
+which = 'output_dump_pump_wavelengths/7w'
+which = 'output_dump_pump_wavelengths/wrong'
+which = 'output_dump_pump_wavelengths'
+#which = 'output_dump_pump_wavelengths/2_rounds'
+#which ='output_dump_pump_powers/ram0ss0'
+#which = 'output_dump/'#_pump_powers'
+which_l = 'output_dump/output'
+
+
+
+outside_vec = range(len(outside_dirs))
+#outside_vec = range(2,3)
+inside_vec = [range(len(inside) - 1) for inside in inside_dirs]
+#inside_vec = [13]
+animators = False
+spots = range(0,8100,100)
+wavelengths = [1200,1400,1050,930,800]
+#wavelengths = None
+
+
+os.system('rm -r output_final ; mkdir output_final')
+for pos in ('2','4'):
+
+    for ii in outside_vec:
+        ii = str(ii)
+        which = which_l+ ii
+        os.system('rm output_final/CE.hdf5 output_final/CE_std.hdf5')
+        os.system('mkdir output_final/'+str(ii))
+        os.system('mkdir output_final/'+str(ii)+'/pos'+pos+'/ ;'+'mkdir output_final/'+str(ii)+'/pos'+pos+'/many ;'+'mkdir output_final/'+str(ii)+'/pos'+pos+'/spectra;'
+                 +'mkdir output_final/'+str(ii)+'/pos'+pos+'/powers;'+'mkdir output_final/'+str(ii)+'/pos'+pos+'/casc_powers;'
+                 +'mkdir output_final/'+str(ii)+'/pos'+pos+'/final_specs;')
+
+
+        for i in inside_vec[int(ii)]:
+            print(ii,i)
+            CE = Conversion_efficiency(freq_band = 2,possition = pos,last = 2,safety = 2, filename = 'data_large',filepath = which+'/output'+str(i)+'/data/')
+
+            fmin,fmax,rounds  = 310,330,2000#np.min(CE.fv),np.max(CE.fv),None
+            fmin,fmax,rounds = 150,450, None
+            #fmin,fmax,rounds = np.min(CE.fv),np.max(CE.fv), None
+            #if animators:
+            #    os.system('rm -rf animators'+str(i)+'; mkdir animators'+str(i))
+            #    os.system('mkdir animators'+str(i)+'/contor animators'+str(i)+'/power animators'+str(i)+'/contor_single')
+                #sys.exit()
+            #    for iii in spots:
+            #        contor_plot_anim(CE,iii,fmin,fmax,rounds,filename= 'animators'+str(i)+'/contor/'+str(iii))
+            #        contor_plot_anim_single(CE,iii,fmin,fmax,rounds,filename= 'animators'+str(i)+'/contor_single/'+str(iii))
+            #        P_out_round_anim(CE,iii,filesave = 'animators'+str(i)+'/power/'+str(iii))
+            #        gc.collect()
+            #    giff_it_up(i,spots,30)
+
+            contor_plot(CE,fmin,fmax,rounds,folder = 'output_final/'+str(ii)+'/pos'+pos+'/spectra/',filename= str(ii)+'_'+str(i))
+            #contor_plot_time(CE, rounds = None,filename = 'output_final/'+str(ii)+'/pos'+pos+'/'+'time_'+str(ii)+'_'+str(i))
+            CE.P_out_round(CE.P_out_vec,filepath =  'output_final/'+str(ii)+'/pos'+pos+'/powers/', filesave =str(ii)+'_'+str(i))
+            CE.P_out_round(CE.P_out_vec_casc,filepath =  'output_final/'+str(ii)+'/pos'+pos+'/casc_powers/',filesave = str(ii)+'_'+str(i))
+            CE.final_1D_spec(filename = 'output_final/'+str(ii)+'/pos'+pos+'/final_specs/'+'spectrum_fopo_final'+str(ii),wavelengths = wavelengths)
+            del CE
+            gc.collect()
+        for var1,var2 in (('P_p', 'P_out'), ('P_p', 'CE')):
+            plot_CE(var1, var2,filesave = 'output_final/'+str(ii)+'/pos'+pos+'/many/'+var2+str(ii))  
+        plot_rin('P_p', 'rin',filesave = 'output_final/'+str(ii)+'/pos'+pos+'/many''/rin_'+str(ii))  
+        
+        
+    os.system('rm -r prev_anim/*; mv animators* prev_anim')
+
+
+
+
+"""
 def contor_plot_time(CE, rounds = None,filename = None):
 
     if rounds is None:
@@ -520,62 +715,7 @@ def contor_plot_anim_single(CE,iii,fmin = None,fmax = None,  rounds = None,filen
     return None
 
 
-def P_out_round_anim(CE,iii,filesave):
-    """Plots the output average power with respect to round trip number"""
-    tempy = CE.P_out_vec[:iii]
-    
-    fig = plt.figure(figsize=(7,1.5))
-    plt.plot(range(len(tempy)), tempy)
-    plt.xlabel('Oscillations')
-    plt.ylabel('Power')
-    plt.ylim(0,np.max(CE.P_out_vec)+0.1*np.max(CE.P_out_vec))
-    plt.xlim(0,len(CE.P_out_vec))
-    plt.savefig(filesave+'.png',bbox_inches = 'tight')
-    plt.close('all')
-    plt.clf()
-    return None
-
-
-def final_1D_spec(ii,specs,filename):
-
-    fig = plt.figure(figsize=(10,8))
-    #fig = plt.figure()
-    ax1 = fig.add_subplot(111)
-    ax2 = ax1.twiny()
-
-    ax1.plot(specs.fv, specs.spec_s, label = r'$\lambda_p$='+str(specs.l_p)+r', $\lambda_s $='+str(specs.l_s))
-
-    ax1.set_xlabel(r'$f (THz)$')
-    ax1.set_ylabel(r'spec (dB)')
-    #ax1.set_xticks(np.arange(min(specs.fv), max(specs.fv)+1, 10))
-    #ax1.set_ylim(260,320)
-    #print(round(min(specs.fv)),round(max(specs.fv)))
-    #sys.exit()
-    #ax1.set_xticks(np.arange(round(min(specs.fv)),round(max(specs.fv)),10))
-    new_tick_locations = ax1.get_xticks()
-
-    def tick_function(X):
-        l = 1e-3*c/X
-        return ["%.2f" % z for z in l]
-    
-    #ax1.set_ylim(-100,1)
-    ax2.set_xlim(ax1.get_xlim())
-    ax2.set_xticks(new_tick_locations)
-    ax2.set_xticklabels(tick_function(new_tick_locations))
-    ax2.set_xlabel(r"$\lambda (nm)$")
-    #plt.ylim(260,320)
-    ax1.legend()
-    plt.savefig(filename+'spectrum_fopo_final'+str(ii)+'.png', bbox_inches = 'tight')
-    #plt.show()
-    with open(filename+str(ii)+'.pickle','wb') as f:
-        pl.dump(fig,f)
-    plt.clf()
-    plt.close('all')
-
-    return None
-
-
-def giff_it_up(i,spots,fps):
+    def giff_it_up(i,spots,fps):
     delay = 100/fps
     com = 'convert -delay ' +str(delay)+' -loop 0 '
     for iii in spots:
@@ -602,78 +742,4 @@ def giff_it_up(i,spots,fps):
     
     return None
 
-
-from os import listdir
-#from os.path import , join
-data_dump =  'output_dump'
-outside_dirs = [f for f in listdir(data_dump)]
-inside_dirs = [[f for f in listdir(data_dump+ '/'+out_dir)] for out_dir in outside_dirs ]
-
-
-which = 'output_dump_pump_wavelengths/7w'
-which = 'output_dump_pump_wavelengths/wrong'
-which = 'output_dump_pump_wavelengths'
-#which = 'output_dump_pump_wavelengths/2_rounds'
-#which ='output_dump_pump_powers/ram0ss0'
-#which = 'output_dump/'#_pump_powers'
-which_l = 'output_dump/output'
-
-
-
-outside_vec = range(len(outside_dirs))
-#outside_vec = range(2,3)
-inside_vec = [range(len(inside) - 1) for inside in inside_dirs]
-#inside_vec = [13]
-animators = False
-spots = range(0,8100,100)
-
-
-os.system('rm -r output_final ; mkdir output_final')
-for pos in ('2','4'):
-
-    for ii in outside_vec:
-        ii = str(ii)
-        which = which_l+ ii
-        os.system('rm output_final/CE.hdf5 output_final/CE_std.hdf5')
-        os.system('mkdir output_final/'+str(ii))
-        os.system('mkdir output_final/'+str(ii)+'/pos'+pos+'/ ;'+'mkdir output_final/'+str(ii)+'/pos'+pos+'/many ;'+'mkdir output_final/'+str(ii)+'/pos'+pos+'/spectra;'
-                 +'mkdir output_final/'+str(ii)+'/pos'+pos+'/powers;'+'mkdir output_final/'+str(ii)+'/pos'+pos+'/casc_powers;'
-                 +'mkdir output_final/'+str(ii)+'/pos'+pos+'/final_specs;')
-
-
-        for i in inside_vec[int(ii)]:
-            print(ii,i)
-            CE = Conversion_efficiency(2,possition = pos,last = 2,safety = 2, filename = 'data_large',filepath = which+'/output'+str(i)+'/data/')
-
-            fmin,fmax,rounds  = 310,330,2000#np.min(CE.fv),np.max(CE.fv),None
-            fmin,fmax,rounds = 150,450, None
-            #fmin,fmax,rounds = np.min(CE.fv),np.max(CE.fv), None
-            if animators:
-                os.system('rm -rf animators'+str(i)+'; mkdir animators'+str(i))
-                os.system('mkdir animators'+str(i)+'/contor animators'+str(i)+'/power animators'+str(i)+'/contor_single')
-                #sys.exit()
-                for iii in spots:
-                    contor_plot_anim(CE,iii,fmin,fmax,rounds,filename= 'animators'+str(i)+'/contor/'+str(iii))
-                    contor_plot_anim_single(CE,iii,fmin,fmax,rounds,filename= 'animators'+str(i)+'/contor_single/'+str(iii))
-                    P_out_round_anim(CE,iii,filesave = 'animators'+str(i)+'/power/'+str(iii))
-                    gc.collect()
-                giff_it_up(i,spots,30)
-
-            contor_plot(CE,fmin,fmax,rounds,filename= 'output_final/'+str(ii)+'/pos'+pos+'/spectra/'+str(ii)+'_'+str(i))
-            #contor_plot_time(CE, rounds = None,filename = 'output_final/'+str(ii)+'/pos'+pos+'/'+'time_'+str(ii)+'_'+str(i))
-            CE.P_out_round(filepath =  'output_final/'+str(ii)+'/pos'+pos+'/powers/', filesave =str(ii)+'_'+str(i))
-            CE.P_out_round_casc(filepath =  'output_final/'+str(ii)+'/pos'+pos+'/casc_powers/',filesave = str(ii)+'_'+str(i))
-            final_1D_spec(i,CE,filename = 'output_final/'+str(ii)+'/pos'+pos+'/final_specs/')
-            #print(1e-3*c/CE.f_p, CE.lam_wanted)
-            del CE
-            gc.collect()
-
-        #var1, var2 = 'P_bef', 'P_out'
-        for var1,var2 in (('P_p', 'P_out'), ('P_p', 'CE')):
-            plot_CE(var1, var2,filesave = 'output_final/'+str(ii)+'/pos'+pos+'/many/'+var2+str(ii))  
-        plot_rin('P_p', 'rin',filesave = 'output_final/'+str(ii)+'/pos'+pos+'/many''/rin_'+str(ii))  
-        
-        
-    os.system('rm -r prev_anim/*; mv animators* prev_anim')
-
-
+"""
