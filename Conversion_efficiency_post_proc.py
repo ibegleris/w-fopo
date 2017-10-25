@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import os
 import pickle as pl
 import tables
@@ -39,7 +38,7 @@ class Conversion_efficiency(object):
         self.n = 1.444
         self.last = last
         self.safety = safety
-        self.variables = ('P_p', 'P_s', 'f_p', 'f_s','l_p','l_s,' 'P_out', 'P_bef','CE','rounds')
+        self.variables = ('P_p', 'P_s', 'f_p', 'f_s','l_p','l_s,' 'P_out', 'P_bef','CE', 'CE_std', 'P_out_std','rin')
         self.spec, self.fv, self.t, self.P0_p, self.P0_s,self.f_p,\
         self.f_s, self.P_bef,self.ro,self.U_large,tt,self.u_large,self.L =\
                                         self.load_spectrum('0',filename, filepath)
@@ -105,19 +104,28 @@ class Conversion_efficiency(object):
 
         
         #for l, la in enumerate(last):
-        self.P_out = np.mean(self.P_out_vec[-last::,:], axis = 0)
-        self.CE = 100*self.P_out/ (self.P0_p + self.P0_s)
-        
-        self.std = { i : None for i in self.variables}
-        self.std['P_out'] = np.std(P_out_vec[-last::])
-        self.std['CE'] = self.std['P_out']*self.CE/self.P_in
-        
-        self.rin = self.time_trip*self.std['P_out']**2 / self.P_out**2
+        D_now = {}
+        D_now['P_out'] = np.mean(self.P_out_vec[-last::,:], axis = 0)
+        D_now['CE'] = 100*D_now['P_out']/ (self.P0_p + self.P0_s)
+        D_now['P_out_std'] = np.std(self.P_out_vec[-last::,:], axis = 0)
+        D_now['CE_std'] = np.std(self.P_out_vec[-last::,:] / (self.P0_p + self.P0_s), axis = 0)
+        D_now['rin'] = 10*np.log10(self.time_trip*D_now['P_out_std']**2 / D_now['P_out']**2)
+        D_now['P_p'], D_now['P_s'], D_now['f_p'], D_now['f_s'],\
+            D_now['l_p'], D_now['l_s'], D_now['P_bef'] =\
+            self.P0_p, self.P0_s, self.f_p, self.f_s, self.lamp, self.l_s, self.P_bef
 
-        self.std['rin'] = self.rin
+        for i,j in zip(D_now.keys(), D_now.values()):
+            D_now[i] = [j]
         
-        write_CE_table(filename2,var = None, rin = self.rin,P_p = self.P0_p, P_s = self.P0_s, f_p = self.f_p,
-                                         f_s = self.f_s,P_out = self.P_out,P_bef = self.P_bef, CE = self.CE, var2 = 'CE',std = self.std,file_path=filepath2)
+        if os.path.isfile(filepath2+filename2+'.pickle'):
+            with open(filepath2+filename2+'.pickle','rb') as f:
+                D = pl.load(f)
+            for i,j in zip(D.keys(), D.values()):
+                D[i] = j + D_now[i]
+        else:
+            D = D_now
+        with open(filepath2+filename2+'.pickle','wb') as f:
+            pl.dump(D,f)
         self.spec = np.abs(U_large[-1,:,:])**2
         
         self.spec_s = np.empty_like(self.spec)
@@ -197,7 +205,6 @@ class Conversion_efficiency(object):
     
     def P_out_round(self,P,filepath,filesave):
         """Plots the output average power with respect to round trip number"""
-        l_p = 1e-3*c/self.f_p
         x = range(len(P))
         y = np.asanyarray(P)
         fig = plt.figure(figsize=(20.0, 10.0))
@@ -220,7 +227,7 @@ class Conversion_efficiency(object):
         ax.set_ylabel('Output Power (W)')
         plt.savefig(filepath+'power_per_round'+filesave+'.png')
         data = (range(len(P)), P)
-        _data ={'pump_power':self.P0_p, 'pump_wavelength': l_p, 'out_wave': self.lam_wanted}
+        _data ={'pump_power':self.P0_p, 'pump_wavelength': self.lamp, 'out_wave': self.lam_wanted}
         with open(filepath+'power_per_round'+filesave+'.pickle','wb') as f:
             pl.dump((data,_data),f)
         plt.clf()
@@ -229,7 +236,6 @@ class Conversion_efficiency(object):
 
 
     def final_1D_spec(self,filename,wavelengths = None):
-        l_p = 1e-3*c/self.f_p
         x,y = self.fv, self.spec_s
         fig = plt.figure(figsize=(20.0, 10.0))
         for i, v in enumerate(range(y.shape[0])):
@@ -264,83 +270,13 @@ class Conversion_efficiency(object):
         
 
         data = (x, y)
-        _data ={'pump_power':self.P0_p, 'pump_wavelength': l_p, 'out_wave': self.lam_wanted}
+        _data ={'pump_power':self.P0_p, 'pump_wavelength': self.lamp, 'out_wave': self.lam_wanted}
         with open(filename+str(ii)+'.pickle','wb') as f:
             pl.dump((data,_data),f)
         plt.clf()
         plt.close('all')
         return None
 
-def write_CE_table(filename,var = None,rin = None, P_p = None, P_s = None, f_p = None, f_s = None,P_out = None, P_bef = None,CE = None, var2 = 'CE',std = None,file_path=''):
-        
-        """ Given values of the parameters this function uses pandas to open an
-            hdf5 file and append to the dataframe there. It also returns the full data
-            for post-processing.
-            It returns a tuple of 2 numpy arrays the first with the variable var and the second with
-            the conversion efficiencty (as default). If no input is given( default then it just reads the )
-        """
-        try:
-            l_s = 1e-3*c/f_s
-        except TypeError:
-            l_s = None
-            pass
-        try:
-            l_p = 1e-3*c/f_p
-        except TypeError:
-            l_p = None
-            pass
-        A = {'P_p':P_p, 'P_s':P_s,'f_p':f_p,'f_s':f_s,'l_s':l_s,'l_p':l_p, 'P_out':P_out,'P_bef':P_bef, 'CE':CE,'rin':rin}
-        a = pd.DataFrame(A)
-        try:
-            ab = pd.read_hdf(file_path+filename+'.hdf5')
-            if not(None in A.values()):
-                ab = ab.append(a, ignore_index=True)
-        except IOError:
-            if not(None in A.values()):
-                ab = a
-            else: 
-                sys.exit("There is no data in file or given")
-            pass
-        store = ab.to_hdf(file_path+filename+'.hdf5',key='a')
-        b = pd.DataFrame.from_dict([std])
-        try:
-            ba = pd.read_hdf(file_path+filename+'_std.hdf5', key = 'b')
-            if not(None in A.values()):
-                ba = ba.append(b, ignore_index=True)
-        except IOError:
-            if not(None in A.values()):
-                ba = b
-            else: 
-                sys.exit("There is no data in file or given")
-            pass
-        store2 = ba.to_hdf(file_path+filename+'_std.hdf5', key = 'b')
-
-        if var is None:
-            return None
-        else:
-            return ab[var].as_matrix(),ab[var2].as_matrix(),ba
-
-def read_CE_table(filename,var = None,rin = None, P_p = None, P_s = None, f_p = None, f_s = None,P_out = None, P_bef = None,CE = None, var2 = 'CE',std = None,file_path=''):
-        
-        """ Given values of the parameters this function uses pandas to open an
-            hdf5 file and append to the dataframe there. It also returns the full data
-            for post-processing.
-            It returns a tuple of 2 numpy arrays the first with the variable var and the second with
-            the conversion efficiencty (as default). If no input is given( default then it just reads the )
-        """
-        try:
-            ab = pd.read_hdf(file_path+filename+'.hdf5')
-        except IOError:
-            sys.exit("There is no data in file of file in place")
-
-
-        b = pd.DataFrame.from_dict([std])
-        try:
-            ba = pd.read_hdf(file_path+filename+'_std.hdf5', key = 'b')
-        except IOError:
-            sys.exit("There is no data in file or given")
-
-        return ab[var].as_matrix(),ab[var2].as_matrix(),ba
 
 
 def plot_rin(var,var2 = 'rin',filename = 'CE', filepath='output_final/', filesave= None):
@@ -362,58 +298,54 @@ def plot_rin(var,var2 = 'rin',filename = 'CE', filepath='output_final/', filesav
     plt.close('all')
 
     return None
-        
-        
 
-def plot_CE(var,var2 = 'CE',filename = 'CE', filepath='output_final/', filesave= None):
-    var_val, CE,std = read_CE_table(filename,var,var2 = var2,file_path=filepath)
-    std = std[var2].as_matrix()
-    for i in (var_val, CE,std):
-        print(i.shape)
-        print(i)
-    if var is 'arb':
-        var_val = [i for i in range(len(CE))] 
-    x,y = var_val, CE
+def read_CE_table(x_key,y_key ,filename, std = False):
+    with open(filename+'.pickle','rb') as f:
+        D = pl.load(f)
+    x = D[x_key]
+    y = D[y_key]
+    #print(D)
+    if std:
+        try:
+            err_bars = D['y_key'+'_std']
+        except KeyError:
+            sys.exit('There is not error bar for the variable you are asking for.')
+    else:
+        err_bars = 0
+    x,y,err_bars = np.asanyarray(x),np.asanyarray(y), np.asanyarray(y)
+    return x,y,err_bars
+
+
+def plot_CE(x_key,y_key,std = True,filename = 'CE', filepath='output_final/', filesave= None):
+    x, y, err_bars = read_CE_table(x_key,y_key,filepath+filename,std = False)
     fig = plt.figure(figsize=(20.0, 10.0))
     plt.subplots_adjust(hspace=0.1)
+    mode_labels = ('LP01x','LP01y')
+
     for i, v in enumerate(range(y.shape[1])):
         v = v+1
-        ax1.errorbar(x,y, yerr=std, capsize= 10)
+        ax1 = plt.subplot(y.shape[1], 1, v)
+        if std:
+            ax1.errorbar(x,y[:,i], yerr=err_bars[:,i], capsize= 10, label = mode_labels[i])
+        else:
+            ax1.plot(x,y[:,i], label = mode_labels[i])
         ax1.legend(loc=2)
         if i != y.shape[1] - 1:
             ax1.get_xaxis().set_visible(False)
     ax = fig.add_subplot(111, frameon=False)
     ax.axes.get_xaxis().set_ticks([])
     ax.axes.get_yaxis().set_ticks([])
-    ax.set_title(f"$P_p=$ {float(CE.P0_p):.{6}} W, $P_s=$ {float(CE.P0_s*1e3):.{2}} mW, $\\lambda_p=$ {float(CE.lamp):.{6}} nm,  $\\lambda_s=$ {float(CE.l_s):.{6}} nm, maximum output at: {float(CE.lam_wanted[i]):.{6}} nm ({float(1e-3*c/CE.lam_wanted[i]):.6} Thz)")
     plt.grid()
     ax.yaxis.set_label_coords(-0.05, 0.5)
     ax.xaxis.set_label_coords(0.5, -0.05)
-    ax.set_xlabel('Rounds')
-    ax.set_ylabel('Output Power (W)')
-    plt.savefig(filepath+'power_per_round'+filesave+'.png')
-    data = (range(len(P)), P)
-    _data ={'pump_power':self.P0_p, 'pump_wavelength': l_p, 'out_wave': self.lam_wanted}
-    with open(filepath+'power_per_round'+filesave+'.pickle','wb') as f:
-        pl.dump((data,_data),f)
-    plt.clf()
-    plt.close('all')
-
-
-
-    fig = plt.figure(figsize=(20.0, 10.0))
-    plt.errorbar
-    plt.gca().get_yaxis().get_major_formatter().set_useOffset(False)
-    plt.gca().get_xaxis().get_major_formatter().set_useOffset(False)
-    plt.xlabel(var)
-    plt.ylabel(var2)
+    ax.set_xlabel(x_key)
+    ax.set_ylabel(y_key)
     plt.savefig(filesave+'.png',bbox_inches = 'tight')
-    data = (var_val, CE,std)
+    data = (x, y,err_bars)
     with open(str(filesave)+'.pickle','wb') as f:
         pl.dump((fig,data),f)
     plt.clf()
     plt.close('all')
-
     return None
 
 
@@ -445,10 +377,9 @@ def contor_plot(CE,fmin = None,fmax = None,  rounds = None,folder = None,filenam
         plt.ylim(fmin,fmax)
         plt.ylabel(r'$f(THz)$')
         plt.colorbar()
-        l_p = 1e-3*c/CE.f_p
         plt.title(f"$P_p=$ {float(CE.P0_p):.{2}} W, $P_s=$ {float(CE.P0_s*1e3):.{2}} mW, $\\lambda_p=$ {float(CE.lamp):.{6}} nm,  $\\lambda_s=$ {float(CE.l_s):.{6}} nm, maximum output at: {float(CE.lam_wanted[nm]):.{6}} nm")
         data = (CE.ro, CE.fv, z)
-        _data ={'pump_power':CE.P0_p, 'pump_wavelength': l_p, 'out_wave': CE.lam_wanted}
+        _data ={'pump_power':CE.P0_p, 'pump_wavelength': CE.lamp, 'out_wave': CE.lam_wanted}
         if filename is not None:
             plt.savefig(folder+str(nm)+'_'+filename, bbox_inches = 'tight')
             plt.clf()
@@ -510,12 +441,12 @@ wavelengths = [1200,1400,1050,930,800]
 
 
 os.system('rm -r output_final ; mkdir output_final')
-for pos in ('2','4'):
+for pos in ('4','2'):
 
     for ii in outside_vec:
         ii = str(ii)
         which = which_l+ ii
-        os.system('rm output_final/CE.hdf5 output_final/CE_std.hdf5')
+        
         os.system('mkdir output_final/'+str(ii))
         os.system('mkdir output_final/'+str(ii)+'/pos'+pos+'/ ;'+'mkdir output_final/'+str(ii)+'/pos'+pos+'/many ;'+'mkdir output_final/'+str(ii)+'/pos'+pos+'/spectra;'
                  +'mkdir output_final/'+str(ii)+'/pos'+pos+'/powers;'+'mkdir output_final/'+str(ii)+'/pos'+pos+'/casc_powers;'
@@ -524,7 +455,9 @@ for pos in ('2','4'):
 
         for i in inside_vec[int(ii)]:
             print(ii,i)
-            CE = Conversion_efficiency(freq_band = 2,possition = pos,last = 2,safety = 2, filename = 'data_large',filepath = which+'/output'+str(i)+'/data/')
+            CE = Conversion_efficiency(freq_band = 2,possition = pos,last = 2,\
+                safety = 2, filename = 'data_large',\
+                filepath = which+'/output'+str(i)+'/data/',filepath2 = 'output_final/'+str(ii)+'/pos'+str(pos)+'/')
 
             fmin,fmax,rounds  = 310,330,2000#np.min(CE.fv),np.max(CE.fv),None
             fmin,fmax,rounds = 150,450, None
@@ -532,7 +465,7 @@ for pos in ('2','4'):
             #if animators:
             #    os.system('rm -rf animators'+str(i)+'; mkdir animators'+str(i))
             #    os.system('mkdir animators'+str(i)+'/contor animators'+str(i)+'/power animators'+str(i)+'/contor_single')
-                #sys.exit()
+  
             #    for iii in spots:
             #        contor_plot_anim(CE,iii,fmin,fmax,rounds,filename= 'animators'+str(i)+'/contor/'+str(iii))
             #        contor_plot_anim_single(CE,iii,fmin,fmax,rounds,filename= 'animators'+str(i)+'/contor_single/'+str(iii))
@@ -547,12 +480,11 @@ for pos in ('2','4'):
             CE.final_1D_spec(filename = 'output_final/'+str(ii)+'/pos'+pos+'/final_specs/'+'spectrum_fopo_final'+str(ii),wavelengths = wavelengths)
             del CE
             gc.collect()
-        for var1,var2 in (('P_p', 'P_out'), ('P_p', 'CE')):
-            plot_CE(var1, var2,filesave = 'output_final/'+str(ii)+'/pos'+pos+'/many/'+var2+str(ii))  
-        plot_rin('P_p', 'rin',filesave = 'output_final/'+str(ii)+'/pos'+pos+'/many''/rin_'+str(ii))  
+        for x_key,y_key,std in (('P_p', 'P_out',True), ('P_p', 'CE',True), ('P_p', 'rin',False)):
+            plot_CE(x_key,y_key,std = std,filename = 'CE',\
+                filepath='output_final/'+str(ii)+'/pos'+pos+'/', filesave = 'output_final/'+str(ii)+'/pos'+pos+'/many/'+y_key+str(ii))
         
-        
-    os.system('rm -r prev_anim/*; mv animators* prev_anim')
+    #os.system('rm -r prev_anim/*; mv animators* prev_anim')
 
 
 
@@ -576,10 +508,10 @@ def contor_plot_time(CE, rounds = None,filename = None):
     #plt.xlim(0,200)
     plt.ylabel(r'$f(THz)$')
     plt.colorbar()
-    l_p = 1e-3*c/CE.f_p
+    self.lamp = 1e-3*c/CE.f_p
     plt.title(f"$P_p=$ {float(CE.P0_p):.{2}} W, $P_s=$ {float(CE.P0_s*1e3):.{2}} mW, $\\lambda_p=$ {float(CE.lamp):.{6}} nm,  $\\lambda_s=$ {float(CE.l_s):.{6}} nm, maximum output at: {float(CE.lam_wanted):.{6}} nm")
     data = (CE.ro, CE.fv, z )
-    _data ={'pump_power':CE.P0_p, 'pump_wavelength': l_p, 'out_wave': CE.lam_wanted}
+    _data ={'pump_power':CE.P0_p, 'pump_wavelength': self.lamp, 'out_wave': CE.lam_wanted}
     if filename is not None:
         plt.savefig(str(filename), bbox_inches = 'tight')
         plt.clf()
