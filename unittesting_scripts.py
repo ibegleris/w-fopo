@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from scipy.integrate import simps
 import warnings
 warnings.filterwarnings("ignore")
+from step_index import *
 "---------------------------------W and dbm conversion tests--------------"
 def test_mpi4py_futures():
 	import mpi4py.futures
