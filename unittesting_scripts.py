@@ -847,81 +847,88 @@ def test_full_trans_in_cavity_2():
 from step_index import *
 
 
-def eigenvalues_test_case(l_vec, r_vec, margin):
+def eigenvalues_test_case(l_vec, a_vec, margin):
 
     fibre = Fibre()
-    u_vec, w_vec, V_vec = [], [], []
-    for l, r in zip(l_vec, r_vec):
+    u_vec = np.empty([len(a_vec),len(l_vec)])
+    w_vec = np.empty_like(u_vec)
+    E = Eigenvalues(l_vec, a_vec)
+    for j, l in enumerate(l_vec):
         fibre.indexes(l)
-        E = Eigenvalues(l, r)
-        u, w = E.eigen_solver(margin)
-        u_vec.append(u)
-        w_vec.append(w)
-        V_vec.append(E.V)
+        for i, a in enumerate(a_vec):
+            u_vec[i,j], w_vec[i,j] = E.eigen_solver(margin,i,j)
 
-    u_vec, w_vec, V_vec = np.asanyarray(u_vec), np.asanyarray(w_vec), \
-        np.asanyarray(V_vec)
-    return u_vec, w_vec, V_vec
+    return u_vec, w_vec, E.V
 
 
 class Test_eigenvalues:
 
     def test_V(self):
         margin = 1e-8
-        r_med = 1e-6
-        r_err_p = 0.01
-        l_span = 419e-9
+        a_med = 1e-6
+        a_err_p = 0.01
+        l_span = 300e-9
         l_p = 1550e-9
-        low_r = r_med - r_err_p * r_med
-        high_r = r_med + r_err_p * r_med
+        low_a = a_med - a_err_p * a_med
+        high_a = a_med + a_err_p * a_med
 
-        l_vec = np.linspace(l_p - l_span, l_p + l_span, 5)
-        r_vec = np.linspace(low_r, high_r, 5)
-        u_vec, w_vec, V_vec = eigenvalues_test_case(l_vec, r_vec, margin)
+        l_vec = np.linspace(l_p - l_span, l_p + l_span, 20)
+        a_vec = np.linspace(low_a, high_a, 10)
+           
+        u_vec, w_vec, V_vec = eigenvalues_test_case(l_vec, a_vec, margin)
         assert_allclose((u_vec**2 + w_vec**2)**0.5, V_vec)
 
 
 class Test_betas:
     def test_poly(self):
         margin = 1e-8
-        r_med = 1e-6
-        r_err_p = 0.01
-        l_span = 419e-9
+        a_med = 1e-6
+        a_err_p = 0.01
+        l_span = 300e-9
         l_p = 1550e-9
-        low_r = r_med - r_err_p * r_med
-        high_r = r_med + r_err_p * r_med
-    
-        l_vec = np.linspace(l_p - l_span, l_p + l_span, 5)
-        r_vec = np.linspace(low_r, high_r, 5)
+        low_a = a_med - a_err_p * a_med
+        high_a = a_med + a_err_p * a_med
+
+        l_vec = np.linspace(l_p - l_span, l_p + l_span, 20)
+        a_vec = np.linspace(low_a, high_a, 10)
+        
         o_vec = 2*pi * c / l_vec
         o = (o_vec[0]+o_vec[-1])/2
-        u_vec, w_vec, V_vec = eigenvalues_test_case(l_vec, r_vec, margin)
+        u_vec, w_vec, V_vec = eigenvalues_test_case(l_vec, a_vec, margin)
+        
+        betas = np.zeros([len(a_vec),len(o_vec)])
+        beta_interpo = np.zeros(betas.shape)
         b = Betas(u_vec, w_vec, l_vec, o_vec, o)
-        betas = b.beta_func()
-        beta_coef = b.beta_extrapo()
-        p = np.poly1d(beta_coef)
-        assert_allclose(betas, p(b.o_vec - b.o))
+        for i,a in enumerate(a_vec):
+            betas[i,:] = b.beta_func(i)
+            beta_coef = b.beta_extrapo(i)
+            p = np.poly1d(beta_coef)
+            beta_interpo[i,:] = p(b.o_vec - b.o)
+            assert_allclose(betas,beta_interpo )
 
     def test_taylor(self):
         margin = 1e-8
-        r_med = 1e-6
-        r_err_p = 0.01
-        l_span = 419e-9
+        a_med = 1e-6
+        a_err_p = 0.01
+        l_span = 300e-9
         l_p = 1550e-9
-        low_r = r_med - r_err_p * r_med
-        high_r = r_med + r_err_p * r_med
-    
-        l_vec = np.linspace(l_p - l_span, l_p + l_span, 5)
-        r_vec = np.linspace(low_r, high_r, 5)
+        low_a = a_med - a_err_p * a_med
+        high_a = a_med + a_err_p * a_med
+
+        l_vec = np.linspace(l_p - l_span, l_p + l_span, 20)
+        a_vec = np.linspace(low_a, high_a, 10)
+        
         o_vec = 2*pi * c / l_vec
         o = (o_vec[0]+o_vec[-1])/2
-        u_vec, w_vec, V_vec = eigenvalues_test_case(l_vec, r_vec, margin)
+        u_vec, w_vec, V_vec = eigenvalues_test_case(l_vec, a_vec, margin)
+        taylor_dispersion = np.zeros([len(a_vec),len(o_vec)])        
+        betas = np.empty_like(taylor_dispersion)
         b = Betas(u_vec, w_vec, l_vec, o_vec, o)
-        betas = b.beta_func()
-        beta_coef = b.beta_extrapo()
-        p = np.poly1d(beta_coef)
-        betass = b.beta_dispersions()
-        taylor_dispersion = np.zeros_like(o_vec)
-        for i,bb in enumerate(betass):
-            taylor_dispersion += (bb/factorial(i))*(o_vec - o)**i
+        for i,a in enumerate(a_vec):
+            betas[i,:] = b.beta_func(i)
+            beta_coef = b.beta_extrapo(i)
+            p = np.poly1d(beta_coef)
+            betass = b.beta_dispersions(i)
+            for j, bb in enumerate(betass):
+                taylor_dispersion[i,:] += (bb/factorial(j))*(o_vec - o)**j
         assert_allclose(betas, taylor_dispersion)

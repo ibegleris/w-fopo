@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import brenth, root
 from scipy.constants import c, pi
 from scipy.special import jv, kv
+from scipy.interpolate import interp1d
 import sys
 import warnings
 from pprint import pprint
@@ -32,11 +33,17 @@ class Fibre(object):
     def selm_clad(self, l):
         return 2.1 * np.ones_like(l)
 
-    def V_func(self, l, r):
-        self.V = (2 * pi / l)*r*(self.core**2 - self.clad**2)**0.5
-        if self.V > 2.405:
-            print(self.V)
+    def V_func(self, l_vec, a_vec):
+        V_vec = np.empty([len(a_vec), len(l_vec)])
+        temp = (2 * pi / l_vec)*(self.core**2 - self.clad**2)**0.5
+        for i, a in enumerate(a_vec):
+            V_vec[i, :] = temp * a
+        if (V_vec > 2.405).any():
+            print(V_vec[V_vec > 2.405])
             sys.exit('nm > 1!!!')
+        else:
+            self.V = V_vec
+
         return None
 
 
@@ -53,23 +60,27 @@ class Eigenvalues(Fibre):
         self.ratio = self.clad/self.core
         return None
 
-    def w_f(self, u):
+    def w_f(self, u, i, j):
         """
         Relasionship between the eigenvalues and V. 
         """
-        return (self.V**2 - u**2)**0.5
+        return (self.V[i, j]**2 - u**2)**0.5
 
-    def eq(self, u, n=1):
+    def eq(self, u_vec, i, j, n=1):
         """
         The eigenvalue equation of a single mdoe fibre,
         set by default to find the HE11 mode. 
         """
-        w = self.w_f(u)
-        return (jv_(n, u)/(u*jv(n, w)) + kv_(n, w)/(w*kv(n, w))) * \
-            (jv_(n, u)/(u*jv(n, u)) + kv_(n, w)/(w*kv(n, w))*self.ratio**2) \
-            - n**2 * (1/u**2 + 1/w**2) * (1/u**2 + self.ratio**2 / w**2)
+        u = u_vec
+        w = self.w_f(u, i, j)
 
-    def eigen_solver(self, margin):
+        a =  (jv_(n, u)/(u*jv(n, w)) + kv_(n, w)/(w*kv(n, w))) * \
+            (jv_(n, u)/(u*jv(n, u)) + kv_(n, w)/(w*kv(n, w))*self.ratio[j]**2) \
+            - n**2 * (1/u**2 + 1/w**2) * (1/u**2 + self.ratio[j]**2 / w**2)
+
+        return a
+
+    def eigen_solver(self, margin, i, j):
         """
         Finds the eigenvalues of the fibre using breth. 
         Inputs:
@@ -80,16 +91,17 @@ class Eigenvalues(Fibre):
               found and the equation is plotted. 
         """
         converged = False
-        while not(converged) and (margin < self.V - margin):
+        while not(converged) and (margin < self.V[i, j] - margin):
             try:
-                Rr = brenth(self.eq, margin, self.V - margin, full_output=True)
+                Rr = brenth(self.eq, margin, self.V[
+                            i, j] - margin, args=(i, j), full_output=True)
                 converged = Rr[1].converged
             except ValueError:
                 pass
                 margin *= 10
 
         if converged:
-            return Rr[0], self.w_f(Rr[0])
+            return Rr[0], self.w_f(Rr[0], i, j)
         else:
             print('--------No solutions found--------')
             print(' V = ', self.V)
@@ -109,8 +121,8 @@ class Betas(Fibre):
 
     def __init__(self, u_vec, w_vec, l_vec, o_vec, o):
         self.k = 2*pi/l_vec
-        self.u = np.asanyarray(u_vec)
-        self.w = np.asanyarray(w_vec)
+        self.u = u_vec
+        self.w = w_vec
         self.core = self.selm_core(l_vec)
         self.clad = self.selm_clad(l_vec)
         self.o_vec = o_vec
@@ -118,13 +130,13 @@ class Betas(Fibre):
         self.o_norm = self.o_vec - self.o
         return None
 
-    def beta_func(self):
-        return self.k**2*((self.core/self.u)**2 +
-                          (self.clad/self.u)**2)/(1/self.u**2
-                                                  + self.w**2)
+    def beta_func(self, i):
+        return self.k**2*((self.core/self.u[i, :])**2 +
+                          (self.clad/self.u[i, :])**2)/(1/self.u[i, :]**2
+                                                        + self.w[i, :]**2)
 
-    def beta_extrapo(self):
-        betas = self.beta_func()
+    def beta_extrapo(self, i):
+        betas = self.beta_func(i)
         deg = 30
         fitted = False
         # warnings.warn(Warning())
@@ -138,8 +150,8 @@ class Betas(Fibre):
                     deg -= 1
         return coef
 
-    def beta_dispersions(self):
-        coefs = self.beta_extrapo()
+    def beta_dispersions(self, i):
+        coefs = self.beta_extrapo(i)
         betas = np.empty_like(coefs)
         for i, c in enumerate(coefs[::-1]):
             betas[i] = c * factorial(i)
@@ -149,53 +161,64 @@ class Betas(Fibre):
 class Modes(object):
     """docstring for Modes"""
 
-    def __init__(self, beta_m, u_vec, w_vec, a):
+    def __init__(self,o_norm, beta_c, u_vec, w_vec, a_vec):
         self.n = 1
-        self.beta = beta_m
-        self.u = u_vec
-        self.w = w_vec
-        self.a = a
+        self.beta_c = beta_c
+        self.u_vec,self.w_vec = np.zeros(u_vec.shape[0]),\
+                            np.zeros(u_vec.shape[0])
+        for i in range(u_vec.shape[0]):
+            self.u_vec[i] = interp1d(o_norm, u_vec[i,:],kind = 'cubic')(0)
+            self.w_vec[i] = interp1d(o_norm, w_vec[i,:],kind = 'cubic')(0)
+        self.a = a_vec[i]
+        return None
+    def pick_eigens(self,i):
+        self.u = self.u_vec[i]
+        self.w = self.w_vec[i]
+        self.beta = self.beta_c[i] 
         self.s = self.n * (1/self.u**2 + 1/self.w**2) /\
             (jv_(self.n, self.u)/(self.n*jv(self.n, self.u))
              + kv_(self.n, self.w)/(self.w*kv(self.n, self.w)))
         return None
 
     def E_r(self, r, theta):
-        r0 = r[r <= self.a]
-        r1 = r[r > self.a]
-
-        temp0 = -1j * self.beta*self.a / \
+        r0_ind =np.where(r <= self.a)
+        r1_ind = np.where(r > self.a)
+        temp = np.zeros(r.shape,dtype = np.complex128)
+        r0,r1 = r[r0_ind], r[r1_ind]
+        temp[r0_ind] = -1j * self.beta*self.a / \
             self.u*(0.5*(1 - self.s) * jv(self.n - 1, self.u * r0 / self.a)
                     - 0.5*(1 + self.s)*jv(self.n + 1, self.u * r0 / self.a))
-
-        temp1 = -1j * self.beta*self.a*jv(self.n, self.u)/(self.w*kv(self.n, self.w)) \
+       
+        temp[r1_ind] = -1j * self.beta*self.a*jv(self.n, self.u)/(self.w*kv(self.n, self.w)) \
             * (0.5*(1 - self.s) * kv(self.n - 1, self.w * r1 / self.a)
                + 0.5*(1 + self.s)*kv(self.n+1, self.w * r1 / self.a))
-        temp = np.concatenate(temp0, temp1)
+
+   
         return temp*np.cos(self.n*theta), temp*np.cos(self.n*theta+pi/2)
 
     def E_theta(self, r, theta):
-        r0 = r[r <= self.a]
-        r1 = r[r > self.a]
-
-        temp0 = 1j * self.beta*self.a / \
+        r0_ind =np.where(r <= self.a)
+        r1_ind = np.where(r > self.a)
+        temp = np.zeros(r.shape,dtype = np.complex128)
+        r0,r1 = r[r0_ind], r[r1_ind]
+        temp[r0_ind] =1j * self.beta*self.a / \
             self.u*(0.5*(1 - self.s) * jv(self.n - 1, self.u * r0 / self.a)
                     + 0.5*(1 + self.s)*jv(self.n+1, self.u * r0 / self.a))
-        temp1 = 1j * self.beta*self.a * \
-            jv(self.n, self.u)/(self.w*self.kv(self.n, self.w)) \
+      
+        temp[r1_ind] = 1j * self.beta*self.a * \
+            jv(self.n, self.u)/(self.w*kv(self.n, self.w)) \
             * (0.5*(1 - self.s) * kv(self.n - 1, self.w * r1 / self.a)
-               - 0.5*(1 + self.s)*kv(self.n+1, self.e * r1 / self.a))
-
-        temp = np.concatenate(temp0, temp1)
+               - 0.5*(1 + self.s)*kv(self.n+1, self.w * r1 / self.a))
         return temp*np.sin(self.n*theta), temp*np.sin(self.n*theta+pi/2)
 
     def E_zeta(self, r, theta):
-        r0 = r[r <= self.a]
-        r1 = r[r > self.a]
-        temp0 = jv(self.n, self.u*r/self.a)
-        Ez_temp = jv(self.n, self.u) * \
-            kv(self.n, self.w*r1/a)/kv(self.n, self.w)
-        temp = np.concatenate(temp0, temp1)
+        r0_ind =np.where(r <= self.a)
+        r1_ind = np.where(r > self.a)
+        temp = np.zeros(r.shape,dtype = np.complex128)
+        r0,r1 = r[r0_ind], r[r1_ind]
+        temp[r0_ind] = jv(self.n, self.u*r0/self.a)
+        temp[r1_ind] = jv(self.n, self.u) * \
+            kv(self.n, self.w*r1/self.a)/kv(self.n, self.w)
         return temp*np.cos(self.n*theta), temp*np.cos(self.n*theta+pi/2)
 
     def E_carte(self, r, theta):
@@ -205,59 +228,88 @@ class Modes(object):
         for i in range(len(Er)):
             Ex.append(Er[i] * np.cos(theta) - Et[i] * np.sin(theta))
             Ey.append(Er[i] * np.sin(theta) + Et[i] * np.cos(theta))
-
         Ez = self.E_zeta(r, theta)
-        return Ex, Ey, Ez
+
+        return (Ex[0], Ey[0], Ez[0]),(Ex[1], Ey[1], Ez[1])
 
 
 def main():
     margin = 1e-8
     a_med = 1e-6
     a_err_p = 0.01
-    l_span = 419e-9
+    l_span = 300e-9
     l_p = 1550e-9
     low_a = a_med - a_err_p * a_med
     high_a = a_med + a_err_p * a_med
 
-    l_vec = np.linspace(l_p - l_span, l_p + l_span, 2*512)
-    a_vec = np.linspace(low_a, high_a, 2*512)
+    l_vec = np.linspace(l_p - l_span, l_p + l_span, 20)
+    a_vec = np.linspace(low_a, high_a, 10)
     o_vec = 2*pi * c/l_vec
     o = (o_vec[0]+o_vec[-1])/2
 
     fibre = Fibre()
-    u_vec, w_vec = [], []
-    for l, a in zip(l_vec, a_vec):
+    u_vec = np.zeros([len(a_vec), len(l_vec)])
+    w_vec = np.zeros(u_vec.shape)
+    E = Eigenvalues(l_vec, a_vec)
+    for j, l in enumerate(l_vec):
         fibre.indexes(l)
-        E = Eigenvalues(l, a)
-        u, w = E.eigen_solver(margin)
-        u_vec.append(u)
-        w_vec.append(w)
-        #print(u, w, E.V, (u**2+w**2)**0.5)
-    u_vec, w_vec = np.asanyarray(u_vec), np.asanyarray(w_vec)
+        for i, a in enumerate(a_vec):
+            u_vec[i, j], w_vec[i, j] = E.eigen_solver(margin, i, j)
+
+    taylor_dispersion = np.zeros([len(a_vec), len(o_vec)])
+    betas_large = []
+    betas_central = np.zeros_like(a_vec)
     b = Betas(u_vec, w_vec, l_vec, o_vec, o)
-    betas = b.beta_func()
-    beta_coef = b.beta_extrapo()
-    p = np.poly1d(beta_coef)
-    betass = b.beta_dispersions()
-    taylor_dispersion = np.zeros_like(o_vec)
-    for i, bb in enumerate(betass):
-        taylor_dispersion += (bb/factorial(i))*(o_vec - o)**i
-    beta_m = p(0)
+    for i, a in enumerate(a_vec):
+        betas = b.beta_func(i)
+        beta_coef = b.beta_extrapo(i)
+        p = np.poly1d(beta_coef)
+        betas_central[i] = p(0)
+        betass = b.beta_dispersions(i)
+        betas_large.append(betass)
+        for j, bb in enumerate(betass):
+            taylor_dispersion[i, :] += (bb/factorial(j))*(o_vec - o)**j
+    min_beta = np.min([len(i) for i in betas_large])
+    betas = np.zeros([len(a_vec), min_beta])
+    for i in range(len(betas_large)):
+        betas[i, :] = betas_large[i][:min_beta]
 
-    M = Modes(beta_m, u_vec, w_vec, a_med)
-    r = np.linspace(0, 2e-6, 512)
-    theta = np.linspace(0, 2*pi, 512)
-    E_vecs = M.E_carte(r, theta)
+    M = Modes(o_vec - o, betas_central, u_vec, w_vec, a_vec)
 
-    """
-    plt.plot(o_vec - o, betas, '-', label='real')
-    plt.plot(o_vec - o, p(b.o_vec - b.o), '--', label='fitted')
-    plt.plot(o_vec - o, taylor_dispersion, '*', label='Taylor')
-    plt.legend()
+    r = np.linspace(0, 4e-6, 256)
+    theta = np.linspace(0, 2*pi, 256)
+    R,T = np.meshgrid(r,theta)
+    HE11x,HE11y = [],[]
+    for i in range(len(a_vec)):
+        M.pick_eigens(i)
+        res = M.E_carte(R, T)
+        HE11x.append(res[0])
+        HE11y.append(res[1])
+    E = (np.abs(HE11x[0][0])**2 + np.abs(HE11x[0][1])**2 + np.abs(HE11x[0][2])**2)**0.5
+    print(E/np.max(E))
+    #plt.plot(r, E/np.max(E))
+    #plt.plot(theta, E/np.max(E))
+    #plt.show()
+    X = R * np.cos(T)
+    Y = R * np.sin(T)
+
+   
+    Enorm = E/np.max(E)
+    sp = 50
+    fig = plt.figure()
+    plt.contourf(X, Y, Enorm,10,cmap = plt.cm.jet)
+    plt.quiver(X[::sp,::sp], Y[::sp,::sp], np.abs(HE11x[0][0][::sp,::sp]), np.abs(HE11x[0][1][::sp,::sp]),headlength=10)
+    #plt.colorbar()
     plt.show()
-    print((betas - p(b.o_vec - b.o))/betas)
-    print((taylor_dispersion - p(b.o_vec - b.o))/betas)
-    """
+
+    E = (np.abs(HE11y[0][0])**2 + np.abs(HE11y[0][1])**2 + np.abs(HE11y[0][2])**2)**0.5
+    Enorm = E/np.max(E)
+
+    fig = plt.figure()
+    plt.contourf(X, Y, Enorm,10,cmap = plt.cm.jet)
+    plt.quiver(X[::sp,::sp], Y[::sp,::sp], np.abs(HE11y[0][0][::sp,::sp]), np.abs(HE11y[0][1][::sp,::sp]),headlength=10)
+
+    plt.show()
     return None
 
 if __name__ == '__main__':
