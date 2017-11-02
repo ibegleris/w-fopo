@@ -4,6 +4,7 @@ from scipy.optimize import brenth, root
 from scipy.constants import c, pi
 from scipy.special import jv, kv
 from scipy.interpolate import interp1d
+from scipy.integrate import simps
 import sys
 import warnings
 from pprint import pprint
@@ -161,8 +162,9 @@ class Betas(Fibre):
 class Modes(object):
     """docstring for Modes"""
 
-    def __init__(self,o_norm, beta_c, u_vec, w_vec, a_vec):
+    def __init__(self,o_norm, beta_c, u_vec, w_vec, a_vec,x,y):
         self.n = 1
+        self.coordintes(x,y)
         self.beta_c = beta_c
         self.u_vec,self.w_vec = np.zeros(u_vec.shape[0]),\
                             np.zeros(u_vec.shape[0])
@@ -171,6 +173,14 @@ class Modes(object):
             self.w_vec[i] = interp1d(o_norm, w_vec[i,:],kind = 'cubic')(0)
         self.a = a_vec[i]
         return None
+    
+    def coordintes(self,x,y):
+        x,y = np.meshgrid(x,y)
+        self.R = (x**2 + y**2)**0.5
+        self.T = np.arctan(y/x)
+        #, = self.r,self.theta#np.meshgrid(self.r,self.theta)
+        return None
+
     def pick_eigens(self,i):
         self.u = self.u_vec[i]
         self.w = self.w_vec[i]
@@ -221,17 +231,28 @@ class Modes(object):
             kv(self.n, self.w*r1/self.a)/kv(self.n, self.w)
         return temp*np.cos(self.n*theta), temp*np.cos(self.n*theta+pi/2)
 
-    def E_carte(self, r, theta):
-        Er = self.E_r(r, theta)
-        Et = self.E_theta(r, theta)
+    def E_carte(self):
+        Er = self.E_r(self.R, self.T)
+        Et = self.E_theta(self.R, self.T)
         Ex, Ey, Ez = [], [], []
         for i in range(len(Er)):
-            Ex.append(Er[i] * np.cos(theta) - Et[i] * np.sin(theta))
-            Ey.append(Er[i] * np.sin(theta) + Et[i] * np.cos(theta))
-        Ez = self.E_zeta(r, theta)
+            Ex.append(Er[i] * np.cos(self.T) - Et[i] * np.sin(self.T))
+            Ey.append(Er[i] * np.sin(self.T) + Et[i] * np.cos(self.T))
+        Ez = self.E_zeta(self.R, self.T)
 
         return (Ex[0], Ey[0], Ez[0]),(Ex[1], Ey[1], Ez[1])
+    
+    def Q_matrixes(self):
+        self.E = self.E_carte()
+        return  
 
+
+    def integrate(self,x,y,z):
+        """
+        Integrates twice using Simpsons rule from scipy
+        to allow 2D  integration.
+        """
+        return simps(simps(z, x), y)
 
 def main():
     margin = 1e-8
@@ -274,25 +295,20 @@ def main():
     for i in range(len(betas_large)):
         betas[i, :] = betas_large[i][:min_beta]
 
-    M = Modes(o_vec - o, betas_central, u_vec, w_vec, a_vec)
+    r_max = np.max(a_vec)
+    N_points = 128
+    x = np.linspace(-2*r_max,2*r_max,N_points)
+    y = np.linspace(-2*r_max,2*r_max,N_points)
 
-    r = np.linspace(0, 4e-6, 256)
-    theta = np.linspace(0, 2*pi, 256)
-    R,T = np.meshgrid(r,theta)
+    M = Modes(o_vec - o, betas_central, u_vec, w_vec, a_vec,x,y)
     HE11x,HE11y = [],[]
     for i in range(len(a_vec)):
         M.pick_eigens(i)
-        res = M.E_carte(R, T)
+        res = M.E_carte()
         HE11x.append(res[0])
         HE11y.append(res[1])
     E = (np.abs(HE11x[0][0])**2 + np.abs(HE11x[0][1])**2 + np.abs(HE11x[0][2])**2)**0.5
-    print(E/np.max(E))
-    #plt.plot(r, E/np.max(E))
-    #plt.plot(theta, E/np.max(E))
-    #plt.show()
-    X = R * np.cos(T)
-    Y = R * np.sin(T)
-
+    X,Y = np.meshgrid(x,y)
    
     Enorm = E/np.max(E)
     sp = 50
