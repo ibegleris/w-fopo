@@ -9,7 +9,8 @@ import sys
 import warnings
 from pprint import pprint
 from math import factorial
-from itertools import combinations_with_replacement,permutations
+from itertools import combinations_with_replacement, permutations
+
 
 def jv_(n, z):
     return 0.5 * (jv(n-1, z) - jv(n+1, z))
@@ -17,6 +18,7 @@ def jv_(n, z):
 
 def kv_(n, z):
     return -0.5 * (kv(n-1, z) + kv(n+1, z))
+
 
 class Fibre(object):
     """
@@ -28,10 +30,10 @@ class Fibre(object):
         self.core, self.clad = self.selm_core(l), self.selm_clad(l)
 
     def selm_core(self, l):
-        return 2.145 * np.ones_like(l)
+        return 1.445 * np.ones_like(l)
 
     def selm_clad(self, l):
-        return 2.1 * np.ones_like(l)
+        return 1.444 * np.ones_like(l)
 
     def V_func(self, l_vec, a_vec):
         V_vec = np.empty([len(a_vec), len(l_vec)])
@@ -103,16 +105,17 @@ class Eigenvalues(Fibre):
         if converged:
             return Rr[0], self.w_f(Rr[0], i, j)
         else:
-            print('--------No solutions found--------')
+            print('----------------------------No solutions found--------------------')
             print(' V = ', self.V)
-            print('----------------------------------')
-            u = np.linspace(1e-6, self.V - 1e-6, 2048)
-            e = self.eq(u)
-            plt.plot(np.abs(u), e)
-            plt.plot(np.abs(u), np.abs(e))
-            plt.xlim(u.min(), u.max())
-            plt.ylim(-10, 10)
-            plt.show()
+            print('------------------------------------------------------------------')
+            #u = np.linspace(1e-6, self.V[0,-1] - 1e-6, 2048)
+            #print(self.V)
+            #e = self.eq(u,0,-1)
+            #plt.plot(np.abs(u), e)
+            #plt.plot(np.abs(u), np.abs(e))
+            #plt.xlim(u.min(), u.max())
+            #plt.ylim(-10, 10)
+            #plt.show()
             sys.exit(1)
 
 
@@ -123,19 +126,17 @@ class Betas(Fibre):
         self.k = 2*pi/l_vec
         self.u = u_vec
         self.w = w_vec
-        self.core = self.selm_core(l_vec)
-        self.clad = self.selm_clad(l_vec)
+        self.indexes(l_vec)
         self.o_vec = o_vec
         self.o = o
         self.o_norm = self.o_vec - self.o
         return None
 
     def beta_func(self, i):
-        dr =  self.k**2*((self.core/self.u[i, :])**2 +
-                          (self.clad/self.u[i, :])**2)/(1/self.u[i, :]**2
-                                                        + self.w[i, :]**2)
-        print(dr/self.k)
-        return dr
+        return (self.k**2*((self.core/self.u[i, :])**2 +
+                           (self.clad/self.w[i, :])**2)/(1/self.u[i, :]**2
+                                                         + 1/self.w[i, :]**2))**0.5
+
     def beta_extrapo(self, i):
         betas = self.beta_func(i)
         deg = 30
@@ -158,80 +159,79 @@ class Betas(Fibre):
             betas[i] = c * factorial(i)
         return betas
 
+from numba import jit
 
-class Modes(object):
+
+class Modes(Fibre):
     """docstring for Modes"""
 
-    def __init__(self,o_vec,o_c, beta_c, u_vec, w_vec, a_vec,x,y):
+    def __init__(self, o_vec, o_c, beta_c, u_vec, w_vec, a_vec, x, y):
         self.n = 1
         o_norm = o_vec - o_c
-        self.coordintes(x,y)
+        self.coordintes(x, y)
         self.beta_c = beta_c
-        print(self.beta_c)
-        print(o_c)
-        print(o_c/c)
-        self.neff = self.beta_c/ (o_c / c)
-        print(self.neff)
-        sys.exit()
-        self.u_vec,self.w_vec = np.zeros(u_vec.shape[0]),\
-                            np.zeros(u_vec.shape[0])
+        self.core = self.selm_core(2*pi*c/o_c)
+        self.neff = self.beta_c / (o_c / c)
+        self.u_vec, self.w_vec = np.zeros(u_vec.shape[0]),\
+                                np.zeros(u_vec.shape[0])
         for i in range(u_vec.shape[0]):
-            self.u_vec[i] = interp1d(o_norm, u_vec[i,:],kind = 'cubic')(0)
-            self.w_vec[i] = interp1d(o_norm, w_vec[i,:],kind = 'cubic')(0)
-        self.a = a_vec[i]
-        return None
-    
-    def coordintes(self,x,y):
-        x,y = np.meshgrid(x,y)
-        self.R = (x**2 + y**2)**0.5
-        self.T = np.arctan(y/x)
+            self.u_vec[i] = interp1d(o_norm, u_vec[i, :], kind='cubic')(0)
+            self.w_vec[i] = interp1d(o_norm, w_vec[i, :], kind='cubic')(0)
+        self.a_vec = a_vec
         return None
 
-    def pick_eigens(self,i):
+    def coordintes(self, x, y):
+        self.x, self.y = x, y
+        self.X, self.Y = np.meshgrid(x, y)
+        self.R = (self.X**2 + self.Y**2)**0.5
+        self.T = np.arctan(self.Y/self.X)
+        return None
+
+    def pick_eigens(self, i):
         self.u = self.u_vec[i]
         self.w = self.w_vec[i]
-        self.beta = self.beta_c[i] 
+        self.beta = self.beta_c[i]
+        self.a = self.a_vec[i]
         self.s = self.n * (1/self.u**2 + 1/self.w**2) /\
             (jv_(self.n, self.u)/(self.n*jv(self.n, self.u))
              + kv_(self.n, self.w)/(self.w*kv(self.n, self.w)))
         return None
-
+    @jit
     def E_r(self, r, theta):
-        r0_ind =np.where(r <= self.a)
+        r0_ind = np.where(r <= self.a)
         r1_ind = np.where(r > self.a)
-        temp = np.zeros(r.shape,dtype = np.complex128)
-        r0,r1 = r[r0_ind], r[r1_ind]
+        temp = np.zeros(r.shape, dtype=np.complex128)
+        r0, r1 = r[r0_ind], r[r1_ind]
         temp[r0_ind] = -1j * self.beta*self.a / \
             self.u*(0.5*(1 - self.s) * jv(self.n - 1, self.u * r0 / self.a)
                     - 0.5*(1 + self.s)*jv(self.n + 1, self.u * r0 / self.a))
-       
+
         temp[r1_ind] = -1j * self.beta*self.a*jv(self.n, self.u)/(self.w*kv(self.n, self.w)) \
             * (0.5*(1 - self.s) * kv(self.n - 1, self.w * r1 / self.a)
                + 0.5*(1 + self.s)*kv(self.n+1, self.w * r1 / self.a))
 
-   
         return temp*np.cos(self.n*theta), temp*np.cos(self.n*theta+pi/2)
-
+    @jit
     def E_theta(self, r, theta):
-        r0_ind =np.where(r <= self.a)
+        r0_ind = np.where(r <= self.a)
         r1_ind = np.where(r > self.a)
-        temp = np.zeros(r.shape,dtype = np.complex128)
-        r0,r1 = r[r0_ind], r[r1_ind]
-        temp[r0_ind] =1j * self.beta*self.a / \
+        temp = np.zeros(r.shape, dtype=np.complex128)
+        r0, r1 = r[r0_ind], r[r1_ind]
+        temp[r0_ind] = 1j * self.beta*self.a / \
             self.u*(0.5*(1 - self.s) * jv(self.n - 1, self.u * r0 / self.a)
                     + 0.5*(1 + self.s)*jv(self.n+1, self.u * r0 / self.a))
-      
+
         temp[r1_ind] = 1j * self.beta*self.a * \
             jv(self.n, self.u)/(self.w*kv(self.n, self.w)) \
             * (0.5*(1 - self.s) * kv(self.n - 1, self.w * r1 / self.a)
                - 0.5*(1 + self.s)*kv(self.n+1, self.w * r1 / self.a))
         return temp*np.sin(self.n*theta), temp*np.sin(self.n*theta+pi/2)
-
+    @jit
     def E_zeta(self, r, theta):
-        r0_ind =np.where(r <= self.a)
+        r0_ind = np.where(r <= self.a)
         r1_ind = np.where(r > self.a)
-        temp = np.zeros(r.shape,dtype = np.complex128)
-        r0,r1 = r[r0_ind], r[r1_ind]
+        temp = np.zeros(r.shape, dtype=np.complex128)
+        r0, r1 = r[r0_ind], r[r1_ind]
         temp[r0_ind] = jv(self.n, self.u*r0/self.a)
         temp[r1_ind] = jv(self.n, self.u) * \
             kv(self.n, self.w*r1/self.a)/kv(self.n, self.w)
@@ -246,34 +246,78 @@ class Modes(object):
             Ey.append(Er[i] * np.sin(self.T) + Et[i] * np.cos(self.T))
         Ez = self.E_zeta(self.R, self.T)
 
-        return (Ex[0], Ey[0], Ez[0]),(Ex[1], Ey[1], Ez[1])
-    
+        return (Ex[0], Ey[0], Ez[0]), (Ex[1], Ey[1], Ez[1])
+    #@profile
     def Q_matrixes(self):
-        self.E = self.E_carte()
+        import numpy as np
         self.combination_matrix_assembler()
-        print(self.M1_top)
-        return  
-    
+
+        for i in range(len(self.a_vec)):
+            self.pick_eigens(i)
+            E = np.asanyarray(self.E_carte())
+            N = self.Normalised_N(E, i)
+            Q = np.zeros([2,len(self.M1_top)],dtype = np.complex)
+            for j,com in enumerate(self.M1_top):
+                print(com)
+                d = self.product_4(com,E)
+                Q[0,j] = self.integrate(d[0])
+                Q[1,j] = self.integrate(d[1])
+
+                Q[0,j] *= self.core**2 /(N[com[0]]*N[com[1]]*N[com[2]]*N[com[3]])
+                Q[1,j] *= self.core**2 /(N[com[0]]*N[com[1]]*N[com[2]]*N[com[3]])
+        M1 = np.asanyarray(self.M1_top).T.shape
+        print(Q)
+        return
+
+    #@jit
+    def product_2(self, E):
+        d1 = np.einsum('ijk,ijk->jk',np.conj(E[0,:,:,:]), E[0,:,:,:])
+        d2 = np.einsum('ijk,ijk->jk',np.conj(E[1,:,:,:]), E[1,:,:,:])
+        return np.abs(d1), np.abs(d2)
+
+    #@jit(nopython = True)
+    #@jit
+    def product_4(self,com,E):
+        d1 = np.einsum('ijk,ijk->jk',np.conj(E[com[0],:,:,:]), E[com[1],:,:,:])*\
+             np.einsum('ijk,ijk->jk',E[com[2],:,:,:], np.conj(E[com[3],:,:,:]))
+        d2 = np.einsum('ijk,ijk->jk',np.conj(E[com[0],:,:,:]), np.conj(E[com[3],:,:,:]))*\
+             np.einsum('ijk,ijk->jk',E[com[2],:,:,:], E[com[1],:,:,:])
+        return d1, d2
+
+    def denom_integral(self):
+
+        return None
+
+    def Normalised_N(self, E, i):
+        """
+        Calculated the normalised N integrals for the Q's for two modes.
+        """
+        d = self.product_2(E)
+        return (self.neff[i] * self.integrate(d[0]))**0.5,\
+            (self.neff[i] * self.integrate(d[1]))**0.5
+
     def combination_matrix_assembler(self):
         tot = []
-        for i in combinations_with_replacement(range(len(self.E)),4):
-             l = permutations(i)
-             for j in l:
-                 tot.append(j)
+        for i in combinations_with_replacement(range(2), 4):
+            l = permutations(i)
+            for j in l:
+                tot.append(j)
         a = list(set(tot))
         a.sort()
         self.M1_top = a
         return None
-    def integrate(self,x,y,z):
+
+    def integrate(self, z):
         """
         Integrates twice using Simpsons rule from scipy
         to allow 2D  integration.
         """
-        return simps(simps(z, x), y)
+        return simps(simps(z, self.y), self.x)
+
 
 def main():
     margin = 1e-8
-    a_med = 1e-6
+    a_med = 7e-6
     a_err_p = 0.01
     l_span = 300e-9
     l_p = 1550e-9
@@ -281,7 +325,7 @@ def main():
     high_a = a_med + a_err_p * a_med
 
     l_vec = np.linspace(l_p - l_span, l_p + l_span, 20)
-    a_vec = np.linspace(low_a, high_a, 10)
+    a_vec = np.linspace(low_a, high_a, 1)
     o_vec = 2*pi * c/l_vec
     o = (o_vec[0]+o_vec[-1])/2
 
@@ -297,6 +341,7 @@ def main():
     taylor_dispersion = np.zeros([len(a_vec), len(o_vec)])
     betas_large = []
     betas_central = np.zeros_like(a_vec)
+
     b = Betas(u_vec, w_vec, l_vec, o_vec, o)
     for i, a in enumerate(a_vec):
         betas = b.beta_func(i)
@@ -313,40 +358,50 @@ def main():
         betas[i, :] = betas_large[i][:min_beta]
 
     r_max = np.max(a_vec)
-    N_points = 128
-    x = np.linspace(-2*r_max,2*r_max,N_points)
-    y = np.linspace(-2*r_max,2*r_max,N_points)
+    N_points = 256
+    x = np.linspace(-2*r_max, 2*r_max, N_points)
+    y = np.linspace(-2*r_max, 2*r_max, N_points)
 
-    M = Modes(o_vec,o, betas_central, u_vec, w_vec, a_vec,x,y)
-    HE11x,HE11y = [],[]
+    M = Modes(o_vec, o, betas_central, u_vec, w_vec, a_vec, x, y)
+    t = time()
+    M.Q_matrixes()
+    print(time() - t)
+    sys.exit()
+    HE11x, HE11y = [], []
     for i in range(len(a_vec)):
         M.pick_eigens(i)
         res = M.E_carte()
         HE11x.append(res[0])
         HE11y.append(res[1])
-        M.Q_matrixes()
-    E = (np.abs(HE11x[0][0])**2 + np.abs(HE11x[0][1])**2 + np.abs(HE11x[0][2])**2)**0.5
-    
 
-    X,Y = np.meshgrid(x,y)
-   
+    E = (np.abs(HE11x[0][0])**2 + np.abs(HE11x[0][1])
+         ** 2 + np.abs(HE11x[0][2])**2)**0.5
+
+    X, Y = np.meshgrid(x, y)
+
     Enorm = E/np.max(E)
     sp = 50
     fig = plt.figure()
-    plt.contourf(X, Y, Enorm,10,cmap = plt.cm.jet)
-    plt.quiver(X[::sp,::sp], Y[::sp,::sp], np.abs(HE11x[0][0][::sp,::sp]), np.abs(HE11x[0][1][::sp,::sp]),headlength=10)
-    #plt.colorbar()
-    plt.show()
+    plt.contourf(X, Y, Enorm, 10, cmap=plt.cm.jet)
+    plt.quiver(X[::sp, ::sp], Y[::sp, ::sp], np.abs(
+        HE11x[0][0][::sp, ::sp]), np.abs(HE11x[0][1][::sp, ::sp]), headlength=10)
+    plt.quiver(X[::sp, ::sp], Y[::sp, ::sp], np.abs(
+        HE11y[0][0][::sp, ::sp]), np.abs(HE11y[0][1][::sp, ::sp]), headlength=10)
 
-    E = (np.abs(HE11y[0][0])**2 + np.abs(HE11y[0][1])**2 + np.abs(HE11y[0][2])**2)**0.5
+    # plt.colorbar()
+    plt.show()
+    """
+    E = (np.abs(HE11y[0][0])**2 + np.abs(HE11y[0][1])
+         ** 2 + np.abs(HE11y[0][2])**2)**0.5
     Enorm = E/np.max(E)
 
     fig = plt.figure()
-    plt.contourf(X, Y, Enorm,10,cmap = plt.cm.jet)
-    plt.quiver(X[::sp,::sp], Y[::sp,::sp], np.abs(HE11y[0][0][::sp,::sp]), np.abs(HE11y[0][1][::sp,::sp]),headlength=10)
-
+    plt.contourf(X, Y, Enorm, 10, cmap=plt.cm.jet)
+    
     plt.show()
+    """
     return None
+from time import time
 
 if __name__ == '__main__':
     main()

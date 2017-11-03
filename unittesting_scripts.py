@@ -880,6 +880,31 @@ class Test_eigenvalues:
 
 
 class Test_betas:
+    def test_neffs(self):
+        margin = 1e-8
+        a_med = 1e-6
+        a_err_p = 0.01
+        l_span = 300e-9
+        l_p = 1550e-9
+        low_a = a_med - a_err_p * a_med
+        high_a = a_med + a_err_p * a_med
+
+        l_vec = np.linspace(l_p - l_span, l_p + l_span, 20)
+        a_vec = np.linspace(low_a, high_a, 10)
+        
+        o_vec = 2*pi * c / l_vec
+        o = (o_vec[0]+o_vec[-1])/2
+        u_vec, w_vec, V_vec = eigenvalues_test_case(l_vec, a_vec, margin)
+        taylor_dispersion = np.zeros([len(a_vec),len(o_vec)])        
+        betas = np.empty_like(taylor_dispersion)
+        b = Betas(u_vec, w_vec, l_vec, o_vec, o)
+        for i,a in enumerate(a_vec):
+            betas[i,:] = b.beta_func(i)
+        neffs = betas/b.k
+        #print(neffs)
+        #print(b.core,b.clad)
+        assert (neffs < b.core).all() and (neffs > b.clad).all()
+
     def test_poly(self):
         margin = 1e-8
         a_med = 1e-6
