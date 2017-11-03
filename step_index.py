@@ -9,7 +9,7 @@ import sys
 import warnings
 from pprint import pprint
 from math import factorial
-
+from itertools import combinations_with_replacement,permutations
 
 def jv_(n, z):
     return 0.5 * (jv(n-1, z) - jv(n+1, z))
@@ -17,7 +17,6 @@ def jv_(n, z):
 
 def kv_(n, z):
     return -0.5 * (kv(n-1, z) + kv(n+1, z))
-
 
 class Fibre(object):
     """
@@ -132,10 +131,11 @@ class Betas(Fibre):
         return None
 
     def beta_func(self, i):
-        return self.k**2*((self.core/self.u[i, :])**2 +
+        dr =  self.k**2*((self.core/self.u[i, :])**2 +
                           (self.clad/self.u[i, :])**2)/(1/self.u[i, :]**2
                                                         + self.w[i, :]**2)
-
+        print(dr/self.k)
+        return dr
     def beta_extrapo(self, i):
         betas = self.beta_func(i)
         deg = 30
@@ -162,10 +162,17 @@ class Betas(Fibre):
 class Modes(object):
     """docstring for Modes"""
 
-    def __init__(self,o_norm, beta_c, u_vec, w_vec, a_vec,x,y):
+    def __init__(self,o_vec,o_c, beta_c, u_vec, w_vec, a_vec,x,y):
         self.n = 1
+        o_norm = o_vec - o_c
         self.coordintes(x,y)
         self.beta_c = beta_c
+        print(self.beta_c)
+        print(o_c)
+        print(o_c/c)
+        self.neff = self.beta_c/ (o_c / c)
+        print(self.neff)
+        sys.exit()
         self.u_vec,self.w_vec = np.zeros(u_vec.shape[0]),\
                             np.zeros(u_vec.shape[0])
         for i in range(u_vec.shape[0]):
@@ -178,7 +185,6 @@ class Modes(object):
         x,y = np.meshgrid(x,y)
         self.R = (x**2 + y**2)**0.5
         self.T = np.arctan(y/x)
-        #, = self.r,self.theta#np.meshgrid(self.r,self.theta)
         return None
 
     def pick_eigens(self,i):
@@ -244,9 +250,20 @@ class Modes(object):
     
     def Q_matrixes(self):
         self.E = self.E_carte()
+        self.combination_matrix_assembler()
+        print(self.M1_top)
         return  
-
-
+    
+    def combination_matrix_assembler(self):
+        tot = []
+        for i in combinations_with_replacement(range(len(self.E)),4):
+             l = permutations(i)
+             for j in l:
+                 tot.append(j)
+        a = list(set(tot))
+        a.sort()
+        self.M1_top = a
+        return None
     def integrate(self,x,y,z):
         """
         Integrates twice using Simpsons rule from scipy
@@ -300,14 +317,17 @@ def main():
     x = np.linspace(-2*r_max,2*r_max,N_points)
     y = np.linspace(-2*r_max,2*r_max,N_points)
 
-    M = Modes(o_vec - o, betas_central, u_vec, w_vec, a_vec,x,y)
+    M = Modes(o_vec,o, betas_central, u_vec, w_vec, a_vec,x,y)
     HE11x,HE11y = [],[]
     for i in range(len(a_vec)):
         M.pick_eigens(i)
         res = M.E_carte()
         HE11x.append(res[0])
         HE11y.append(res[1])
+        M.Q_matrixes()
     E = (np.abs(HE11x[0][0])**2 + np.abs(HE11x[0][1])**2 + np.abs(HE11x[0][2])**2)**0.5
+    
+
     X,Y = np.meshgrid(x,y)
    
     Enorm = E/np.max(E)
