@@ -10,14 +10,19 @@ import warnings
 from pprint import pprint
 from math import factorial
 from itertools import combinations_with_replacement, permutations
-
-
+import h5py
 def jv_(n, z):
     return 0.5 * (jv(n-1, z) - jv(n+1, z))
 
 
 def kv_(n, z):
     return -0.5 * (kv(n-1, z) + kv(n+1, z))
+
+def save_variables_step(filename,variables, filepath=''):
+    with h5py.File(filepath + filename + '.hdf5', 'a') as f:
+        for i in (variables):
+            f.create_dataset(str(i), data=variables[i])
+    return None
 
 
 class Fibre(object):
@@ -249,25 +254,40 @@ class Modes(Fibre):
         return (Ex[0], Ey[0], Ez[0]), (Ex[1], Ey[1], Ez[1])
     #@profile
     def Q_matrixes(self):
-        import numpy as np
         self.combination_matrix_assembler()
-
+        Q_large = []
         for i in range(len(self.a_vec)):
             self.pick_eigens(i)
             E = np.asanyarray(self.E_carte())
             N = self.Normalised_N(E, i)
             Q = np.zeros([2,len(self.M1_top)],dtype = np.complex)
             for j,com in enumerate(self.M1_top):
-                print(com)
                 d = self.product_4(com,E)
-                Q[0,j] = self.integrate(d[0])
-                Q[1,j] = self.integrate(d[1])
-
-                Q[0,j] *= self.core**2 /(N[com[0]]*N[com[1]]*N[com[2]]*N[com[3]])
-                Q[1,j] *= self.core**2 /(N[com[0]]*N[com[1]]*N[com[2]]*N[com[3]])
-        M1 = np.asanyarray(self.M1_top).T.shape
-        print(Q)
-        return
+                Q[0,j] = self.core**2 /(N[com[0]]\
+                    *N[com[1]]*N[com[2]]*N[com[3]])*self.integrate(d[0])
+                Q[1,j] = self.core**2 /(N[com[0]]\
+                    *N[com[1]]*N[com[2]]*N[com[3]])*self.integrate(d[1])
+            if i is 0:
+                list_to_keep = []
+                for i in range(len(self.M1_top)):
+                    if Q[0,i] > 1 or Q[1,i] > 1:
+                        list_to_keep.append(i)
+            Q = Q[:,list_to_keep]
+            Q_large.append(Q)
+        M1 = np.asanyarray(self.M1_top)
+        M1 = M1[list_to_keep].T
+        M2 = np.unique(M1[-2:,:].T,axis = 0).T
+        M1_end = []
+        for i,m1 in enumerate(M1[-2:,:].T):
+            for j,m2 in enumerate(M2.T):
+                if (m1 == m2).all():
+                    M1_end.append(j)
+                    break
+        M1 = np.vstack((M1,np.asanyarray(M1_end)))
+        for qq in Q_large:
+            assert len(qq[0,:]) == M1.shape[1]
+            assert len(qq[1,:]) == M1.shape[1]
+        return M1, M2, np.asanyarray(Q_large)
 
     #@jit
     def product_2(self, E):
@@ -325,7 +345,7 @@ def main():
     high_a = a_med + a_err_p * a_med
 
     l_vec = np.linspace(l_p - l_span, l_p + l_span, 20)
-    a_vec = np.linspace(low_a, high_a, 1)
+    a_vec = np.linspace(low_a, high_a, 10)
     o_vec = 2*pi * c/l_vec
     o = (o_vec[0]+o_vec[-1])/2
 
@@ -363,10 +383,17 @@ def main():
     y = np.linspace(-2*r_max, 2*r_max, N_points)
 
     M = Modes(o_vec, o, betas_central, u_vec, w_vec, a_vec, x, y)
-    t = time()
-    M.Q_matrixes()
-    print(time() - t)
+    M1, M2, Q_large = M.Q_matrixes()
+    Export_dict = {'M1':M1,'M2':M2, 'Q_large':Q_large, 'betas': betas}
+    filename = 'step_index_2m'
+    save_variables_step(filename,  variables = Export_dict,filepath = 'loading_data/')
+    
     sys.exit()
+    
+
+
+
+
     HE11x, HE11y = [], []
     for i in range(len(a_vec)):
         M.pick_eigens(i)
@@ -387,19 +414,8 @@ def main():
         HE11x[0][0][::sp, ::sp]), np.abs(HE11x[0][1][::sp, ::sp]), headlength=10)
     plt.quiver(X[::sp, ::sp], Y[::sp, ::sp], np.abs(
         HE11y[0][0][::sp, ::sp]), np.abs(HE11y[0][1][::sp, ::sp]), headlength=10)
-
-    # plt.colorbar()
     plt.show()
-    """
-    E = (np.abs(HE11y[0][0])**2 + np.abs(HE11y[0][1])
-         ** 2 + np.abs(HE11y[0][2])**2)**0.5
-    Enorm = E/np.max(E)
 
-    fig = plt.figure()
-    plt.contourf(X, Y, Enorm, 10, cmap=plt.cm.jet)
-    
-    plt.show()
-    """
     return None
 from time import time
 

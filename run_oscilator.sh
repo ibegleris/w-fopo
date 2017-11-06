@@ -6,7 +6,7 @@ source activate intel
 echo 'starting...'
 rm -r output*
 rm -r *__*
-
+echo $1 $2 $3
 if [ "$3" == "mpi" ]
 then
 	export MKL_NUM_THREADS=1

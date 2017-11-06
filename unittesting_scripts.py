@@ -865,7 +865,7 @@ class Test_eigenvalues:
 
     def test_V(self):
         margin = 1e-8
-        a_med = 1e-6
+        a_med = 7e-6
         a_err_p = 0.01
         l_span = 300e-9
         l_p = 1550e-9
@@ -882,7 +882,7 @@ class Test_eigenvalues:
 class Test_betas:
     def test_neffs(self):
         margin = 1e-8
-        a_med = 1e-6
+        a_med = 7e-6
         a_err_p = 0.01
         l_span = 300e-9
         l_p = 1550e-9
@@ -907,7 +907,7 @@ class Test_betas:
 
     def test_poly(self):
         margin = 1e-8
-        a_med = 1e-6
+        a_med = 7e-6
         a_err_p = 0.01
         l_span = 300e-9
         l_p = 1550e-9
@@ -933,7 +933,7 @@ class Test_betas:
 
     def test_taylor(self):
         margin = 1e-8
-        a_med = 1e-6
+        a_med = 7e-6
         a_err_p = 0.01
         l_span = 300e-9
         l_p = 1550e-9

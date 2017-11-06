@@ -66,41 +66,42 @@ trgt = 'cpu'
 #trgt = 'parallel'
 #trgt = 'cuda'
 
-@jit
+@jit(nopython=True)
 def Afourth_temp(u1, A1, A3, A4, A5, A6):
     return u1 + (2825./27648)*A1 + (18575./48384)*A3 + (13525./55296) * \
         A4 + (277./14336)*A5 + (1./4)*A6
 
-@jit
+@jit(nopython=True)
 def A_temp(u1, A1, A3, A4, A6):
     return u1 + (37./378)*A1 + (250./621)*A3 + (125./594) * \
         A4 + (512./1771)*A6
 
-@jit
+@jit(nopython=True)
 def A2_temp(u1, A1):
     return u1 + (1./5)*A1
 
-@jit
+@jit(nopython=True)
 def A3_temp(u1, A1, A2):
     return u1 + (3./40)*A1 + (9./40)*A2
 
-@jit
+@jit(nopython=True)
 def A4_temp(u1, A1, A2, A3):
     return u1 + (3./10)*A1 - (9./10)*A2 + (6./5)*A3
 
-@jit
+@jit(nopython=True)
 def A5_temp(u1, A1, A2, A3, A4):
     return u1 - (11./54)*A1 + (5./2)*A2 - (70./27)*A3 + (35./27)*A4
 
 
-@jit
+@jit(nopython=True)
 def A6_temp(u1, A1, A2, A3, A4, A5):
     return u1 + (1631./55296)*A1 + (175./512)*A2 + (575./13824)*A3 +\
                    (44275./110592)*A4 + (253./4096)*A5
 
 
 
-@profile
+
+@jit
 def dAdzmm_roff_s0(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
     """
     calculates the nonlinear operator for a given field u0
@@ -113,7 +114,8 @@ def dAdzmm_roff_s0(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
     return N
 
 
-@profile
+
+@jit
 def dAdzmm_roff_s1(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
     """
     calculates the nonlinear operator for a given field u0
@@ -125,7 +127,8 @@ def dAdzmm_roff_s1(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
     return N
 
 
-@profile
+
+@jit
 def dAdzmm_ron_s0(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
     """
     calculates the nonlinear operator for a given field u0
@@ -137,8 +140,9 @@ def dAdzmm_ron_s0(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
     N *= -1j*n2*2*pi/lamda
     return N
 
-import sys
-@profile
+
+
+@jit
 def dAdzmm_ron_s1(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
     """
     calculates the nonlinear operator for a given field u0
@@ -149,16 +153,19 @@ def dAdzmm_ron_s1(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
     M3 = uabs(u0,M2)
     M4 = dt*fftshift(ifft(fft(M3)*hf)) # creates matrix M4
     N = nonlin_ram(M1, Q, u0, M3, M4)
-    N = -1j*n2*2*pi/lamda * (N + tsh*ifft(w_tiled * fft(N)))
+    N = -1j*n2*2*pi/lamda * (N + tsh*ifft(multi(w_tiled,fft(N))))
     return N
 
+@jit(nopython=True)
+def multi(a,b):
+    return a * b
 
 @guvectorize(['void(complex128[:,:], uint8[:,:], float64[:,:])'],\
                  '(n,m),(o,l)->(l,m)',target = trgt)
 def uabs(u0,M2,M3):
+    M3[:,:] = 0
     for ii in range(M2.shape[1]):
-        M3[ii,:] = (u0[M2[0,ii],:]*np.conj(u0[M2[1,ii],:])).real
-
+        M3[ii,:] = (u0[M2[0,ii],:]*u0[M2[1,ii],:].conj()).real
 
 @guvectorize(['void(int8[:,:], float64[:,:], complex128[:,:],\
             float64[:,:], complex128[:,:], complex128[:,:])'],\
@@ -166,9 +173,9 @@ def uabs(u0,M2,M3):
 def nonlin_ram(M1, Q, u0, M3, M4, N):
     N[:,:] = 0
     for ii in range(M1.shape[1]):
-        N[M1[0,ii],:] += 0.82*(2*Q[0,ii] + Q[1,ii]) \
-                                *u0[M1[1,ii],:]*M3[M1[4,ii],:] + \
-                               0.54*Q[0,ii]*u0[M1[1,ii],:]*M4[M1[4,ii],:]
+        N[M1[0,ii],:] += u0[M1[1,ii],:]*(0.82*(2*Q[0,ii] + Q[1,ii]) \
+                                *M3[M1[4,ii],:] + \
+                               0.54*Q[0,ii]*M4[M1[4,ii],:])
 
 
 @guvectorize(['void(int8[:,:], float64[:,:], complex128[:,:],\
