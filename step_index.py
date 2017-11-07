@@ -11,6 +11,10 @@ from pprint import pprint
 from math import factorial
 from itertools import combinations_with_replacement, permutations
 import h5py
+import os
+from scipy.interpolate import UnivariateSpline
+
+
 def jv_(n, z):
     return 0.5 * (jv(n-1, z) - jv(n+1, z))
 
@@ -18,8 +22,12 @@ def jv_(n, z):
 def kv_(n, z):
     return -0.5 * (kv(n-1, z) + kv(n+1, z))
 
-def save_variables_step(filename,variables, filepath=''):
-    with h5py.File(filepath + filename + '.hdf5', 'a') as f:
+
+def save_variables_step(filename, variables, filepath=''):
+
+    file = os.path.join(filepath, filename+'.hdf5')
+    os.system('rm '+file)
+    with h5py.File(file, 'a') as f:
         for i in (variables):
             f.create_dataset(str(i), data=variables[i])
     return None
@@ -35,10 +43,10 @@ class Fibre(object):
         self.core, self.clad = self.selm_core(l), self.selm_clad(l)
 
     def selm_core(self, l):
-        return 1.445 * np.ones_like(l)
+        return 2.145 * np.ones_like(l)
 
     def selm_clad(self, l):
-        return 1.444 * np.ones_like(l)
+        return 2.144 * np.ones_like(l)
 
     def V_func(self, l_vec, a_vec):
         V_vec = np.empty([len(a_vec), len(l_vec)])
@@ -114,13 +122,13 @@ class Eigenvalues(Fibre):
             print(' V = ', self.V)
             print('------------------------------------------------------------------')
             #u = np.linspace(1e-6, self.V[0,-1] - 1e-6, 2048)
-            #print(self.V)
+            # print(self.V)
             #e = self.eq(u,0,-1)
             #plt.plot(np.abs(u), e)
             #plt.plot(np.abs(u), np.abs(e))
             #plt.xlim(u.min(), u.max())
             #plt.ylim(-10, 10)
-            #plt.show()
+            # plt.show()
             sys.exit(1)
 
 
@@ -143,6 +151,10 @@ class Betas(Fibre):
                                                          + 1/self.w[i, :]**2))**0.5
 
     def beta_extrapo(self, i):
+        """
+        Gets the polyonomial coefficiencts of beta(omega) with the 
+        highest order possible. 
+        """
         betas = self.beta_func(i)
         deg = 30
         fitted = False
@@ -178,7 +190,7 @@ class Modes(Fibre):
         self.core = self.selm_core(2*pi*c/o_c)
         self.neff = self.beta_c / (o_c / c)
         self.u_vec, self.w_vec = np.zeros(u_vec.shape[0]),\
-                                np.zeros(u_vec.shape[0])
+            np.zeros(u_vec.shape[0])
         for i in range(u_vec.shape[0]):
             self.u_vec[i] = interp1d(o_norm, u_vec[i, :], kind='cubic')(0)
             self.w_vec[i] = interp1d(o_norm, w_vec[i, :], kind='cubic')(0)
@@ -201,6 +213,7 @@ class Modes(Fibre):
             (jv_(self.n, self.u)/(self.n*jv(self.n, self.u))
              + kv_(self.n, self.w)/(self.w*kv(self.n, self.w)))
         return None
+
     @jit
     def E_r(self, r, theta):
         r0_ind = np.where(r <= self.a)
@@ -216,6 +229,7 @@ class Modes(Fibre):
                + 0.5*(1 + self.s)*kv(self.n+1, self.w * r1 / self.a))
 
         return temp*np.cos(self.n*theta), temp*np.cos(self.n*theta+pi/2)
+
     @jit
     def E_theta(self, r, theta):
         r0_ind = np.where(r <= self.a)
@@ -231,6 +245,7 @@ class Modes(Fibre):
             * (0.5*(1 - self.s) * kv(self.n - 1, self.w * r1 / self.a)
                - 0.5*(1 + self.s)*kv(self.n+1, self.w * r1 / self.a))
         return temp*np.sin(self.n*theta), temp*np.sin(self.n*theta+pi/2)
+
     @jit
     def E_zeta(self, r, theta):
         r0_ind = np.where(r <= self.a)
@@ -253,6 +268,7 @@ class Modes(Fibre):
 
         return (Ex[0], Ey[0], Ez[0]), (Ex[1], Ey[1], Ez[1])
     #@profile
+
     def Q_matrixes(self):
         self.combination_matrix_assembler()
         Q_large = []
@@ -260,48 +276,46 @@ class Modes(Fibre):
             self.pick_eigens(i)
             E = np.asanyarray(self.E_carte())
             N = self.Normalised_N(E, i)
-            Q = np.zeros([2,len(self.M1_top)],dtype = np.complex)
-            for j,com in enumerate(self.M1_top):
-                d = self.product_4(com,E)
-                Q[0,j] = self.core**2 /(N[com[0]]\
-                    *N[com[1]]*N[com[2]]*N[com[3]])*self.integrate(d[0])
-                Q[1,j] = self.core**2 /(N[com[0]]\
-                    *N[com[1]]*N[com[2]]*N[com[3]])*self.integrate(d[1])
+            Q = np.zeros([2, len(self.M1_top)], dtype=np.complex)
+            for j, com in enumerate(self.M1_top):
+                d = self.product_4(com, E)
+                Q[0, j] = self.core**2 / (N[com[0]]
+                                          * N[com[1]]*N[com[2]]*N[com[3]])*self.integrate(d[0])
+                Q[1, j] = self.core**2 / (N[com[0]]
+                                          * N[com[1]]*N[com[2]]*N[com[3]])*self.integrate(d[1])
             if i is 0:
                 list_to_keep = []
                 for i in range(len(self.M1_top)):
-                    if Q[0,i] > 1 or Q[1,i] > 1:
+                    if Q[0, i] > 1 or Q[1, i] > 1:
                         list_to_keep.append(i)
-            Q = Q[:,list_to_keep]
+            Q = Q[:, list_to_keep]
             Q_large.append(Q)
         M1 = np.asanyarray(self.M1_top)
         M1 = M1[list_to_keep].T
-        M2 = np.unique(M1[-2:,:].T,axis = 0).T
+        M2 = np.unique(M1[-2:, :].T, axis=0).T
         M1_end = []
-        for i,m1 in enumerate(M1[-2:,:].T):
-            for j,m2 in enumerate(M2.T):
+        for i, m1 in enumerate(M1[-2:, :].T):
+            for j, m2 in enumerate(M2.T):
                 if (m1 == m2).all():
                     M1_end.append(j)
                     break
-        M1 = np.vstack((M1,np.asanyarray(M1_end)))
+        M1 = np.vstack((M1, np.asanyarray(M1_end)))
         for qq in Q_large:
-            assert len(qq[0,:]) == M1.shape[1]
-            assert len(qq[1,:]) == M1.shape[1]
+            assert len(qq[0, :]) == M1.shape[1]
+            assert len(qq[1, :]) == M1.shape[1]
         return M1, M2, np.asanyarray(Q_large)
 
-    #@jit
     def product_2(self, E):
-        d1 = np.einsum('ijk,ijk->jk',np.conj(E[0,:,:,:]), E[0,:,:,:])
-        d2 = np.einsum('ijk,ijk->jk',np.conj(E[1,:,:,:]), E[1,:,:,:])
+        d1 = np.einsum('ijk,ijk->jk', np.conj(E[0, :, :, :]), E[0, :, :, :])
+        d2 = np.einsum('ijk,ijk->jk', np.conj(E[1, :, :, :]), E[1, :, :, :])
         return np.abs(d1), np.abs(d2)
 
-    #@jit(nopython = True)
-    #@jit
-    def product_4(self,com,E):
-        d1 = np.einsum('ijk,ijk->jk',np.conj(E[com[0],:,:,:]), E[com[1],:,:,:])*\
-             np.einsum('ijk,ijk->jk',E[com[2],:,:,:], np.conj(E[com[3],:,:,:]))
-        d2 = np.einsum('ijk,ijk->jk',np.conj(E[com[0],:,:,:]), np.conj(E[com[3],:,:,:]))*\
-             np.einsum('ijk,ijk->jk',E[com[2],:,:,:], E[com[1],:,:,:])
+    def product_4(self, com, E):
+        d1 = np.einsum('ijk,ijk->jk', np.conj(E[com[0], :, :, :]), E[com[1], :, :, :]) *\
+            np.einsum('ijk,ijk->jk', E[com[2], :, :,
+                                       :], np.conj(E[com[3], :, :, :]))
+        d2 = np.einsum('ijk,ijk->jk', np.conj(E[com[0], :, :, :]), np.conj(E[com[3], :, :, :])) *\
+            np.einsum('ijk,ijk->jk', E[com[2], :, :, :], E[com[1], :, :, :])
         return d1, d2
 
     def denom_integral(self):
@@ -335,17 +349,8 @@ class Modes(Fibre):
         return simps(simps(z, self.y), self.x)
 
 
-def main():
+def fibre_creator(a_vec, l_vec, filename='step_index_2m', N_points=512):
     margin = 1e-8
-    a_med = 7e-6
-    a_err_p = 0.01
-    l_span = 300e-9
-    l_p = 1550e-9
-    low_a = a_med - a_err_p * a_med
-    high_a = a_med + a_err_p * a_med
-
-    l_vec = np.linspace(l_p - l_span, l_p + l_span, 20)
-    a_vec = np.linspace(low_a, high_a, 10)
     o_vec = 2*pi * c/l_vec
     o = (o_vec[0]+o_vec[-1])/2
 
@@ -363,37 +368,72 @@ def main():
     betas_central = np.zeros_like(a_vec)
 
     b = Betas(u_vec, w_vec, l_vec, o_vec, o)
+    beta2_large = []
     for i, a in enumerate(a_vec):
         betas = b.beta_func(i)
         beta_coef = b.beta_extrapo(i)
+        beta2_large.append(UnivariateSpline(
+            o_vec, betas).derivative(n=2)(o_vec))
         p = np.poly1d(beta_coef)
         betas_central[i] = p(0)
         betass = b.beta_dispersions(i)
-        betas_large.append(betass)
+        betas_large.append(betas)
         for j, bb in enumerate(betass):
             taylor_dispersion[i, :] += (bb/factorial(j))*(o_vec - o)**j
-    min_beta = np.min([len(i) for i in betas_large])
-    betas = np.zeros([len(a_vec), min_beta])
-    for i in range(len(betas_large)):
-        betas[i, :] = betas_large[i][:min_beta]
+    #min_beta = np.min([len(i) for i in betas_large])
+    #betas = np.zeros([len(a_vec), min_beta])
+    # for i in range(len(betas_large)):
+    #    betas[i, :] = betas_large[i][:min_beta]
 
     r_max = np.max(a_vec)
-    N_points = 256
     x = np.linspace(-2*r_max, 2*r_max, N_points)
     y = np.linspace(-2*r_max, 2*r_max, N_points)
 
     M = Modes(o_vec, o, betas_central, u_vec, w_vec, a_vec, x, y)
     M1, M2, Q_large = M.Q_matrixes()
-    Export_dict = {'M1':M1,'M2':M2, 'Q_large':Q_large, 'betas': betas}
-    filename = 'step_index_2m'
-    save_variables_step(filename,  variables = Export_dict,filepath = 'loading_data/')
-    
-    sys.exit()
-    
+    Export_dict = {'M1': M1, 'M2': M2,
+                   'Q_large': Q_large, 'betas': taylor_dispersion}
+
+    save_variables_step(filename,  variables=Export_dict,
+                        filepath='loading_data/')
+
+    return betas_large, Q_large, M, beta2_large
+
+
+def main(a_med,a_err_p,l_p,l_span):
 
 
 
+    low_a = a_med - a_err_p * a_med
+    high_a = a_med + a_err_p * a_med
 
+    l_vec = np.linspace(l_p - l_span, l_p + l_span, 20)
+    a_vec = np.linspace(low_a, high_a, 10)
+
+    betas, Q_large, M, beta2 = fibre_creator(a_vec, l_vec, N_points=512)
+    fig = plt.figure(figsize=(15, 7.5))
+    for i, a in enumerate(a_vec):
+        plt.plot(l_vec*1e9, 1e24*beta2[i][:], label=r'$\alpha = $'+'{0:.2f}'.format(a*1e6)+r'$\mu m$')
+        plt.xlabel(r'$\lambda(nm)$')
+        plt.ylabel(r'$\beta_{2} (ps^{2}/m)$')
+    plt.legend()
+    plt.show()
+   
+    fig = plt.figure(figsize=(15, 7.5))
+    plt.ticklabel_format(useOffset=False)
+    for i, a in enumerate(a_vec):
+        plt.plot(l_vec*1e9, betas[i][:] / (2*pi/l_vec), label=r'$\alpha = $'+'{0:.2f}'.format(a*1e6)+r'$\mu m$')
+        plt.xlabel(r'$\lambda(nm)$')
+        plt.ylabel(r'$n_{eff}$')
+    plt.legend()
+    plt.show()
+
+    fig = plt.figure(figsize=(15, 7.5))
+    plt.plot(a_vec*1e6, Q_large[:,0,0]*1e-12)
+    plt.xlabel(r'$\a(\mu m)$')
+    plt.ylabel(r'$Q (\mu m)$')
+    plt.legend()
+    plt.show()
     HE11x, HE11y = [], []
     for i in range(len(a_vec)):
         M.pick_eigens(i)
@@ -404,20 +444,27 @@ def main():
     E = (np.abs(HE11x[0][0])**2 + np.abs(HE11x[0][1])
          ** 2 + np.abs(HE11x[0][2])**2)**0.5
 
-    X, Y = np.meshgrid(x, y)
+    X, Y = np.meshgrid(M.x*2e6, M.y*2e6)
+    #X *= 1e6
+    #Y *= 1e6
 
     Enorm = E/np.max(E)
-    sp = 50
-    fig = plt.figure()
+    sp = 100
+    fig = plt.figure(figsize=(7.5, 7.5))
     plt.contourf(X, Y, Enorm, 10, cmap=plt.cm.jet)
     plt.quiver(X[::sp, ::sp], Y[::sp, ::sp], np.abs(
-        HE11x[0][0][::sp, ::sp]), np.abs(HE11x[0][1][::sp, ::sp]), headlength=10)
+        HE11x[0][0][::sp, ::sp]), np.abs(HE11x[0][1][::sp, ::sp]), headlength=80)
     plt.quiver(X[::sp, ::sp], Y[::sp, ::sp], np.abs(
-        HE11y[0][0][::sp, ::sp]), np.abs(HE11y[0][1][::sp, ::sp]), headlength=10)
+        HE11y[0][0][::sp, ::sp]), np.abs(HE11y[0][1][::sp, ::sp]), headlength=80)
+    plt.xlabel(r'$x(\mu m)$')
+    plt.ylabel(r'$y(\mu m)$')
     plt.show()
 
     return None
-from time import time
 
 if __name__ == '__main__':
-    main()
+    a_med = 6e-6
+    a_err_p = 0.01
+    l_span = 300e-9
+    l_p = 1550e-9
+    main(a_med,a_err_p,l_p,l_span)
