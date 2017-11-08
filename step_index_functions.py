@@ -1,0 +1,424 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import brenth, root, brentq, bisect
+from scipy.constants import c, pi
+from scipy.special import jv, kv
+from scipy.interpolate import interp1d
+from scipy.integrate import simps
+import sys
+import warnings
+from pprint import pprint
+from math import factorial
+from itertools import combinations_with_replacement, permutations
+import h5py
+import os
+from scipy.interpolate import UnivariateSpline
+from numba import jit
+import time
+def jv_(n, z):
+    return 0.5 * (jv(n-1, z) - jv(n+1, z))
+
+
+def kv_(n, z):
+    return -0.5 * (kv(n-1, z) + kv(n+1, z))
+
+
+def save_variables_step(filename, variables, filepath=''):
+
+    file = os.path.join(filepath, filename+'.hdf5')
+    os.system('rm '+file)
+    with h5py.File(file, 'a') as f:
+        for i in (variables):
+            f.create_dataset(str(i), data=variables[i])
+    return None
+
+
+class Fibre(object):
+    """
+    Fibre class. Set to initiate the functions needed
+    for a fibre ( Seilmier equations etc).
+    """
+
+    def __init__(self):
+        self._A_ = {'20': [1.839914958, 0.024904614],
+                    '30': [0.306497564, 0.137054239],
+                    '40': [0.000642838, 0.029204785],
+                    '50': [1.985228647, 0.053573607],
+                    '60': [4.333665367, 0.041653610]}
+        self._B_ = {'20': [1.642967950, 0.024610921],
+                    '30': [2.107875323, 0.042849217],
+                    '40': [4.384157273, 0.048231442],
+                    '50': [0.857354031, 0.076459027],
+                    '60': [0.687220328, 0.038743002]}
+        self._C_ = {'20': [1.007772639, 0.028941563],
+                    '30': [2.250507139, 0.043271180],
+                    '40': [0.494177682, 0.091989280],
+                    '50': [2.114522002, 0.052084502],
+                    '60': [0.094666497, 0.162793930]}
+        return None
+
+    def indexes(self, l, r, per, err):
+        per_core, per_clad = per
+
+        self.A = [self._A_[str(per_core)], self._A_[str(per_clad)]]
+        self.B = [self._B_[str(per_core)], self._B_[str(per_clad)]]
+        self.C = [self._C_[str(per_core)], self._C_[str(per_clad)]]
+
+        core, clad = self.sellmeier(l)
+
+        try:
+            N_cores = len(r)
+            self.clad = np.repeat(clad[np.newaxis, :], N_cores, axis=0) 
+            np.random.seed(int(time.time()+10))
+            
+            self.core = np.zeros([N_cores,len(l)])
+            for i in range(N_cores):
+                self.core[i,:] = np.random.rand(len(core))*err*(core - clad) + core
+        except IndexError:
+            
+            self.clad = clad
+            self.core = np.random.rand(N_cores)*err*core + core
+            pass
+
+        
+        return self.core, self.clad
+
+    def sellmeier(self, l):
+        l = (l*1e6)**2
+        n = []
+        for a, b, c in zip(self.A, self.B, self.C):
+            n.append(
+                (1 + l*(a[0]/(l - a[1]) + b[0]/(l - b[1]) + c[0]/(l - c[1])))**0.5)
+        return n
+
+    def V_func(self, l_vec, a_vec):
+        V_vec = np.empty([len(a_vec), len(l_vec)])
+        temp = (2 * pi / l_vec)
+        for i, a in enumerate(a_vec):
+            V_vec[i, :] = temp * a * (self.core[i,:]**2 - self.clad[i,:]**2)**0.5
+        #if (V_vec > 2.405).any():
+        #    print(V_vec[V_vec > 2.405])
+        #    sys.exit('nm > 1!!!')
+        #else:
+        self.V = V_vec
+        return None
+
+    def plot_fibre_n(self, l,r,per,err):
+        n = []
+        for per in ((20, 30), (40, 50), (60, 60)):
+            nn = self.indexes(l, r,per,err)
+            n.append(nn[0])
+            n.append(nn[1])
+        del n[-1]
+        perc = (20, 30, 40, 50,60)
+        for nn, p in zip(n, perc):
+            plt.plot(l, nn[-1,:], label=p)
+        plt.legend()
+        plt.show()
+        return None
+
+
+class Eigenvalues(Fibre):
+    """
+    Sets up to solve and solves the eigenvalue equation
+    to find the eigenvalues of HE11. Only works on a single mode 
+    fibre. Inherits V number function from Fibre class.
+    """
+
+    def __init__(self, l, r, ncore,nclad):
+        self.core, self.clad = ncore, nclad
+        self.V_func(l, r)
+        self.ratio = self.clad/self.core
+        return None
+
+    def w_f(self, u, i, j):
+        """
+        Relasionship between the eigenvalues and V. 
+        """
+        return (self.V[i, j]**2 - u**2)**0.5
+
+    def eq(self, u_vec, i, j, n=1):
+        """
+        The eigenvalue equation of a single mdoe fibre,
+        set by default to find the HE11 mode. 
+        """
+        u = u_vec
+        w = self.w_f(u, i, j)
+
+        a =  (jv_(n, u)/(u*jv(n, w)) + kv_(n, w)/(w*kv(n, w))) * \
+            (jv_(n, u)/(u*jv(n, u)) + kv_(n, w)/(w*kv(n, w))*self.ratio[i,j]**2) \
+            - n**2 * (1/u**2 + 1/w**2) * (1/u**2 + self.ratio[i,j]**2 / w**2)
+
+        return a
+
+    def eigen_solver(self, margin, i, j):
+        from scipy.optimize import fsolve
+        """
+        Finds the eigenvalues of the fibre using breth. 
+        Inputs:
+            margin: A safety margin to save from the Zero division errors 
+                    that arrise from the Eigenvalue equation if u,w = 0
+        Returns:
+        u, w: eigenvalues of the equation, system exists if non are 
+              found and the equation is plotted. 
+        """
+        converged = False
+        m = margin
+        V_d = []
+        while (margin < self.V[i, j] - margin):
+            try:
+                Rr = brenth(self.eq, m, self.V[
+                            i, j] - margin, args=(i, j), full_output=True)
+                print(Rr)
+                Rr = fsolve(self.eq, np.linspace(margin, self.V[i, j] - margin,100),  args=(i, j))
+                #print(Rr)
+                print(Rr)
+                #print(self.V[i, j])
+                converged = Rr[1].converged
+                #if converged:
+                #    V_d.append((Rr[0]**2 + self.w_f(Rr[0], i, j)**0.5))
+                #    print(V_d)
+                #    m = Rr[0] + margin
+                #    margin = m
+            except ValueError:
+                m *= 10
+                pass
+            
+        if converged:
+            return Rr[0], self.w_f(Rr[0], i, j)
+        else:
+            print(
+                '----------------------------No solutions found for some inputs--------------------')
+            print(' V = ', self.V)
+            print(' R = ', self.V)
+            print(
+                '----------------------------------------------------------------------------------')
+            u = np.linspace(1e-6, self.V[i, j] - 1e-6, 2048)
+            print(self.V)
+            e = self.eq(u, i, j)
+            plt.plot(np.abs(u), e)
+
+            plt.xlim(u.min(), u.max())
+            plt.ylim(-10, 10)
+            plt.show()
+            sys.exit(1)
+
+
+class Betas(Fibre):
+    """Calculates the betas of the fibre mode. """
+
+    def __init__(self, u_vec, w_vec, l_vec, o_vec, o, ncore, nclad):
+        self.k = 2*pi/l_vec
+        self.u = u_vec
+        self.w = w_vec
+        self.core, self.clad = ncore,nclad
+        self.o_vec = o_vec
+        self.o = o
+        self.o_norm = self.o_vec - self.o
+        return None
+
+    def beta_func(self, i):
+        return (self.k**2*((self.core[i,:]/self.u[i, :])**2 +
+                           (self.clad[i,:]/self.w[i, :])**2)/(1/self.u[i, :]**2
+                                                         + 1/self.w[i, :]**2))**0.5
+
+    def beta_extrapo(self, i):
+        """
+        Gets the polyonomial coefficiencts of beta(omega) with the 
+        highest order possible. 
+        """
+        betas = self.beta_func(i)
+        deg = 30
+        fitted = False
+        # warnings.warn(Warning())
+        with warnings.catch_warnings():
+            while not(fitted):
+                warnings.filterwarnings('error')
+                try:
+                    coef = np.polyfit(self.o_norm, betas, deg=deg)
+                    fitted = True
+                except Warning:
+                    deg -= 1
+        return coef
+
+    def beta_dispersions(self, i):
+        coefs = self.beta_extrapo(i)
+        betas = np.empty_like(coefs)
+        for i, c in enumerate(coefs[::-1]):
+            betas[i] = c * factorial(i)
+        return betas
+
+
+
+
+class Modes(Fibre):
+    """docstring for Modes"""
+
+    def __init__(self, o_vec, o_c, beta_c, u_vec, w_vec, a_vec, x, y, per, err):
+        super().__init__()
+        self.n = 1
+        o_norm = o_vec - o_c
+        self.coordintes(x, y)
+        self.beta_c = beta_c
+        self.core = self.indexes(2*pi*c/o_c, a_vec, per, err)[0]# indexes(self, l, r, per, err)
+        self.neff = self.beta_c / (o_c / c)
+        self.u_vec, self.w_vec = np.zeros(u_vec.shape[0]),\
+            np.zeros(u_vec.shape[0])
+        for i in range(u_vec.shape[0]):
+            self.u_vec[i] = interp1d(o_norm, u_vec[i, :], kind='cubic')(0)
+            self.w_vec[i] = interp1d(o_norm, w_vec[i, :], kind='cubic')(0)
+        self.a_vec = a_vec
+        return None
+
+    def coordintes(self, x, y):
+        self.x, self.y = x, y
+        self.X, self.Y = np.meshgrid(x, y)
+        self.R = (self.X**2 + self.Y**2)**0.5
+        self.T = np.arctan(self.Y/self.X)
+        return None
+
+    def pick_eigens(self, i):
+        self.u = self.u_vec[i]
+        self.w = self.w_vec[i]
+        self.beta = self.beta_c[i]
+        self.a = self.a_vec[i]
+        self.s = self.n * (1/self.u**2 + 1/self.w**2) /\
+            (jv_(self.n, self.u)/(self.n*jv(self.n, self.u))
+             + kv_(self.n, self.w)/(self.w*kv(self.n, self.w)))
+        return None
+
+    @jit
+    def E_r(self, r, theta):
+        r0_ind = np.where(r <= self.a)
+        r1_ind = np.where(r > self.a)
+        temp = np.zeros(r.shape, dtype=np.complex128)
+        r0, r1 = r[r0_ind], r[r1_ind]
+        temp[r0_ind] = -1j * self.beta*self.a / \
+            self.u*(0.5*(1 - self.s) * jv(self.n - 1, self.u * r0 / self.a)
+                    - 0.5*(1 + self.s)*jv(self.n + 1, self.u * r0 / self.a))
+
+        temp[r1_ind] = -1j * self.beta*self.a*jv(self.n, self.u)/(self.w*kv(self.n, self.w)) \
+            * (0.5*(1 - self.s) * kv(self.n - 1, self.w * r1 / self.a)
+               + 0.5*(1 + self.s)*kv(self.n+1, self.w * r1 / self.a))
+
+        return temp*np.cos(self.n*theta), temp*np.cos(self.n*theta+pi/2)
+
+    @jit
+    def E_theta(self, r, theta):
+        r0_ind = np.where(r <= self.a)
+        r1_ind = np.where(r > self.a)
+        temp = np.zeros(r.shape, dtype=np.complex128)
+        r0, r1 = r[r0_ind], r[r1_ind]
+        temp[r0_ind] = 1j * self.beta*self.a / \
+            self.u*(0.5*(1 - self.s) * jv(self.n - 1, self.u * r0 / self.a)
+                    + 0.5*(1 + self.s)*jv(self.n+1, self.u * r0 / self.a))
+
+        temp[r1_ind] = 1j * self.beta*self.a * \
+            jv(self.n, self.u)/(self.w*kv(self.n, self.w)) \
+            * (0.5*(1 - self.s) * kv(self.n - 1, self.w * r1 / self.a)
+               - 0.5*(1 + self.s)*kv(self.n+1, self.w * r1 / self.a))
+        return temp*np.sin(self.n*theta), temp*np.sin(self.n*theta+pi/2)
+
+    @jit
+    def E_zeta(self, r, theta):
+        r0_ind = np.where(r <= self.a)
+        r1_ind = np.where(r > self.a)
+        temp = np.zeros(r.shape, dtype=np.complex128)
+        r0, r1 = r[r0_ind], r[r1_ind]
+        temp[r0_ind] = jv(self.n, self.u*r0/self.a)
+        temp[r1_ind] = jv(self.n, self.u) * \
+            kv(self.n, self.w*r1/self.a)/kv(self.n, self.w)
+        return temp*np.cos(self.n*theta), temp*np.cos(self.n*theta+pi/2)
+
+    def E_carte(self):
+        Er = self.E_r(self.R, self.T)
+        Et = self.E_theta(self.R, self.T)
+        Ex, Ey, Ez = [], [], []
+        for i in range(len(Er)):
+            Ex.append(Er[i] * np.cos(self.T) - Et[i] * np.sin(self.T))
+            Ey.append(Er[i] * np.sin(self.T) + Et[i] * np.cos(self.T))
+        Ez = self.E_zeta(self.R, self.T)
+
+        return (Ex[0], Ey[0], Ez[0]), (Ex[1], Ey[1], Ez[1])
+    #@profile
+
+    def Q_matrixes(self):
+        self.combination_matrix_assembler()
+        Q_large = []
+        for i in range(len(self.a_vec)):
+            self.pick_eigens(i)
+            E = np.asanyarray(self.E_carte())
+            N = self.Normalised_N(E, i)
+            Q = np.zeros([2, len(self.M1_top)], dtype=np.complex)
+            for j, com in enumerate(self.M1_top):
+                d = self.product_4(com, E)
+
+                Q[0, j] = self.core[i]**2 / (N[com[0]]
+                                          * N[com[1]]*N[com[2]]*N[com[3]])*self.integrate(d[0])
+                Q[1, j] = self.core[i]**2 / (N[com[0]]
+                                          * N[com[1]]*N[com[2]]*N[com[3]])*self.integrate(d[1])
+            if i is 0:
+                list_to_keep = []
+                for i in range(len(self.M1_top)):
+                    if Q[0, i] > 1 or Q[1, i] > 1:
+                        list_to_keep.append(i)
+            Q = Q[:, list_to_keep]
+            Q_large.append(Q)
+        M1 = np.asanyarray(self.M1_top)
+        M1 = M1[list_to_keep].T
+        M2 = np.unique(M1[-2:, :].T, axis=0).T
+        M1_end = []
+        for i, m1 in enumerate(M1[-2:, :].T):
+            for j, m2 in enumerate(M2.T):
+                if (m1 == m2).all():
+                    M1_end.append(j)
+                    break
+        M1 = np.vstack((M1, np.asanyarray(M1_end)))
+        for qq in Q_large:
+            assert len(qq[0, :]) == M1.shape[1]
+            assert len(qq[1, :]) == M1.shape[1]
+        return M1, M2, np.asanyarray(Q_large)
+
+    def product_2(self, E):
+        d1 = np.einsum('ijk,ijk->jk', np.conj(E[0, :, :, :]), E[0, :, :, :])
+        d2 = np.einsum('ijk,ijk->jk', np.conj(E[1, :, :, :]), E[1, :, :, :])
+        return np.abs(d1), np.abs(d2)
+
+    def product_4(self, com, E):
+        d1 = np.einsum('ijk,ijk->jk', np.conj(E[com[0], :, :, :]), E[com[1], :, :, :]) *\
+            np.einsum('ijk,ijk->jk', E[com[2], :, :,
+                                       :], np.conj(E[com[3], :, :, :]))
+        d2 = np.einsum('ijk,ijk->jk', np.conj(E[com[0], :, :, :]), np.conj(E[com[3], :, :, :])) *\
+            np.einsum('ijk,ijk->jk', E[com[2], :, :, :], E[com[1], :, :, :])
+        return d1, d2
+
+    def denom_integral(self):
+
+        return None
+
+    def Normalised_N(self, E, i):
+        """
+        Calculated the normalised N integrals for the Q's for two modes.
+        """
+        d = self.product_2(E)
+        return (self.neff[i] * self.integrate(d[0]))**0.5,\
+            (self.neff[i] * self.integrate(d[1]))**0.5
+
+    def combination_matrix_assembler(self):
+        tot = []
+        for i in combinations_with_replacement(range(2), 4):
+            l = permutations(i)
+            for j in l:
+                tot.append(j)
+        a = list(set(tot))
+        a.sort()
+        self.M1_top = a
+        return None
+
+    def integrate(self, z):
+        """
+        Integrates twice using Simpsons rule from scipy
+        to allow 2D  integration.
+        """
+        return simps(simps(z, self.y), self.x)
+
