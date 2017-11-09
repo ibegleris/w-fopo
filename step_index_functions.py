@@ -15,6 +15,8 @@ import os
 from scipy.interpolate import UnivariateSpline
 from numba import jit
 import time
+
+
 def jv_(n, z):
     return 0.5 * (jv(n-1, z) - jv(n+1, z))
 
@@ -68,19 +70,19 @@ class Fibre(object):
 
         try:
             N_cores = len(r)
-            self.clad = np.repeat(clad[np.newaxis, :], N_cores, axis=0) 
+            self.clad = np.repeat(clad[np.newaxis, :], N_cores, axis=0)
             np.random.seed(int(time.time()+10))
-            
-            self.core = np.zeros([N_cores,len(l)])
+
+            self.core = np.zeros([N_cores, len(l)])
             for i in range(N_cores):
-                self.core[i,:] = np.random.rand(len(core))*err*(core - clad) + core
+                self.core[i, :] = np.random.rand(
+                    len(core))*err*(core - clad) + core
         except IndexError:
-            
+
             self.clad = clad
-            self.core = np.random.rand(N_cores)*err*core + core
+            self.core = np.random.rand(N_cores)*err*(core - clad) + core
             pass
 
-        
         return self.core, self.clad
 
     def sellmeier(self, l):
@@ -95,27 +97,35 @@ class Fibre(object):
         V_vec = np.empty([len(a_vec), len(l_vec)])
         temp = (2 * pi / l_vec)
         for i, a in enumerate(a_vec):
-            V_vec[i, :] = temp * a * (self.core[i,:]**2 - self.clad[i,:]**2)**0.5
-        #if (V_vec > 2.405).any():
+            V_vec[i, :] = temp * a * \
+                (self.core[i, :]**2 - self.clad[i, :]**2)**0.5
+        # if (V_vec > 2.405).any():
         #    print(V_vec[V_vec > 2.405])
         #    sys.exit('nm > 1!!!')
-        #else:
+        # else:
         self.V = V_vec
         return None
 
-    def plot_fibre_n(self, l,r,per,err):
+    def plot_fibre_n(self, l, r, per, err):
         n = []
         for per in ((20, 30), (40, 50), (60, 60)):
-            nn = self.indexes(l, r,per,err)
+            nn = self.indexes(l, r, per, err)
             n.append(nn[0])
             n.append(nn[1])
         del n[-1]
-        perc = (20, 30, 40, 50,60)
+        perc = (20, 30, 40, 50, 60)
         for nn, p in zip(n, perc):
-            plt.plot(l, nn[-1,:], label=p)
+            plt.plot(l, nn[-1, :], label=p)
         plt.legend()
         plt.show()
         return None
+
+    def beta_dispersions(self, i):
+        coefs = self.beta_extrapo(i)
+        betas = np.empty_like(coefs)
+        for i, c in enumerate(coefs[::-1]):
+            betas[i] = c * factorial(i)
+        return betas
 
 
 class Eigenvalues(Fibre):
@@ -125,9 +135,12 @@ class Eigenvalues(Fibre):
     fibre. Inherits V number function from Fibre class.
     """
 
-    def __init__(self, l, r, ncore,nclad):
+    def __init__(self, l, r, ncore, nclad):
         self.core, self.clad = ncore, nclad
         self.V_func(l, r)
+        self.a_vec = r 
+        self.l_vec  = l
+        self.k = 2 * pi * c / l
         self.ratio = self.clad/self.core
         return None
 
@@ -146,13 +159,16 @@ class Eigenvalues(Fibre):
         w = self.w_f(u, i, j)
 
         a =  (jv_(n, u)/(u*jv(n, w)) + kv_(n, w)/(w*kv(n, w))) * \
-            (jv_(n, u)/(u*jv(n, u)) + kv_(n, w)/(w*kv(n, w))*self.ratio[i,j]**2) \
-            - n**2 * (1/u**2 + 1/w**2) * (1/u**2 + self.ratio[i,j]**2 / w**2)
+            (jv_(n, u)/(u*jv(n, u)) + kv_(n, w)/(w*kv(n, w))*self.ratio[i, j]**2) \
+            - n**2 * (1/u**2 + 1/w**2) * (1/u**2 + self.ratio[i, j]**2 / w**2)
 
         return a
 
+    def neff(self, i, j, u, w):
+        return (((self.core[i, j]/u)**2 + (self.clad[i, j]/w)**2)
+                / (1/u**2 + 1/w**2))**0.5
+
     def eigen_solver(self, margin, i, j):
-        from scipy.optimize import fsolve
         """
         Finds the eigenvalues of the fibre using breth. 
         Inputs:
@@ -165,32 +181,51 @@ class Eigenvalues(Fibre):
         converged = False
         m = margin
         V_d = []
-        while (margin < self.V[i, j] - margin):
-            try:
-                Rr = brenth(self.eq, m, self.V[
-                            i, j] - margin, args=(i, j), full_output=True)
-                print(Rr)
-                Rr = fsolve(self.eq, np.linspace(margin, self.V[i, j] - margin,100),  args=(i, j))
-                #print(Rr)
-                print(Rr)
-                #print(self.V[i, j])
-                converged = Rr[1].converged
-                #if converged:
-                #    V_d.append((Rr[0]**2 + self.w_f(Rr[0], i, j)**0.5))
-                #    print(V_d)
-                #    m = Rr[0] + margin
-                #    margin = m
-            except ValueError:
-                m *= 10
-                pass
+
+        nm = -1
+        s = []
+        count = 10
+        N_points = 2**count
+        found_all = 0
+
+        while found_all < 2:
+            nm = len(s)
+            u_vec = np.linspace(margin, self.V[i, j] - margin, N_points)
+            eq = self.eq(u_vec, i, j,1)
+            s = np.where(np.sign(eq[:-1]) != np.sign(eq[1:]))[0] + 1
+            count += 1
+            N_points = 2**count
+
+            if nm == len(s):
+                found_all +=1
+        u_sol, w_sol = np.zeros(len(s)), np.zeros(len(s))
+        if len(s) > 1:
+            print(s)
+            print(self.V[i,j])
+            #print(Rr)
+            plt.plot(u_vec, eq)
+            plt.ylim(-1,1)
+            plt.show()   
+
+        for iss, ss in enumerate(s):
             
-        if converged:
-            return Rr[0], self.w_f(Rr[0], i, j)
+            Rr = brenth(self.eq, u_vec[ss-1], u_vec[ss],
+                        args=(i, j), full_output=True)
+            u_sol[iss] = Rr[0]
+            w_sol[iss] = self.w_f(Rr[0], i, j)
+
+        if len(s) != 0:
+
+            neffs = self.neff(i, j, u_sol, w_sol)
+            indx_fun = np.argmax(neffs)
+            print(len(s), self.V[i,j], neffs[indx_fun])
+            return u_sol[indx_fun], w_sol[indx_fun]
         else:
             print(
                 '----------------------------No solutions found for some inputs--------------------')
-            print(' V = ', self.V)
-            print(' R = ', self.V)
+            print(' V = ', self.V[i,j])
+            print(' R = ', self.a_vec[i])
+            print(' l = ', self.l_vec[j])
             print(
                 '----------------------------------------------------------------------------------')
             u = np.linspace(1e-6, self.V[i, j] - 1e-6, 2048)
@@ -211,16 +246,16 @@ class Betas(Fibre):
         self.k = 2*pi/l_vec
         self.u = u_vec
         self.w = w_vec
-        self.core, self.clad = ncore,nclad
+        self.core, self.clad = ncore, nclad
         self.o_vec = o_vec
         self.o = o
         self.o_norm = self.o_vec - self.o
         return None
 
     def beta_func(self, i):
-        return (self.k**2*((self.core[i,:]/self.u[i, :])**2 +
-                           (self.clad[i,:]/self.w[i, :])**2)/(1/self.u[i, :]**2
-                                                         + 1/self.w[i, :]**2))**0.5
+        return (self.k**2*((self.core[i, :]/self.u[i, :])**2 +
+                           (self.clad[i, :]/self.w[i, :])**2)/(1/self.u[i, :]**2
+                                                               + 1/self.w[i, :]**2))**0.5
 
     def beta_extrapo(self, i):
         """
@@ -241,15 +276,6 @@ class Betas(Fibre):
                     deg -= 1
         return coef
 
-    def beta_dispersions(self, i):
-        coefs = self.beta_extrapo(i)
-        betas = np.empty_like(coefs)
-        for i, c in enumerate(coefs[::-1]):
-            betas[i] = c * factorial(i)
-        return betas
-
-
-
 
 class Modes(Fibre):
     """docstring for Modes"""
@@ -258,9 +284,11 @@ class Modes(Fibre):
         super().__init__()
         self.n = 1
         o_norm = o_vec - o_c
-        self.coordintes(x, y)
+        print(np.max(x))
+        self.coordinates(x, y)
         self.beta_c = beta_c
-        self.core = self.indexes(2*pi*c/o_c, a_vec, per, err)[0]# indexes(self, l, r, per, err)
+        # indexes(self, l, r, per, err)
+        self.core = self.indexes(2*pi*c/o_c, a_vec, per, err)[0]
         self.neff = self.beta_c / (o_c / c)
         self.u_vec, self.w_vec = np.zeros(u_vec.shape[0]),\
             np.zeros(u_vec.shape[0])
@@ -270,10 +298,10 @@ class Modes(Fibre):
         self.a_vec = a_vec
         return None
 
-    def coordintes(self, x, y):
+    def coordinates(self, x, y):
         self.x, self.y = x, y
         self.X, self.Y = np.meshgrid(x, y)
-        self.R = (self.X**2 + self.Y**2)**0.5
+        self.R = ((self.X)**2 + (self.Y)**2)**0.5
         self.T = np.arctan(self.Y/self.X)
         return None
 
@@ -287,7 +315,7 @@ class Modes(Fibre):
              + kv_(self.n, self.w)/(self.w*kv(self.n, self.w)))
         return None
 
-    @jit
+    #@jit
     def E_r(self, r, theta):
         r0_ind = np.where(r <= self.a)
         r1_ind = np.where(r > self.a)
@@ -303,7 +331,7 @@ class Modes(Fibre):
 
         return temp*np.cos(self.n*theta), temp*np.cos(self.n*theta+pi/2)
 
-    @jit
+    #@jit
     def E_theta(self, r, theta):
         r0_ind = np.where(r <= self.a)
         r1_ind = np.where(r > self.a)
@@ -319,7 +347,7 @@ class Modes(Fibre):
                - 0.5*(1 + self.s)*kv(self.n+1, self.w * r1 / self.a))
         return temp*np.sin(self.n*theta), temp*np.sin(self.n*theta+pi/2)
 
-    @jit
+    #@jit
     def E_zeta(self, r, theta):
         r0_ind = np.where(r <= self.a)
         r1_ind = np.where(r > self.a)
@@ -354,9 +382,9 @@ class Modes(Fibre):
                 d = self.product_4(com, E)
 
                 Q[0, j] = self.core[i]**2 / (N[com[0]]
-                                          * N[com[1]]*N[com[2]]*N[com[3]])*self.integrate(d[0])
+                                             * N[com[1]]*N[com[2]]*N[com[3]])*self.integrate(d[0])
                 Q[1, j] = self.core[i]**2 / (N[com[0]]
-                                          * N[com[1]]*N[com[2]]*N[com[3]])*self.integrate(d[1])
+                                             * N[com[1]]*N[com[2]]*N[com[3]])*self.integrate(d[1])
             if i is 0:
                 list_to_keep = []
                 for i in range(len(self.M1_top)):
@@ -364,6 +392,7 @@ class Modes(Fibre):
                         list_to_keep.append(i)
             Q = Q[:, list_to_keep]
             Q_large.append(Q)
+        # print(Q_large)
         M1 = np.asanyarray(self.M1_top)
         M1 = M1[list_to_keep].T
         M2 = np.unique(M1[-2:, :].T, axis=0).T
@@ -421,4 +450,3 @@ class Modes(Fibre):
         to allow 2D  integration.
         """
         return simps(simps(z, self.y), self.x)
-
