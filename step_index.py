@@ -1,15 +1,16 @@
 from step_index_functions import *
 
 
-def fibre_creator(a_vec, l_vec, err=0.000, per=[50, 40], filename='step_index_2m', N_points=512):
+def fibre_creator(a_vec, l_vec, err=0.000, per=[60, 20], filename='step_index_2m', N_points=512):
     margin = 5e-15
     o_vec = 2*pi * c/l_vec
     o = (o_vec[0]+o_vec[-1])/2
 
     fibre = Fibre()
-    # fibre.plot_fibre_n(l_vec,a_vec,per,err)
-    ncore, nclad = fibre.indexes(l_vec, a_vec, per, err)
 
+    ncore, nclad = fibre.indexes(l_vec, a_vec, per, err)
+    #fibre.plot_fibre_n(l_vec,a_vec,per,err)
+    
     E = Eigenvalues(l_vec, a_vec, ncore, nclad)
 
     u_vec = np.zeros([len(a_vec), len(l_vec)])
@@ -30,8 +31,10 @@ def fibre_creator(a_vec, l_vec, err=0.000, per=[50, 40], filename='step_index_2m
     for i, a in enumerate(a_vec):
         betas = b.beta_func(i)
         beta_coef = b.beta_extrapo(i)
-        beta2_large.append(UnivariateSpline(
-            o_vec, betas).derivative(n=2)(o_vec))
+        temp = UnivariateSpline(o_vec, betas)
+        der = temp.derivative(n=2)
+        der2 = der(o_vec)
+        beta2_large.append(der2)
         p = np.poly1d(beta_coef)
         betas_central[i] = p(0)
         betass = b.beta_dispersions(i)
@@ -40,7 +43,7 @@ def fibre_creator(a_vec, l_vec, err=0.000, per=[50, 40], filename='step_index_2m
             taylor_dispersion[i, :] += (bb/factorial(j))*(o_vec - o)**j
     #min_beta = np.min([len(i) for i in betas_large])
     #betas = np.zeros([len(a_vec), min_beta])
-    # for i in range(len(betas_large)):
+    #for i in range(len(betas_large)):
     #    betas[i, :] = betas_large[i][:min_beta]
 
     r_max = np.max(a_vec)
@@ -52,10 +55,10 @@ def fibre_creator(a_vec, l_vec, err=0.000, per=[50, 40], filename='step_index_2m
     M1, M2, Q_large = M.Q_matrixes()
     Export_dict = {'M1': M1, 'M2': M2,
                    'Q_large': Q_large, 'betas': taylor_dispersion}
-    #sys.exit()
+    
     save_variables_step(filename,  variables=Export_dict,
                         filepath='loading_data/')
-
+   
     return betas_large, Q_large, M, beta2_large
 
 
@@ -64,22 +67,21 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
     low_a = a_med - a_err_p * a_med
     high_a = a_med + a_err_p * a_med
 
-    l_vec = np.linspace(l_p - l_span, l_p + l_span, 5)
+    l_vec = np.linspace(l_p + l_span, l_p - l_span, 1024)
 
-    a_vec = np.linspace(low_a, high_a, 1)
+    a_vec = np.linspace(0.2e-6, 1e-6, 10)
 
     betas, Q_large, M, beta2 = fibre_creator(a_vec, l_vec, N_points = N_points)
 
     fig = plt.figure(figsize=(15, 7.5))
     for i, a in enumerate(a_vec):
-        print(l_vec)
         plt.plot(l_vec*1e9, 1e24 *
                  beta2[i][:], label=r'$\alpha = $'+'{0:.2f}'.format(a*1e6)+r'$\mu m$')
         plt.xlabel(r'$\lambda(nm)$')
         plt.ylabel(r'$\beta_{2} (ps^{2}/m)$')
     plt.legend()
-    #plt.show()
-    #sys.exit()
+    plt.show()
+    sys.exit()
     fig = plt.figure(figsize=(15, 7.5))
     plt.ticklabel_format(useOffset=False)
     for i, a in enumerate(a_vec):
@@ -88,14 +90,13 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
         plt.xlabel(r'$\lambda(nm)$')
         plt.ylabel(r'$n_{eff}$')
     plt.legend()
-    #plt.show()
-    
+
     fig = plt.figure(figsize=(15, 7.5))
     plt.plot(a_vec*1e6, Q_large[:, 0, 0].real*1e-12)
     plt.xlabel(r'$\alpha(\mu m)$')
     plt.ylabel(r'$Q (\mu m)$')
     plt.legend()
-    #plt.show()
+    plt.show()
     max_a = 2*np.max(a_vec)
     #HE11x, HE11y, E = [], [],[]
     x, y = np.linspace(-max_a, max_a, N_points),\
@@ -122,7 +123,7 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
         M.X *= 1e6
         M.Y *= 1e6 
         HE11x, HE11y = res
-        E = (np.abs(HE11y[1])**2)
+        E = (np.abs(HE11y[0])**2+ np.abs(HE11y[1])**2 + np.abs(HE11y[2])**2)**0.5
         Enorm = E/np.max(E)
         
         plt.contourf(M.X, M.Y, Enorm, 10, cmap=plt.cm.jet)
@@ -132,6 +133,7 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
             HE11x[0][::sp, ::sp]), np.abs(HE11x[1][::sp, ::sp]), headlength=80)
         plt.quiver(M.X[::sp, ::sp], M.Y[::sp, ::sp], np.abs(
             HE11y[0][::sp, ::sp]), np.abs(HE11y[1][::sp, ::sp]), headlength=80)
+        plt.axis('equal')
         ax1.set_xlim([-max_a*1e6,max_a*1e6])
         ax1.set_ylim([-max_a*1e6,max_a*1e6])
     #X *= 1e6
@@ -144,8 +146,8 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
     
 if __name__ == '__main__':
     a_med = 3e-6
-    a_err_p = 0.01
-    l_span = 300e-9
+    a_err_p = 0.1
+    l_span = 50e-9
     l_p = 1550e-9
-    N_points=128
+    N_points= 128
     main(a_med, a_err_p, l_p, l_span,N_points)

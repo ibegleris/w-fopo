@@ -1,3 +1,4 @@
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import brenth, root, brentq, bisect
@@ -82,8 +83,8 @@ class Fibre(object):
             self.clad = clad
             self.core = np.random.rand(N_cores)*err*(core - clad) + core
             pass
-
-        return self.core, self.clad
+        assert((self.core > self.clad).all())
+        return self.core, np.ones_like(self.core)
 
     def sellmeier(self, l):
         l = (l*1e6)**2
@@ -108,14 +109,14 @@ class Fibre(object):
 
     def plot_fibre_n(self, l, r, per, err):
         n = []
-        for per in ((20, 30), (40, 50), (60, 60)):
+        for per in ((30, 20), (50, 40), (60, 50)):
             nn = self.indexes(l, r, per, err)
             n.append(nn[0])
             n.append(nn[1])
         del n[-1]
         perc = (20, 30, 40, 50, 60)
         for nn, p in zip(n, perc):
-            plt.plot(l, nn[-1, :], label=p)
+            plt.plot(l*1e9, nn[-1, :], label=p)
         plt.legend()
         plt.show()
         return None
@@ -146,7 +147,7 @@ class Eigenvalues(Fibre):
 
     def w_f(self, u, i, j):
         """
-        Relasionship between the eigenvalues and V. 
+        Equation to get w eigenvalue with respect to guess u, and V. 
         """
         return (self.V[i, j]**2 - u**2)**0.5
 
@@ -158,13 +159,16 @@ class Eigenvalues(Fibre):
         u = u_vec
         w = self.w_f(u, i, j)
 
-        a =  (jv_(n, u)/(u*jv(n, w)) + kv_(n, w)/(w*kv(n, w))) * \
+        a =  (jv_(n, u)/(u*jv(n, u)) + kv_(n, w)/(w*kv(n, w))) * \
             (jv_(n, u)/(u*jv(n, u)) + kv_(n, w)/(w*kv(n, w))*self.ratio[i, j]**2) \
             - n**2 * (1/u**2 + 1/w**2) * (1/u**2 + self.ratio[i, j]**2 / w**2)
 
         return a
 
     def neff(self, i, j, u, w):
+        """
+        Calculates the neff of each mode for sorting so the fundemental mode can be found. 
+        """
         return (((self.core[i, j]/u)**2 + (self.clad[i, j]/w)**2)
                 / (1/u**2 + 1/w**2))**0.5
 
@@ -191,21 +195,14 @@ class Eigenvalues(Fibre):
         while found_all < 2:
             nm = len(s)
             u_vec = np.linspace(margin, self.V[i, j] - margin, N_points)
-            eq = self.eq(u_vec, i, j,1)
+            eq = self.eq(u_vec, i, j,n = 1)
             s = np.where(np.sign(eq[:-1]) != np.sign(eq[1:]))[0] + 1
             count += 1
             N_points = 2**count
-
+            #print(len(s))
             if nm == len(s):
                 found_all +=1
         u_sol, w_sol = np.zeros(len(s)), np.zeros(len(s))
-        if len(s) > 1:
-            print(s)
-            print(self.V[i,j])
-            #print(Rr)
-            plt.plot(u_vec, eq)
-            plt.ylim(-1,1)
-            plt.show()   
 
         for iss, ss in enumerate(s):
             
@@ -215,10 +212,19 @@ class Eigenvalues(Fibre):
             w_sol[iss] = self.w_f(Rr[0], i, j)
 
         if len(s) != 0:
-
             neffs = self.neff(i, j, u_sol, w_sol)
+            neffs = np.nan_to_num(neffs)
             indx_fun = np.argmax(neffs)
             print(len(s), self.V[i,j], neffs[indx_fun])
+            #print(u_sol[indx_fun], self.V[i,j], neffs[indx_fun])
+            #if len(s) >1:
+            #    #print(s)
+            #    plt.plot(u_vec, eq)
+
+            #    plt.axhline(0, color='black')
+            #    plt.title(str(1e9*self.l_vec[j]).format('%3') + ', ' +str(self.a_vec[i]).format('%3'))
+            #    plt.ylim(-1,1)
+            #    plt.show()
             return u_sol[indx_fun], w_sol[indx_fun]
         else:
             print(
@@ -253,6 +259,10 @@ class Betas(Fibre):
         return None
 
     def beta_func(self, i):
+        """
+        Calculates and returns the betas of the fibre 
+        """
+
         return (self.k**2*((self.core[i, :]/self.u[i, :])**2 +
                            (self.clad[i, :]/self.w[i, :])**2)/(1/self.u[i, :]**2
                                                                + 1/self.w[i, :]**2))**0.5
@@ -311,7 +321,7 @@ class Modes(Fibre):
         self.beta = self.beta_c[i]
         self.a = self.a_vec[i]
         self.s = self.n * (1/self.u**2 + 1/self.w**2) /\
-            (jv_(self.n, self.u)/(self.n*jv(self.n, self.u))
+            (jv_(self.n, self.u)/(self.u*jv(self.n, self.u))
              + kv_(self.n, self.w)/(self.w*kv(self.n, self.w)))
         return None
 
