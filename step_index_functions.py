@@ -68,9 +68,9 @@ class Fibre(object):
         self.C = [self._C_[str(per_core)], self._C_[str(per_clad)]]
 
         core, clad = self.sellmeier(l)
-
+        N_cores = len(r)
         try:
-            N_cores = len(r)
+        
             self.clad = np.repeat(clad[np.newaxis, :], N_cores, axis=0)
             np.random.seed(int(time.time()+10))
 
@@ -79,12 +79,12 @@ class Fibre(object):
                 self.core[i, :] = np.random.rand(
                     len(core))*err*(core - clad) + core
         except IndexError:
-
+            print('index')
             self.clad = clad
             self.core = np.random.rand(N_cores)*err*(core - clad) + core
             pass
         assert((self.core > self.clad).all())
-        return self.core, np.ones_like(self.core)
+        return self.core, self.clad
 
     def sellmeier(self, l):
         l = (l*1e6)**2
@@ -215,7 +215,7 @@ class Eigenvalues(Fibre):
             neffs = self.neff(i, j, u_sol, w_sol)
             neffs = np.nan_to_num(neffs)
             indx_fun = np.argmax(neffs)
-            print(len(s), self.V[i,j], neffs[indx_fun])
+            #print(len(s), self.V[i,j], neffs[indx_fun])
             #print(u_sol[indx_fun], self.V[i,j], neffs[indx_fun])
             #if len(s) >1:
             #    #print(s)
@@ -249,7 +249,7 @@ class Betas(Fibre):
     """Calculates the betas of the fibre mode. """
 
     def __init__(self, u_vec, w_vec, l_vec, o_vec, o, ncore, nclad):
-        self.k = 2*pi/l_vec
+        self.k = 2*pi/l_vec[::-1]
         self.u = u_vec
         self.w = w_vec
         self.core, self.clad = ncore, nclad
@@ -280,7 +280,7 @@ class Betas(Fibre):
             while not(fitted):
                 warnings.filterwarnings('error')
                 try:
-                    coef = np.polyfit(self.o_norm, betas, deg=deg)
+                    coef = np.polyfit(self.o_norm*1e-12, betas, deg=deg)
                     fitted = True
                 except Warning:
                     deg -= 1

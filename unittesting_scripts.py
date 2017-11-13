@@ -850,22 +850,25 @@ from step_index import *
 def eigenvalues_test_case(l_vec, a_vec, margin):
 
     fibre = Fibre()
-    u_vec = np.empty([len(a_vec),len(l_vec)])
-    w_vec = np.empty_like(u_vec)
-    E = Eigenvalues(l_vec, a_vec)
-    for j, l in enumerate(l_vec):
-        fibre.indexes(l)
-        for i, a in enumerate(a_vec):
-            u_vec[i,j], w_vec[i,j] = E.eigen_solver(margin,i,j)
+    per=[60, 20]
+    err = 0.002
+    ncore, nclad = fibre.indexes(l_vec, a_vec, per, err)
+    #fibre.plot_fibre_n(l_vec,a_vec,per,err)
+    E = Eigenvalues(l_vec, a_vec, ncore, nclad)
 
-    return u_vec, w_vec, E.V
+    u_vec = np.zeros([len(a_vec), len(l_vec)])
+    w_vec = np.zeros(u_vec.shape)
+    for i, a in enumerate(a_vec):
+        print('New a = ', a)
+        for j, l in enumerate(l_vec):
+            u_vec[i, j], w_vec[i, j] = E.eigen_solver(margin, i, j)
+    return u_vec, w_vec, E.V,ncore,nclad
 
 
 class Test_eigenvalues:
-
     def test_V(self):
-        margin = 1e-8
-        a_med = 7e-6
+        margin = 5e-15
+        a_med = 10e-6
         a_err_p = 0.01
         l_span = 300e-9
         l_p = 1550e-9
@@ -873,87 +876,58 @@ class Test_eigenvalues:
         high_a = a_med + a_err_p * a_med
 
         l_vec = np.linspace(l_p - l_span, l_p + l_span, 20)
-        a_vec = np.linspace(low_a, high_a, 10)
+        a_vec = np.linspace(low_a, high_a, 5)
            
-        u_vec, w_vec, V_vec = eigenvalues_test_case(l_vec, a_vec, margin)
+        u_vec, w_vec, V_vec,ncore, nclad = eigenvalues_test_case(l_vec, a_vec, margin)
+
         assert_allclose((u_vec**2 + w_vec**2)**0.5, V_vec)
 
 
-class Test_betas:
-    def test_neffs(self):
-        margin = 1e-8
-        a_med = 7e-6
-        a_err_p = 0.01
-        l_span = 300e-9
-        l_p = 1550e-9
-        low_a = a_med - a_err_p * a_med
-        high_a = a_med + a_err_p * a_med
 
-        l_vec = np.linspace(l_p - l_span, l_p + l_span, 20)
-        a_vec = np.linspace(low_a, high_a, 10)
+class Test_betas:
+    
+    margin = 5e-15
+    a_med = 7e-6
+    a_err_p = 0.01
+    l_span = 300e-9
+    l_p = 1550e-9
+    low_a = a_med - a_err_p * a_med
+    high_a = a_med + a_err_p * a_med
+
+    l_vec = np.linspace(l_p - l_span, l_p + l_span, 2**4)
+    a_vec = np.linspace(low_a, high_a, 5)
+    
+    o_vec = 2*pi * c / l_vec
+    o = (o_vec[0]+o_vec[-1])/2
+    u_vec, w_vec, V_vec,ncore, nclad =\
+     eigenvalues_test_case(l_vec, a_vec, margin)
+    
+    betas = np.zeros([len(a_vec),len(o_vec)])
+    beta_interpo = np.zeros(betas.shape)
+    b = Betas(u_vec, w_vec, l_vec, o_vec, o, ncore,nclad)
         
-        o_vec = 2*pi * c / l_vec
-        o = (o_vec[0]+o_vec[-1])/2
-        u_vec, w_vec, V_vec = eigenvalues_test_case(l_vec, a_vec, margin)
-        taylor_dispersion = np.zeros([len(a_vec),len(o_vec)])        
-        betas = np.empty_like(taylor_dispersion)
-        b = Betas(u_vec, w_vec, l_vec, o_vec, o)
-        for i,a in enumerate(a_vec):
-            betas[i,:] = b.beta_func(i)
-        neffs = betas/b.k
-        #print(neffs)
-        #print(b.core,b.clad)
-        assert (neffs < b.core).all() and (neffs > b.clad).all()
+    def test_neffs(self):
+        for i,a in enumerate(self.a_vec):
+            self.betas[i,:] = self.b.beta_func(i)
+        neffs = self.betas/self.b.k
+        assert (neffs < self.b.core).all() and (neffs > self.b.clad).all()
 
     def test_poly(self):
-        margin = 1e-8
-        a_med = 7e-6
-        a_err_p = 0.01
-        l_span = 300e-9
-        l_p = 1550e-9
-        low_a = a_med - a_err_p * a_med
-        high_a = a_med + a_err_p * a_med
-
-        l_vec = np.linspace(l_p - l_span, l_p + l_span, 20)
-        a_vec = np.linspace(low_a, high_a, 10)
-        
-        o_vec = 2*pi * c / l_vec
-        o = (o_vec[0]+o_vec[-1])/2
-        u_vec, w_vec, V_vec = eigenvalues_test_case(l_vec, a_vec, margin)
-        
-        betas = np.zeros([len(a_vec),len(o_vec)])
-        beta_interpo = np.zeros(betas.shape)
-        b = Betas(u_vec, w_vec, l_vec, o_vec, o)
-        for i,a in enumerate(a_vec):
-            betas[i,:] = b.beta_func(i)
-            beta_coef = b.beta_extrapo(i)
+        for i,a in enumerate(self.a_vec):
+            self.betas[i,:] = self.b.beta_func(i)
+            beta_coef = self.b.beta_extrapo(i)
             p = np.poly1d(beta_coef)
-            beta_interpo[i,:] = p(b.o_vec - b.o)
-            assert_allclose(betas,beta_interpo )
-
+            self.beta_interpo[i,:] = p(1e-12*self.b.o_norm)
+        assert_allclose(self.betas,self.beta_interpo,rtol=1e-07)
+    
     def test_taylor(self):
-        margin = 1e-8
-        a_med = 7e-6
-        a_err_p = 0.01
-        l_span = 300e-9
-        l_p = 1550e-9
-        low_a = a_med - a_err_p * a_med
-        high_a = a_med + a_err_p * a_med
-
-        l_vec = np.linspace(l_p - l_span, l_p + l_span, 20)
-        a_vec = np.linspace(low_a, high_a, 10)
-        
-        o_vec = 2*pi * c / l_vec
-        o = (o_vec[0]+o_vec[-1])/2
-        u_vec, w_vec, V_vec = eigenvalues_test_case(l_vec, a_vec, margin)
-        taylor_dispersion = np.zeros([len(a_vec),len(o_vec)])        
-        betas = np.empty_like(taylor_dispersion)
-        b = Betas(u_vec, w_vec, l_vec, o_vec, o)
-        for i,a in enumerate(a_vec):
-            betas[i,:] = b.beta_func(i)
-            beta_coef = b.beta_extrapo(i)
-            p = np.poly1d(beta_coef)
-            betass = b.beta_dispersions(i)
+        taylor_dispersion = np.zeros([len(self.a_vec),len(self.b.o_vec)])
+        for i,a in enumerate(self.a_vec):
+            self.betas[i,:] = self.b.beta_func(i)
+            beta_coef = self.b.beta_extrapo(i)
+            p = np.poly1d(1e-12*self.b.o_norm)
+            betass = self.b.beta_dispersions(i)
             for j, bb in enumerate(betass):
-                taylor_dispersion[i,:] += (bb/factorial(j))*(o_vec - o)**j
-        assert_allclose(betas, taylor_dispersion)
+                taylor_dispersion[i,:] += (bb/factorial(j))*((self.b.o_vec - self.b.o)*1e-12)**j
+        assert_allclose(self.betas, taylor_dispersion, rtol = 1e-7)
+    

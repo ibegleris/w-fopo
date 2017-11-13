@@ -10,7 +10,7 @@ conda create -n intel intelpython3_core python=3
 source activate intel
 conda install cython numpy scipy matplotlib pandas h5py pytables jupyter joblib numba pytest nose -y
 source deactivate
-rm -rf ../.condarc
+rm -rf ~/.condarc
 cp build_data/.condarc_default ~/.condarc
 cp build_data/.condarc_default ~/miniconda/envs/intel/.condarc
 conda update conda -y
@@ -22,10 +22,5 @@ if [ "$1" != 'cluster' ]; then
 fi
 echo 'export PATH="/home/$USER/miniconda/bin:$PATH"' >> ~/.bashrc
 source activate intel
-git clone https://github.com/mpi4py/mpi4py.git
-cd mpi4py
-python setup.py build
-python setup.py install
-cd ..
-rm -rf mpi4py
+pip install mpi4py=3.0
 pytest unittesting_scripts.py
