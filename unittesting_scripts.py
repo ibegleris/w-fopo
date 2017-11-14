@@ -897,7 +897,7 @@ class Test_betas:
     l_vec = np.linspace(l_p - l_span, l_p + l_span, 2**4)
     a_vec = np.linspace(low_a, high_a, 5)
     
-    o_vec = 2*pi * c / l_vec
+    o_vec = 1e-12*2*pi * c / l_vec
     o = (o_vec[0]+o_vec[-1])/2
     u_vec, w_vec, V_vec,ncore, nclad =\
      eigenvalues_test_case(l_vec, a_vec, margin)
@@ -917,7 +917,7 @@ class Test_betas:
             self.betas[i,:] = self.b.beta_func(i)
             beta_coef = self.b.beta_extrapo(i)
             p = np.poly1d(beta_coef)
-            self.beta_interpo[i,:] = p(1e-12*self.b.o_norm)
+            self.beta_interpo[i,:] = p(self.b.o_norm)
         assert_allclose(self.betas,self.beta_interpo,rtol=1e-07)
     
     def test_taylor(self):
@@ -928,6 +928,6 @@ class Test_betas:
             p = np.poly1d(1e-12*self.b.o_norm)
             betass = self.b.beta_dispersions(i)
             for j, bb in enumerate(betass):
-                taylor_dispersion[i,:] += (bb/factorial(j))*((self.b.o_vec - self.b.o)*1e-12)**j
+                taylor_dispersion[i,:] += (bb/factorial(j))*((self.b.o_vec - self.b.o))**j
         assert_allclose(self.betas, taylor_dispersion, rtol = 1e-7)
     

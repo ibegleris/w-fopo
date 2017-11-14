@@ -3,13 +3,13 @@ from step_index_functions import *
 
 def fibre_creator(a_vec, l_vec, err=0.000, per=[60, 20], filename='step_index_2m', N_points=512):
     margin = 5e-15
-    o_vec = 2*pi * c/l_vec
+    o_vec = 1e-12*2*pi * c/l_vec
     o = (o_vec[0]+o_vec[-1])/2
 
     fibre = Fibre()
 
     ncore, nclad = fibre.indexes(l_vec, a_vec, per, err)
-    #fibre.plot_fibre_n(l_vec,a_vec,per,err)
+    fibre.plot_fibre_n(l_vec,a_vec,per,err)
     
     E = Eigenvalues(l_vec, a_vec, ncore, nclad)
 
@@ -49,7 +49,6 @@ def fibre_creator(a_vec, l_vec, err=0.000, per=[60, 20], filename='step_index_2m
     r_max = np.max(a_vec)
     x = np.linspace(-2*r_max, 2*r_max, N_points)
     y = np.linspace(-2*r_max, 2*r_max, N_points)
-
     M = Modes(o_vec, o, betas_central,\
          u_vec, w_vec, a_vec, x, y, per, err)
     M1, M2, Q_large = M.Q_matrixes()
@@ -58,7 +57,8 @@ def fibre_creator(a_vec, l_vec, err=0.000, per=[60, 20], filename='step_index_2m
     
     save_variables_step(filename,  variables=Export_dict,
                         filepath='loading_data/')
-   
+    
+
     return betas_large, Q_large, M, beta2_large
 
 
@@ -67,21 +67,19 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
     low_a = a_med - a_err_p * a_med
     high_a = a_med + a_err_p * a_med
 
-    l_vec = np.linspace(l_p + l_span, l_p - l_span, 1024)
-
-    a_vec = np.linspace(0.2e-6, 1e-6, 10)
+    l_vec = np.linspace(l_p + 50*l_span, l_p - l_span, 128)
+    a_vec = np.linspace(0.11e-6, 1.2e-6, 12)
 
     betas, Q_large, M, beta2 = fibre_creator(a_vec, l_vec, N_points = N_points)
 
     fig = plt.figure(figsize=(15, 7.5))
     for i, a in enumerate(a_vec):
-        plt.plot(l_vec*1e9, 1e24 *
+        plt.plot(l_vec*1e9, 
                  beta2[i][:], label=r'$\alpha = $'+'{0:.2f}'.format(a*1e6)+r'$\mu m$')
         plt.xlabel(r'$\lambda(nm)$')
         plt.ylabel(r'$\beta_{2} (ps^{2}/m)$')
     plt.legend()
-    plt.show()
-    sys.exit()
+
     fig = plt.figure(figsize=(15, 7.5))
     plt.ticklabel_format(useOffset=False)
     for i, a in enumerate(a_vec):
@@ -90,13 +88,14 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
         plt.xlabel(r'$\lambda(nm)$')
         plt.ylabel(r'$n_{eff}$')
     plt.legend()
-
+    
+    #sys.exit()
     fig = plt.figure(figsize=(15, 7.5))
     plt.plot(a_vec*1e6, Q_large[:, 0, 0].real*1e-12)
     plt.xlabel(r'$\alpha(\mu m)$')
     plt.ylabel(r'$Q (\mu m)$')
     plt.legend()
-    plt.show()
+    #plt.show()
     max_a = 2*np.max(a_vec)
     #HE11x, HE11y, E = [], [],[]
     x, y = np.linspace(-max_a, max_a, N_points),\
@@ -114,7 +113,7 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
         xc *= 1e6
         yc *= 1e6
         v = v+1
-        ax1 = plt.subplot(np.ceil(nm//4)+1, 4, v)
+        ax1 = plt.subplot(nm//4 +  (1 if nm%4 else 0), 4, v)
         
 
         M.pick_eigens(i)
@@ -136,6 +135,7 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
         plt.axis('equal')
         ax1.set_xlim([-max_a*1e6,max_a*1e6])
         ax1.set_ylim([-max_a*1e6,max_a*1e6])
+        plt.axis('off')
     #X *= 1e6
     #Y *= 1e6
     #Enorm = E/np.max(E)
@@ -145,9 +145,9 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
     return None
     
 if __name__ == '__main__':
-    a_med = 3e-6
+    a_med = 2e-6
     a_err_p = 0.1
-    l_span = 50e-9
+    l_span = 1000e-9
     l_p = 1550e-9
     N_points= 128
     main(a_med, a_err_p, l_p, l_span,N_points)

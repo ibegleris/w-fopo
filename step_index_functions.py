@@ -60,7 +60,7 @@ class Fibre(object):
                     '60': [0.094666497, 0.162793930]}
         return None
 
-    def indexes(self, l, r, per, err):
+    def indexes(self, l, r, per, err, plot = False):
         per_core, per_clad = per
 
         self.A = [self._A_[str(per_core)], self._A_[str(per_clad)]]
@@ -83,8 +83,9 @@ class Fibre(object):
             self.clad = clad
             self.core = np.random.rand(N_cores)*err*(core - clad) + core
             pass
-        assert((self.core > self.clad).all())
-        return self.core, self.clad
+        if not(plot):
+            assert((self.core > self.clad).all())
+        return self.core, self.clad#*np.ones_like(self.core) - 0.5
 
     def sellmeier(self, l):
         l = (l*1e6)**2
@@ -100,23 +101,20 @@ class Fibre(object):
         for i, a in enumerate(a_vec):
             V_vec[i, :] = temp * a * \
                 (self.core[i, :]**2 - self.clad[i, :]**2)**0.5
-        # if (V_vec > 2.405).any():
-        #    print(V_vec[V_vec > 2.405])
-        #    sys.exit('nm > 1!!!')
-        # else:
         self.V = V_vec
         return None
 
     def plot_fibre_n(self, l, r, per, err):
-        n = []
-        for per in ((30, 20), (50, 40), (60, 50)):
-            nn = self.indexes(l, r, per, err)
-            n.append(nn[0])
-            n.append(nn[1])
-        del n[-1]
+        n = {}
+        for per in ((20, 20),(30, 30), (40, 40), (50, 50),(60, 60)):
+            nn = self.indexes(l, r, per, err,plot = True)
+            n[str(per[0])] = nn[0]
         perc = (20, 30, 40, 50, 60)
-        for nn, p in zip(n, perc):
-            plt.plot(l*1e9, nn[-1, :], label=p)
+        for p,nn in n.items():
+            print(p,nn)
+            plt.plot(l*1e9, nn[-1,:], label=p+'%mol Ga2Se3')
+        plt.xlabel(r'$\lambda (nm)$')
+        plt.ylabel(r'$n$')
         plt.legend()
         plt.show()
         return None
@@ -216,7 +214,7 @@ class Eigenvalues(Fibre):
             neffs = np.nan_to_num(neffs)
             indx_fun = np.argmax(neffs)
             #print(len(s), self.V[i,j], neffs[indx_fun])
-            #print(u_sol[indx_fun], self.V[i,j], neffs[indx_fun])
+            #print(u_sol[indx_fun],w_sol[indx_fun], self.V[i,j])
             #if len(s) >1:
             #    #print(s)
             #    plt.plot(u_vec, eq)
@@ -280,7 +278,7 @@ class Betas(Fibre):
             while not(fitted):
                 warnings.filterwarnings('error')
                 try:
-                    coef = np.polyfit(self.o_norm*1e-12, betas, deg=deg)
+                    coef = np.polyfit(self.o_norm, betas, deg=deg)
                     fitted = True
                 except Warning:
                     deg -= 1
@@ -293,13 +291,15 @@ class Modes(Fibre):
     def __init__(self, o_vec, o_c, beta_c, u_vec, w_vec, a_vec, x, y, per, err):
         super().__init__()
         self.n = 1
+        o_vec *= 1e12
+        o_c *= 1e12
         o_norm = o_vec - o_c
-        print(np.max(x))
         self.coordinates(x, y)
         self.beta_c = beta_c
         # indexes(self, l, r, per, err)
         self.core = self.indexes(2*pi*c/o_c, a_vec, per, err)[0]
         self.neff = self.beta_c / (o_c / c)
+
         self.u_vec, self.w_vec = np.zeros(u_vec.shape[0]),\
             np.zeros(u_vec.shape[0])
         for i in range(u_vec.shape[0]):
@@ -391,10 +391,11 @@ class Modes(Fibre):
             for j, com in enumerate(self.M1_top):
                 d = self.product_4(com, E)
 
-                Q[0, j] = self.core[i]**2 / (N[com[0]]
-                                             * N[com[1]]*N[com[2]]*N[com[3]])*self.integrate(d[0])
-                Q[1, j] = self.core[i]**2 / (N[com[0]]
-                                             * N[com[1]]*N[com[2]]*N[com[3]])*self.integrate(d[1])
+                Q[0, j] = self.core[i]**2*self.integrate(d[0]) / (N[com[0]]
+                                             * N[com[1]]*N[com[2]]*N[com[3]])
+                Q[1, j] = self.core[i]**2 *self.integrate(d[1]) / (N[com[0]]
+                                             * N[com[1]]*N[com[2]]*N[com[3]])
+                #print(Q)
             if i is 0:
                 list_to_keep = []
                 for i in range(len(self.M1_top)):
@@ -402,7 +403,6 @@ class Modes(Fibre):
                         list_to_keep.append(i)
             Q = Q[:, list_to_keep]
             Q_large.append(Q)
-        # print(Q_large)
         M1 = np.asanyarray(self.M1_top)
         M1 = M1[list_to_keep].T
         M2 = np.unique(M1[-2:, :].T, axis=0).T
