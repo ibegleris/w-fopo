@@ -68,11 +68,13 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
 
     low_a = a_med - a_err_p * a_med
     high_a = a_med + a_err_p * a_med
-    l_span = 50e-9
-    l_vec = np.linspace(l_p + l_span, l_p - l_span, 128)
-    a_vec = np.linspace(3.5625e-07, 3.58e-07, 8)
-
-    per = ['60','poly']
+    #l_span = 50e-9
+    l_vec = np.linspace(l_p + l_span, l_p - l_span, 1024)
+    l_vec = np.linspace( 1600e-9,1500e-9, 1024)
+    
+    #a_vec = np.linspace(2.2e-6, 2.2e-6, 1)
+    a_vec = np.linspace(low_a,high_a,8)
+    per = ['ge','sio2']
     err = 0
     betas, Q_large, M, beta2,ncore, nclad =\
         fibre_creator(a_vec, l_vec,per = per,err = err, N_points = N_points)
@@ -80,7 +82,15 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
     fig = plt.figure(figsize=(15, 7.5))
     for i, a in enumerate(a_vec):
         plt.plot(l_vec*1e9, 
-                 beta2[i][:], label=r'$\alpha = $'+'{0:.6f}'.format(a*1e6)+r'$\mu m$')
+                 (-2*pi*c/l_vec**2)*beta2[i][:]*1e-24/1e-6, label=r'$\alpha = $'+'{0:.2f}'.format(a*1e6)+r'$\mu m$')
+        plt.xlabel(r'$\lambda(nm)$')
+        plt.ylabel(r'$D (ps^{2}/nm km)$')
+    plt.axhline(0, color='black')
+    plt.legend()
+
+    fig = plt.figure(figsize=(15, 7.5))
+    for i, a in enumerate(a_vec):
+        plt.plot(l_vec*1e9,beta2[i][:], label=r'$\alpha = $'+'{0:.2f}'.format(a*1e6)+r'$\mu m$')
         plt.xlabel(r'$\lambda(nm)$')
         plt.ylabel(r'$\beta_{2} (ps^{2}/m)$')
     plt.axhline(0, color='black')
@@ -93,14 +103,15 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
                  label=r'$\alpha = $'+'{0:.6f}'.format(a*1e6)+r'$\mu m$')
         plt.xlabel(r'$\lambda(nm)$')
         plt.ylabel(r'$n_{eff}$')
-    plt.plot(l_vec*1e9, ncore[0][:],
-                 label=r'core $\alpha = $'+'{0:.6f}'.format(a_vec[0]*1e6)+r'$\mu m$')
-    plt.plot(l_vec*1e9, nclad[0][:],
-                 label=r'core $\alpha = $'+'{0:.6f}'.format(a_vec[0]*1e6)+r'$\mu m$')
+    plt.plot(l_vec*1e9, ncore[0][:],'--',
+                 label=r'core $\alpha = $'+'{0:.2f}'.format(a_vec[0]*1e6)+r'$\mu m$')
+    plt.plot(l_vec*1e9, nclad[0][:],'--',
+                 label=r'core $\alpha = $'+'{0:.2f}'.format(a_vec[0]*1e6)+r'$\mu m$')
     plt.legend()
-    
+    plt.ylim([1.44,1.47])
     fig = plt.figure(figsize=(15, 7.5))
     plt.plot(a_vec*1e6, Q_large[:, 0, 0].real*1e-12)
+    
     plt.xlabel(r'$\alpha(\mu m)$')
     plt.ylabel(r'$Q (\mu m)$')
     plt.legend()
@@ -148,9 +159,9 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
     return None
     
 if __name__ == '__main__':
-    a_med = 2e-6
+    a_med = 2.2e-6
     a_err_p = 0.01
-    l_span = 50e-9
+    l_span = 1000e-9
     l_p = 1550e-9
     N_points= 128
     main(a_med, a_err_p, l_p, l_span,N_points)

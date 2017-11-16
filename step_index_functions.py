@@ -41,26 +41,14 @@ class Fibre(object):
     Fibre class. Set to initiate the functions needed
     for a fibre ( Seilmier equations etc).
     """
-
+#0.7083925, 0.0853842 0.4203993, 0.1024839 0.8663412, 9.896175
     def __init__(self):
-        self._A_ = {'20': [1.839914958, 0.024904614],
-                    '30': [0.306497564, 0.137054239],
-                    '40': [0.000642838, 0.029204785],
-                    '50': [1.985228647, 0.053573607],
-                    '60': [4.333665367, 0.041653610],
-                    'poly':[0.4963, 71.80*1e-6]}
-        self._B_ = {'20': [1.642967950, 0.024610921],
-                    '30': [2.107875323, 0.042849217],
-                    '40': [4.384157273, 0.048231442],
-                    '50': [0.857354031, 0.076459027],
-                    '60': [0.687220328, 0.038743002],
-                    'poly':[0.6965, 117.4*1e-6]}
-        self._C_ = {'20': [1.007772639, 0.028941563],
-                    '30': [2.250507139, 0.043271180],
-                    '40': [0.494177682, 0.091989280],
-                    '50': [2.114522002, 0.052084502],
-                    '60': [0.094666497, 0.162793930],
-                    'poly':[0.3223, 9237*1e-6]}
+        self._A_ = {'sio2': [0.6965325, 0.0660932**2],
+                    'ge': [0.7083925, 0.0853842**2]}
+        self._B_ = {'sio2': [0.4083099, 0.1181101**2],
+                    'ge': [0.4203993, 0.1024839**2]}
+        self._C_ = {'sio2': [0.8968766, 9.896160**2],
+                    'ge': [0.8663412, 9.896175**2]}
         return None
 
     def indexes(self, l, r, per, err, plot = False):
@@ -110,14 +98,14 @@ class Fibre(object):
     def plot_fibre_n(self, l, r, per, err):
         n = {}
         #for per in ((20, 20),(30, 30), (40, 40), (50, 50),(60, 60),('poly','poly')):
-        for per in ((60, 60),('poly','poly')):
+        for per in (('ge', 'ge'),('sio2','sio2')):
             nn = self.indexes(l, r, per, err,plot = True)
             n[str(per[0])] = nn[0]
         perc = (20, 30, 40, 50, 60)
         fig = plt.figure()
         for p,nn in n.items():
             #print(p,nn)
-            plt.plot(l*1e9, nn[-1,:], label=p+'%mol Ga2Se3')
+            plt.plot(l*1e9, nn[-1,:], label=p)
         plt.xlabel(r'$\lambda (nm)$')
         plt.ylabel(r'$n$')
         plt.legend()
@@ -252,7 +240,7 @@ class Betas(Fibre):
     """Calculates the betas of the fibre mode. """
 
     def __init__(self, u_vec, w_vec, l_vec, o_vec, o, ncore, nclad):
-        self.k = 2*pi/l_vec#[::-1]
+        self.k = 2*pi/(l_vec)#[::-1]
         self.u = u_vec
         self.w = w_vec
         self.core, self.clad = ncore, nclad
