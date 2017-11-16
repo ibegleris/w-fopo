@@ -47,17 +47,20 @@ class Fibre(object):
                     '30': [0.306497564, 0.137054239],
                     '40': [0.000642838, 0.029204785],
                     '50': [1.985228647, 0.053573607],
-                    '60': [4.333665367, 0.041653610]}
+                    '60': [4.333665367, 0.041653610],
+                    'poly':[0.4963, 71.80*1e-6]}
         self._B_ = {'20': [1.642967950, 0.024610921],
                     '30': [2.107875323, 0.042849217],
                     '40': [4.384157273, 0.048231442],
                     '50': [0.857354031, 0.076459027],
-                    '60': [0.687220328, 0.038743002]}
+                    '60': [0.687220328, 0.038743002],
+                    'poly':[0.6965, 117.4*1e-6]}
         self._C_ = {'20': [1.007772639, 0.028941563],
                     '30': [2.250507139, 0.043271180],
                     '40': [0.494177682, 0.091989280],
                     '50': [2.114522002, 0.052084502],
-                    '60': [0.094666497, 0.162793930]}
+                    '60': [0.094666497, 0.162793930],
+                    'poly':[0.3223, 9237*1e-6]}
         return None
 
     def indexes(self, l, r, per, err, plot = False):
@@ -79,13 +82,13 @@ class Fibre(object):
                 self.core[i, :] = np.random.rand(
                     len(core))*err*(core - clad) + core
         except IndexError:
-            print('index')
+            #print('index')
             self.clad = clad
             self.core = np.random.rand(N_cores)*err*(core - clad) + core
             pass
         if not(plot):
             assert((self.core > self.clad).all())
-        return self.core, self.clad#*np.ones_like(self.core) - 0.5
+        return self.core, self.clad
 
     def sellmeier(self, l):
         l = (l*1e6)**2
@@ -106,17 +109,19 @@ class Fibre(object):
 
     def plot_fibre_n(self, l, r, per, err):
         n = {}
-        for per in ((20, 20),(30, 30), (40, 40), (50, 50),(60, 60)):
+        #for per in ((20, 20),(30, 30), (40, 40), (50, 50),(60, 60),('poly','poly')):
+        for per in ((60, 60),('poly','poly')):
             nn = self.indexes(l, r, per, err,plot = True)
             n[str(per[0])] = nn[0]
         perc = (20, 30, 40, 50, 60)
+        fig = plt.figure()
         for p,nn in n.items():
-            print(p,nn)
+            #print(p,nn)
             plt.plot(l*1e9, nn[-1,:], label=p+'%mol Ga2Se3')
         plt.xlabel(r'$\lambda (nm)$')
         plt.ylabel(r'$n$')
         plt.legend()
-        plt.show()
+        #plt.show()
         return None
 
     def beta_dispersions(self, i):
@@ -247,7 +252,7 @@ class Betas(Fibre):
     """Calculates the betas of the fibre mode. """
 
     def __init__(self, u_vec, w_vec, l_vec, o_vec, o, ncore, nclad):
-        self.k = 2*pi/l_vec[::-1]
+        self.k = 2*pi/l_vec#[::-1]
         self.u = u_vec
         self.w = w_vec
         self.core, self.clad = ncore, nclad
@@ -264,7 +269,8 @@ class Betas(Fibre):
         return (self.k**2*((self.core[i, :]/self.u[i, :])**2 +
                            (self.clad[i, :]/self.w[i, :])**2)/(1/self.u[i, :]**2
                                                                + 1/self.w[i, :]**2))**0.5
-
+        #return (((self.core[i, j]/u)**2 + (self.clad[i, j]/w)**2)
+        #        / (1/u**2 + 1/w**2))**0.5
     def beta_extrapo(self, i):
         """
         Gets the polyonomial coefficiencts of beta(omega) with the 
@@ -288,13 +294,14 @@ class Betas(Fibre):
 class Modes(Fibre):
     """docstring for Modes"""
 
-    def __init__(self, o_vec, o_c, beta_c, u_vec, w_vec, a_vec, x, y, per, err):
+    def __init__(self, o_vec, o_c, beta_c, u_vec, w_vec, a_vec, N_points, per, err):
         super().__init__()
         self.n = 1
+        self.N_points = N_points
         o_vec *= 1e12
         o_c *= 1e12
         o_norm = o_vec - o_c
-        self.coordinates(x, y)
+        #self.coordinates(x, y)
         self.beta_c = beta_c
         # indexes(self, l, r, per, err)
         self.core = self.indexes(2*pi*c/o_c, a_vec, per, err)[0]
@@ -308,9 +315,10 @@ class Modes(Fibre):
         self.a_vec = a_vec
         return None
 
-    def coordinates(self, x, y):
-        self.x, self.y = x, y
-        self.X, self.Y = np.meshgrid(x, y)
+    def set_coordinates(self, a):
+        self.x, self.y = np.linspace(-a, a, self.N_points),\
+                         np.linspace(-a, a, self.N_points)
+        self.X, self.Y = np.meshgrid(self.x,self.y)
         self.R = ((self.X)**2 + (self.Y)**2)**0.5
         self.T = np.arctan(self.Y/self.X)
         return None
@@ -383,7 +391,8 @@ class Modes(Fibre):
     def Q_matrixes(self):
         self.combination_matrix_assembler()
         Q_large = []
-        for i in range(len(self.a_vec)):
+        for i,aa in enumerate(self.a_vec):
+            self.set_coordinates(aa)
             self.pick_eigens(i)
             E = np.asanyarray(self.E_carte())
             N = self.Normalised_N(E, i)

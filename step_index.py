@@ -1,7 +1,10 @@
+import matplotlib as mpl
+font = {'size'   : 18}
+mpl.rc('font', **font)
 from step_index_functions import *
 
 
-def fibre_creator(a_vec, l_vec, err=0.000, per=[60, 20], filename='step_index_2m', N_points=512):
+def fibre_creator(a_vec, l_vec, per, err, filename='step_index_2m', N_points=512):
     margin = 5e-15
     o_vec = 1e-12*2*pi * c/l_vec
     o = (o_vec[0]+o_vec[-1])/2
@@ -18,7 +21,6 @@ def fibre_creator(a_vec, l_vec, err=0.000, per=[60, 20], filename='step_index_2m
     for i, a in enumerate(a_vec):
         print('New a = ', a)
         for j, l in enumerate(l_vec):
-
             u_vec[i, j], w_vec[i, j] = E.eigen_solver(margin, i, j)
 
     
@@ -46,11 +48,11 @@ def fibre_creator(a_vec, l_vec, err=0.000, per=[60, 20], filename='step_index_2m
     #for i in range(len(betas_large)):
     #    betas[i, :] = betas_large[i][:min_beta]
 
-    r_max = np.max(a_vec)
-    x = np.linspace(-2*r_max, 2*r_max, N_points)
-    y = np.linspace(-2*r_max, 2*r_max, N_points)
+    #r_max = np.max(a_vec)
+    #x = np.linspace(-r_max, r_max, N_points)
+    #y = np.linspace(-r_max, r_max, N_points)
     M = Modes(o_vec, o, betas_central,\
-         u_vec, w_vec, a_vec, x, y, per, err)
+         u_vec, w_vec, a_vec, N_points, per, err)
     M1, M2, Q_large = M.Q_matrixes()
     Export_dict = {'M1': M1, 'M2': M2,
                    'Q_large': Q_large, 'betas': taylor_dispersion}
@@ -58,49 +60,51 @@ def fibre_creator(a_vec, l_vec, err=0.000, per=[60, 20], filename='step_index_2m
     save_variables_step(filename,  variables=Export_dict,
                         filepath='loading_data/')
     
-
-    return betas_large, Q_large, M, beta2_large
+    #sys.exit()
+    return betas_large, Q_large, M, beta2_large,ncore, nclad
 
 
 def main(a_med, a_err_p, l_p, l_span, N_points):
 
     low_a = a_med - a_err_p * a_med
     high_a = a_med + a_err_p * a_med
+    l_span = 50e-9
+    l_vec = np.linspace(l_p + l_span, l_p - l_span, 128)
+    a_vec = np.linspace(3.5625e-07, 3.58e-07, 8)
 
-    l_vec = np.linspace(l_p + 50*l_span, l_p - l_span, 128)
-    a_vec = np.linspace(0.11e-6, 1.2e-6, 12)
-
-    betas, Q_large, M, beta2 = fibre_creator(a_vec, l_vec, N_points = N_points)
+    per = ['60','poly']
+    err = 0
+    betas, Q_large, M, beta2,ncore, nclad =\
+        fibre_creator(a_vec, l_vec,per = per,err = err, N_points = N_points)
 
     fig = plt.figure(figsize=(15, 7.5))
     for i, a in enumerate(a_vec):
         plt.plot(l_vec*1e9, 
-                 beta2[i][:], label=r'$\alpha = $'+'{0:.2f}'.format(a*1e6)+r'$\mu m$')
+                 beta2[i][:], label=r'$\alpha = $'+'{0:.6f}'.format(a*1e6)+r'$\mu m$')
         plt.xlabel(r'$\lambda(nm)$')
         plt.ylabel(r'$\beta_{2} (ps^{2}/m)$')
+    plt.axhline(0, color='black')
     plt.legend()
 
     fig = plt.figure(figsize=(15, 7.5))
     plt.ticklabel_format(useOffset=False)
     for i, a in enumerate(a_vec):
         plt.plot(l_vec*1e9, betas[i][:] / (2*pi/l_vec),
-                 label=r'$\alpha = $'+'{0:.2f}'.format(a*1e6)+r'$\mu m$')
+                 label=r'$\alpha = $'+'{0:.6f}'.format(a*1e6)+r'$\mu m$')
         plt.xlabel(r'$\lambda(nm)$')
         plt.ylabel(r'$n_{eff}$')
+    plt.plot(l_vec*1e9, ncore[0][:],
+                 label=r'core $\alpha = $'+'{0:.6f}'.format(a_vec[0]*1e6)+r'$\mu m$')
+    plt.plot(l_vec*1e9, nclad[0][:],
+                 label=r'core $\alpha = $'+'{0:.6f}'.format(a_vec[0]*1e6)+r'$\mu m$')
     plt.legend()
     
-    #sys.exit()
     fig = plt.figure(figsize=(15, 7.5))
     plt.plot(a_vec*1e6, Q_large[:, 0, 0].real*1e-12)
     plt.xlabel(r'$\alpha(\mu m)$')
     plt.ylabel(r'$Q (\mu m)$')
     plt.legend()
-    #plt.show()
-    max_a = 2*np.max(a_vec)
-    #HE11x, HE11y, E = [], [],[]
-    x, y = np.linspace(-max_a, max_a, N_points),\
-            np.linspace(-max_a, max_a, N_points)
-    #X, Y = np.meshgrid(x, y)
+    
     nm = len(a_vec)
     
     sp = N_points//4
@@ -115,9 +119,8 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
         v = v+1
         ax1 = plt.subplot(nm//4 +  (1 if nm%4 else 0), 4, v)
         
-
+        M.set_coordinates(2*np.max(a_vec))
         M.pick_eigens(i)
-        M.coordinates(x,y)
         res = M.E_carte()
         M.X *= 1e6
         M.Y *= 1e6 
@@ -133,8 +136,8 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
         plt.quiver(M.X[::sp, ::sp], M.Y[::sp, ::sp], np.abs(
             HE11y[0][::sp, ::sp]), np.abs(HE11y[1][::sp, ::sp]), headlength=80)
         plt.axis('equal')
-        ax1.set_xlim([-max_a*1e6,max_a*1e6])
-        ax1.set_ylim([-max_a*1e6,max_a*1e6])
+        ax1.set_xlim([-2*np.max(a_vec)*1e6,2*np.max(a_vec)*1e6])
+        ax1.set_ylim([-2*np.max(a_vec)*1e6,2*np.max(a_vec)*1e6])
         plt.axis('off')
     #X *= 1e6
     #Y *= 1e6
@@ -146,8 +149,8 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
     
 if __name__ == '__main__':
     a_med = 2e-6
-    a_err_p = 0.1
-    l_span = 1000e-9
+    a_err_p = 0.01
+    l_span = 50e-9
     l_p = 1550e-9
     N_points= 128
     main(a_med, a_err_p, l_p, l_span,N_points)
