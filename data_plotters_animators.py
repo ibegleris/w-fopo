@@ -31,11 +31,11 @@ def w2dbm(W, floor=-100):
 	return a
 
 
-def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro, mode_names,pump_wave = '',filename=None, title=None, im=0, plots = True):
+def plotter_dbm(index, int_fwm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro, mode_names,pump_wave = '',filename=None, title=None, im=0, plots = True):
 	"""
 	Provides inputs to what is to be plotted and saves the variables to the according hdf5 file
 	"""
-
+	nm = int_fwm.nm
 	if plots:
 		#Wavelength
 		x, y = 1e-3*c/sim_wind.fv, w2dbm(np.abs(U[which,:,:])**2)
@@ -59,24 +59,23 @@ def plotter_dbm(index, nm, sim_wind, u, U, P0_p, P0_s, f_p, f_s, which,ro, mode_
 		plot_multiple_modes(nm, x, y, which, mode_names, ylim, xlim, xlabel, ylabel, title, filesave,im)
 
 		# Dump to HDF5 for postproc
-
-	if filename is not(None):
-		if filename[:4] != 'port': 
-			layer = filename[-1]+'/'+filename[:-1]
-		else:
-			layer = filename
-		try:
-			
-			save_variables('data_large', layer, filepath='output'+pump_wave+'/output'+str(index)+'/data/', U = U[:,which], t=sim_wind.t, u=u[:,which],
-						   fv=sim_wind.fv, lv=sim_wind.lv,
-						   which=which, nm=nm, P0_p=P0_p, P0_s=P0_s, f_p=f_p, f_s=f_s, ro = ro)
-		except RuntimeError:
-			os.system('rm output'+pump_wave+'/output'+str(index)+'/data/data_large.hdf5')
-			save_variables('data_large', layer, filepath='output'+pump_wave+'/output'+str(index)+'/data/', U=U[:,which], t=sim_wind.t, u=u[:,which],
-						   fv=sim_wind.fv, lv=sim_wind.lv,
-						   which=which, nm=nm, P0_p=P0_p, P0_s=P0_s, f_p=f_p, f_s=f_s, ro = ro)
-			pass
-	return None
+		if filename is not(None):
+			if filename[:4] != 'port': 
+				layer = filename[-1]+'/'+filename[:-1]
+			else:
+				layer = filename
+			try:
+				
+				save_variables('data_large', layer, filepath='output'+pump_wave+'/output'+str(index)+'/data/', U = U[which,:,:], t=sim_wind.t, u=u[which,:,:],
+							   L = int_fwm.z,fv=sim_wind.fv, lv=sim_wind.lv,
+							   which=which, nm=nm, P0_p=P0_p, P0_s=P0_s, f_p=f_p, f_s=f_s, ro = ro)
+			except RuntimeError:
+				os.system('rm output'+pump_wave+'/output'+str(index)+'/data/data_large.hdf5')
+				save_variables('data_large', layer, filepath='output'+pump_wave+'/output'+str(index)+'/data/', U=U[which,:,:], t=sim_wind.t, u=u[which,:,:],
+							   L = int_fwm.z,fv=sim_wind.fv, lv=sim_wind.lv,
+							   which=which, nm=nm, P0_p=P0_p, P0_s=P0_s, f_p=f_p, f_s=f_s, ro = ro)
+				pass
+		return None
 
 def plot_multiple_modes(nm, x, y, which, mode_names, ylim, xlim, xlabel, ylabel, title, filesave=None,im = None):
     """

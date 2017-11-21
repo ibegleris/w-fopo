@@ -695,9 +695,6 @@ def energy_conservation(entot):
 
 def check_ft_grid(fv, diff):
     """Grid check for fft optimisation"""
-    if fv.any() < 0:
-        sys.exit("some of your grid is negative")
-
     if np.log2(np.shape(fv)[0]) == int(np.log2(np.shape(fv)[0])):
         nt = np.shape(fv)[0]
     else:
