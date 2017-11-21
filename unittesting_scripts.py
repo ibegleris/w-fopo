@@ -850,7 +850,7 @@ from step_index import *
 def eigenvalues_test_case(l_vec, a_vec, margin):
 
     fibre = Fibre()
-    per=[60, 20]
+    per=[ 'ge', 'sio2']
     err = 0.002
     ncore, nclad = fibre.indexes(l_vec, a_vec, per, err)
     #fibre.plot_fibre_n(l_vec,a_vec,per,err)
