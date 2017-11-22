@@ -3,7 +3,7 @@ font = {'size'   : 18}
 mpl.rc('font', **font)
 from step_index_functions import *
 
-
+ 
 def fibre_creator(a_vec, l_vec, per, err, filename='step_index_2m', N_points=512):
     margin = 5e-15
     o_vec = 1e-12*2*pi * c/l_vec
