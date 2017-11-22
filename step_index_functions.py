@@ -41,7 +41,7 @@ class Fibre(object):
     Fibre class. Set to initiate the functions needed
     for a fibre ( Seilmier equations etc).
     """
-#0.7083925, 0.0853842 0.4203993, 0.1024839 0.8663412, 9.896175
+
     def __init__(self):
         self._A_ = {'sio2': [0.6965325, 0.0660932**2],
                     'ge': [0.7083925, 0.0853842**2]}
@@ -409,7 +409,9 @@ class Modes(Fibre):
                 if (m1 == m2).all():
                     M1_end.append(j)
                     break
+
         M1 = np.vstack((M1, np.asanyarray(M1_end)))
+
         for qq in Q_large:
             assert len(qq[0, :]) == M1.shape[1]
             assert len(qq[1, :]) == M1.shape[1]
@@ -449,6 +451,7 @@ class Modes(Fibre):
         a = list(set(tot))
         a.sort()
         self.M1_top = a
+
         return None
 
     def integrate(self, z):
