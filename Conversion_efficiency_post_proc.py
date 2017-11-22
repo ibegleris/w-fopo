@@ -80,7 +80,7 @@ class Conversion_efficiency(object):
         
         for i,P_max in enumerate(self.P_max):
             self.U_large_norm[:,i,:] =\
-                    w2dbm(np.abs(self.U_large[:,i,:])**2) - P_max
+                    w2dbm(np.abs(self.U_large[:,i,:])**2) - w2dbm(P_max)
 
         P_out_vec = []
         P_out_vec_casc = []
@@ -368,11 +368,14 @@ def contor_plot(CE,fmin = None,fmax = None,  rounds = None,folder = None,filenam
     x,y = np.meshgrid(CE.ro[:rounds], CE.fv[i:j])
     z = CE.U_large_norm[:rounds,:,i:j]
     
-    low_values_indices = z < -60  # Where values are low
-    z[low_values_indices] = -60  # All low values set to 0
+    #low_values_indices =   # Where values are low
+    print(np.max(z))
+    z[z < -60] = -60  # All low values set to 0
+    print(np.shape(z))
+    print(np.max(z))
     for nm in range(z.shape[1]):
         fig = plt.figure(figsize=(20,10))
-        plt.contourf(x,y, z[:,nm,:].T, np.arange(-60,2,2),extend = 'min',cmap=plt.cm.jet)
+        plt.contourf(x,y, z[:,nm,:].T,np.arange(-60,2,2),extend = 'min',cmap=plt.cm.jet)
         plt.xlabel(r'$rounds$')
         plt.ylim(fmin,fmax)
         plt.ylabel(r'$f(THz)$')
@@ -477,7 +480,7 @@ for pos in ('4','2'):
             #contor_plot_time(CE, rounds = None,filename = 'output_final/'+str(ii)+'/pos'+pos+'/'+'time_'+str(ii)+'_'+str(i))
             CE.P_out_round(CE.P_out_vec,filepath =  'output_final/'+str(ii)+'/pos'+pos+'/powers/', filesave =str(ii)+'_'+str(i))
             CE.P_out_round(CE.P_out_vec_casc,filepath =  'output_final/'+str(ii)+'/pos'+pos+'/casc_powers/',filesave = str(ii)+'_'+str(i))
-            CE.final_1D_spec(filename = 'output_final/'+str(ii)+'/pos'+pos+'/final_specs/'+'spectrum_fopo_final'+str(ii),wavelengths = wavelengths)
+            CE.final_1D_spec(filename = 'output_final/'+str(ii)+'/pos'+pos+'/final_specs/'+'spectrum_fopo_final'+str(ii)+'_'+str(i),wavelengths = wavelengths)
             del CE
             gc.collect()
         for x_key,y_key,std in (('P_p', 'P_out',True), ('P_p', 'CE',True), ('P_p', 'rin',False)):
