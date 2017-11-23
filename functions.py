@@ -11,6 +11,8 @@ from scipy.fftpack import ifftshift
 from math import factorial
 from integrand_and_rk import *
 from data_plotters_animators import *
+
+from step_index_functions import save_variables_step
 import cmath
 from time import time
 from scipy.fftpack import fft, ifft
@@ -170,54 +172,73 @@ def dispersion_operator(betas, lamda_c, int_fwm, sim_wind):
         for k, bb in enumerate(betap.T):
             Dop[i, :] -= 1j*(w**k * bb[i] / factorial(k))
     return Dop
+from step_index import fibre_creator
 
 
-def fibre_parameter_loader(filename):
-    with h5py.File('loading_data/'+filename+'.hdf5', 'r') as f:
+def load_step_index_params(filename):
+    with h5py.File('loading_data/'+str(filename)+'.hdf5', 'r') as f:
         D = {}
         for i in f.keys():
             try:
                 D[str(i)] = f.get(str(i)).value
             except AttributeError:
                 pass
-    M1, M2, betas, Q_large = D['M1'], D['M2'], D['betas'], D['Q_large']
+    a_vec, fv, dnerr,  M1, M2, betas, Q_large =\
+        D['a_vec'], D['fv'], D['M1'], \
+        D['M2'], D['betas'], D['Q_large'],\
+        D['dnerr']
+    return a_vec, fv, M1, M2, betas, Q_large,D
+
+def consolidate_hdf5_steps(master_index_l, size_ins):
+    """
+    Puts all exported HDF5 files created to one and saves it for future 
+    computational saving time. 
+    """
+    os.system('rm loading_data/step_index_2m.hdf5')
+    for master_index in range(master_index_l):
+        for index in range(size_ins):
+            layer = str(int(size_ins * master_index + index))
+            filename = 'step_index_2m'+'_new_'+str(master_index)+'_'+str(index)
+            D = load_step_index_params(filename)[-1]
+            save_variables('step_index_2m', layer, filepath='loading_data/', **D)
+            os.system('rm loading_data/'+filename+'.hdf5')
+    return None
+
+
+
+def fibre_parameter_loader(fv, a_vec, dnerr,index,master_index, filename):
+    """
+    This function tried to save time in computation of the step index dipsersion. It
+    compares the hdf5 file that was exported from a previous computation if the inputs dont
+    fit then it calls the eigenvalue solvers. 
+    """
+    index = str(index)
+    master_index = str(master_index)
+    if not(os.path.isfile('loading_data/step_index_2m.hdf5')):
+        fibre_creator(a_vec, fv, dnerr, master_index, index)
+        a_vec, fv, M1, M2, betas, Q_large,D = \
+            load_step_index_params(filename+'_new_'+master_index+'_'+index)
+        return M1, M2, betas, Q_large
+   
+    D_now = [a_vec, fv,dnerr]
+    already_done = False
+    with h5py.File('loading_data/'+filename+'.hdf5', 'r') as f:
+        for layer_old in f.keys():
+            D = [f.get(layer_old + '/' + str(i)).value for i in ('a_vec','fv','dnerr')]
+            already_done = np.array([np.allclose(D_now[i],D[i]) for i in range(3)]).all()
+            if already_done:
+                print('done')
+                break
+    if not(already_done):
+        fibre_creator(a_vec, fv, dnerr, layer)
+        a_vec, fv, M1, M2, betas, Q_large,D = \
+                load_step_index_params(filename+'_new_'+master_index+'_'+index)
+    else:
+
+        D = read_variables(filename, layer_old, filepath='loading_data/')
+        save_variables_step(filename+'_new_'+master_index+'_'+index,  filepath='loading_data/', **D)
+        M1, M2, betas, Q_large = D['M1'], D['M2'], D['betas'], D['Q_large']
     return M1, M2, betas, Q_large
-
-
-def Q_matrixes(nm, n2, lamda, gama=None):
-    """Calculates the Q matrices from importing them from a file.
-     Changes the gama if given"""
-    if nm == 1:
-        # loads M1 and M2 matrices
-        mat = loadmat('loading_data/M1_M2_1m_new.mat')
-        M1_temp = np.real(mat['M1'])
-        M2 = mat['M2']
-        M2[:, :] -= 1
-        M1 = np.empty([np.shape(M1_temp)[0]-2,
-                       np.shape(M1_temp)[1]], dtype=np.int8)
-        M1[:4] = M1_temp[:4] - 1
-        M1[-1] = M1_temp[6, :] - 1
-        Q = M1_temp[4:6, :]
-        if gama is not None:
-            Q[:, :] = gama / (3*n2*(2*pi/lamda))
-    if nm == 2:
-        mat = loadmat("loading_data/M1_M2_new_2m.mat")
-        M1_temp = np.real(mat['M1'])
-        M2 = mat['M2']
-        M2[:] -= 1
-        M1 = np.empty([np.shape(M1_temp)[0]-2,
-                       np.shape(M1_temp)[1]], dtype=np.int8)
-        M1[:4, :] = M1_temp[:4, :] - 1
-        M1[4, :] = M1_temp[6, :] - 1
-        Q = M1_temp[4:6, :]
-        if gama is not None:
-            Q[:, :] = gama / (3*n2*(2*pi/lamda))
-        Q[0, 2:-2] = 0
-        Q[1, 2:-2] = 0
-        # This is because of the l<->n exchange in the derivation
-        Q[1, 1], Q[1, 3] = Q[1, 3], Q[1, 1]
-        Q[1, -2], Q[1, -4] = Q[1, -4], Q[1, -2]
-    return M1, M2, Q
 
 
 class sim_parameters(object):

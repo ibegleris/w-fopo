@@ -10,7 +10,6 @@ import os
 import time as timeit
 os.system('export FONTCONFIG_PATH=/etc/fonts')
 from functions import *
-from step_index import fibre_creator
 from time import time, sleep
 
 
@@ -126,6 +125,7 @@ def calc_P_out(U, U_original_pump, fv, t):
 def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losses, betas,
               lamda_c, WDMS_pars, lamp, lams, num_cores, maxerr, ss, ram, plots,
               N, nt, nplot, master_index, nm, mode_names, a_med, a_err,Num_a,dnerr):
+    
     ex = Plotter_saver(plots, True)  # construct exporter
     "------------------propagation paramaters------------------"
     dzstep = z/nplot						# distance per step
@@ -143,13 +143,12 @@ def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losse
     p_pos, s_pos = where
     sim_wind = sim_window(fv, lamda, lamda_c, int_fwm, fv_idler_int)
     a_vec = np.linspace(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
-    if not(os.path.isfile('loading_data/step_index_2m.hdf5')):
-    	fibre_creator(a_vec, 1e12*fv, dnerr)
+
     "----------------------------------------------------------"
 
     "---------------------Aeff-Qmatrixes-----------------------"
     #M1, M2, Q = Q_matrixes(int_fwm.nm, int_fwm.n2, lamda, gama)
-    M1, M2, betas, Q_large = fibre_parameter_loader('step_index_2m')
+    M1, M2, betas, Q_large = fibre_parameter_loader(fv,a_vec,dnerr,index, master_index,'step_index_2m')
     print(M1.shape)
     print(M1)
     print(M2.shape)
@@ -158,7 +157,7 @@ def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losse
     print(betas)
     print(Q_large.shape)
     print(Q_large)
-    sys.exit()
+    return None
     "----------------------------------------------------------"
 
     "---------------------Loss-in-fibres-----------------------"
@@ -231,7 +230,7 @@ def main():
     ss = 1				  					# includes self steepening term
     ram = 'on'				  				# Raman contribution 'on' if yes and 'off' if no
     plots = False 							# Do you want plots, be carefull it makes the code very slow!
-    N = 12									# 2**N grid points
+    N = 8									# 2**N grid points
     nt = 2**N 								# number of grid points
     nplot = 2								# number of plots within fibre min is 2
     nm = 2									# Number of modes (include degenerate polarisation)
@@ -252,7 +251,7 @@ def main():
     alphadB = np.array([0, 0])
     z = 18									# Length of the fibre
     # P_p = my_arange(5.2,5.45,0.01)
-    P_p = [5]
+    P_p = [5,6,7]
     P_s = 0  # *my_arange(100e-3,1100e-3, 100e-3)							# Signal power [W]
     TFWHM_p = 0								# full with half max of pump
     TFWHM_s = 0								# full with half max of signal
@@ -265,7 +264,7 @@ def main():
     a_med = 2.2e-6
     a_err = 0.01
     dnerr = 0
-    Num_a = 10
+    Num_a = 1
     betas = np.tile(betas, (nm, 1))
     lamda_c = 1051.85e-9
     # Zero dispersion wavelength [nm]
@@ -332,7 +331,7 @@ def main():
         else:
             A = Parallel(n_jobs=num_cores)(delayed(formulate)(**{**D_ins[i], ** large_dic}) for i in range(len(D_ins)))
         _temps.cleanup_folder()
-
+    consolidate_hdf5_steps(len(outside_var), len(inside_var))
     print('\a')
     return None
 

@@ -26,10 +26,10 @@ def kv_(n, z):
     return -0.5 * (kv(n-1, z) + kv(n+1, z))
 
 
-def save_variables_step(filename, variables, filepath=''):
+def save_variables_step(filename,filepath='', **variables):
 
     file = os.path.join(filepath, filename+'.hdf5')
-    os.system('rm '+file)
+    #os.system('rm '+file)
     with h5py.File(file, 'a') as f:
         for i in (variables):
             f.create_dataset(str(i), data=variables[i])

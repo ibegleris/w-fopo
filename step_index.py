@@ -1,14 +1,15 @@
 from step_index_functions import *
+from data_plotters_animators import save_variables
 
 
-def fibre_creator(a_vec, f_vec, dnerr, per=['ge', 'sio2'], filename='step_index_2m', N_points=512):
+def fibre_creator(a_vec, f_vec, dnerr, master_index, index, per=['ge', 'sio2'], filename='step_index_2m', N_points=512):
     """
     Creates a step index fibre for a given radius vector a_vec over a f_vec freequency window
     given. It then calculates the overlaps (Q matrixes from P Horaks paper) and exports both
     dispersion and Q_matrxes to an HDF5 file. The combinations that regard Q matrixes less than 
     unity are dissregarded. 
     """
-    l_vec = c / f_vec
+    l_vec = c / (1e12*f_vec)
 
     margin = 5e-15
     o_vec = 1e-12*2*pi * c/l_vec
@@ -48,15 +49,15 @@ def fibre_creator(a_vec, f_vec, dnerr, per=['ge', 'sio2'], filename='step_index_
         betas_large.append(betas)
         for j, bb in enumerate(betass):
             taylor_dispersion[i, :] += (bb/factorial(j))*(o_vec - o)**j
-    
+
     M = Modes(o_vec, o, betas_central,
               u_vec, w_vec, a_vec, N_points, per, dnerr)
     M1, M2, Q_large = M.Q_matrixes()
     Export_dict = {'M1': M1, 'M2': M2,
-                   'Q_large': Q_large, 'betas': taylor_dispersion}
+                   'Q_large': Q_large, 'betas': taylor_dispersion,
+                   'a_vec': a_vec, 'fv': f_vec, 'dnerr': dnerr}
 
-    save_variables_step(filename,  variables=Export_dict,
-                        filepath='loading_data/')
+    save_variables_step(filename+'_new_'+master_index+'_'+index,  filepath='loading_data/', **Export_dict)
     return betas_large, Q_large, M, beta2_large, ncore, nclad
 
 
@@ -73,7 +74,7 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
     per = ['ge', 'sio2']
     err = 0
     betas, Q_large, M, beta2, ncore, nclad =\
-        fibre_creator(a_vec, f_vec, err, per=per , N_points=N_points)
+        fibre_creator(a_vec, f_vec, err, per=per, N_points=N_points)
 
     fig = plt.figure(figsize=(15, 7.5))
     for i, a in enumerate(a_vec):
