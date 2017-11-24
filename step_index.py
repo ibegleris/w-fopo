@@ -57,7 +57,7 @@ def fibre_creator(a_vec, f_vec, dnerr, master_index, index, per=['ge', 'sio2'], 
                    'Q_large': Q_large, 'betas': taylor_dispersion,
                    'a_vec': a_vec, 'fv': f_vec, 'dnerr': dnerr}
 
-    save_variables_step(filename+'_new_'+master_index+'_'+index,  filepath='loading_data/', **Export_dict)
+    save_variables_step(filename+'_new_'+master_index+'_'+index,  filepath='loading_data/step_data/', **Export_dict)
     return betas_large, Q_large, M, beta2_large, ncore, nclad
 
 
