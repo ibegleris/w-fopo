@@ -18,7 +18,7 @@ def fibre_creator(a_vec, f_vec, dnerr, master_index, index, per=['ge', 'sio2'], 
     fibre = Fibre()
 
     ncore, nclad = fibre.indexes(l_vec, a_vec, per, dnerr)
-    fibre.plot_fibre_n(l_vec, a_vec, per, dnerr)
+    #fibre.plot_fibre_n(l_vec, a_vec, per, dnerr)
 
     E = Eigenvalues(l_vec, a_vec, ncore, nclad)
 
@@ -46,15 +46,17 @@ def fibre_creator(a_vec, f_vec, dnerr, master_index, index, per=['ge', 'sio2'], 
         p = np.poly1d(beta_coef)
         betas_central[i] = p(0)
         betass = b.beta_dispersions(i)
-        betas_large.append(betas)
+
+        betas_large.append(betass)
         for j, bb in enumerate(betass):
             taylor_dispersion[i, :] += (bb/factorial(j))*(o_vec - o)**j
 
     M = Modes(o_vec, o, betas_central,
               u_vec, w_vec, a_vec, N_points, per, dnerr)
+
     M1, M2, Q_large = M.Q_matrixes()
     Export_dict = {'M1': M1, 'M2': M2,
-                   'Q_large': Q_large, 'betas': taylor_dispersion,
+                   'Q_large': Q_large, 'betas': betas_large,
                    'a_vec': a_vec, 'fv': f_vec, 'dnerr': dnerr}
 
     save_variables_step(filename+'_new_'+master_index+'_'+index,  filepath='loading_data/step_data/', **Export_dict)

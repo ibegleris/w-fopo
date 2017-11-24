@@ -11,7 +11,7 @@ from scipy.fftpack import ifftshift
 from math import factorial
 from integrand_and_rk import *
 from data_plotters_animators import *
-
+from step_index import fibre_creator
 from step_index_functions import save_variables_step
 import cmath
 from time import time
@@ -137,42 +137,32 @@ class raman_object(object):
             return self.hf
 
 
-def dispersion_operator(betas, lamda_c, int_fwm, sim_wind):
+def dispersion_operator(betas, int_fwm, sim_wind):
     """
     Calculates the dispersion operator in rad/m units
     Inputed are the dispersion operators at the omega0
     Local include the taylor expansion to get these opeators at omegac 
     Returns Dispersion operator
     """
-    # print(betas)
-    c_norm = c*1e-12  # Speed of light [m/ps] #Central wavelength [nm]
-    wc = 2*pi * c_norm / sim_wind.lamda
-    w0 = 2*pi * c_norm / lamda_c
-
-    betap = np.zeros_like(betas)
-
-    for j in range(len(betas[0, :])):
-        if j == 0:
-            betap[:, j] = betas[:, j]
-        fac = 0
-        for k in range(j, len(betas.T)):
-            betap[:, j] += (1/factorial(fac)) * \
-                betas[:, k] * (wc - w0)**(fac)
-            fac += 1
 
     w = sim_wind.w + sim_wind.woffset
 
-    Dop = np.zeros((int_fwm.nm, int_fwm.nt), dtype=np.complex)
-    alpha = np.reshape(int_fwm.alpha, np.shape(Dop))
+    betap = np.tile(betas, (int_fwm.nm,1, 1))
+    betap = np.reshape(betap, (betas.shape[0], int_fwm.nm, betas.shape[1]))
 
-    Dop -= fftshift(alpha/2)
-    betap[:, 0] -= betap[:, 0]
-    betap[:, 1] -= betap[:, 1]
-    for i in range(int_fwm.nm):
-        for k, bb in enumerate(betap.T):
-            Dop[i, :] -= 1j*(w**k * bb[i] / factorial(k))
+    Dop = np.zeros((betas.shape[0],int_fwm.nm, w.shape[0]), dtype=np.complex)
+    alpha = np.reshape(int_fwm.alpha, np.shape(Dop)[1:])
+    for i in range(Dop.shape[0]):
+        Dop[i,:,:] -= fftshift(alpha/2)
+    betap[:,:, 0] -= betap[:,:, 0]
+    betap[:,:, 1] -= betap[:,:, 1]
+                
+    for k, b in enumerate(betap):
+        for l, bb in enumerate(b):
+            for m, bbb in enumerate(bb):
+                Dop[k,l, :] = Dop[k,l, :]-1j*(w**m * bbb / factorial(m))
     return Dop
-from step_index import fibre_creator
+
 
 
 def load_step_index_params(filename):
@@ -230,14 +220,12 @@ def fibre_parameter_loader(fv, a_vec, dnerr,index,master_index, filename):
                 D = [f.get(layer_old + '/' + str(i)).value for i in ('a_vec','fv','dnerr')]
                 already_done = np.array([np.allclose(D_now[i],D[i]) for i in range(3)]).all()
                 if already_done:
-                    print('done')
                     break
     except OSError:
         pass
     
     if not(already_done):
         files = os.listdir('loading_data/step_data/')
-        print(type(files))
         if 'step_index_2m.hdf5' in files:
             files.remove('step_index_2m.hdf5')
         for file in files:
@@ -245,10 +233,9 @@ def fibre_parameter_loader(fv, a_vec, dnerr,index,master_index, filename):
                 D = [f.get(str(i)).value for i in ('a_vec','fv','dnerr')]
                 already_done = np.array([np.allclose(D_now[i],D[i]) for i in range(3)]).all()
             if already_done:
-                print('done')
                 break
     if not(already_done):
-        fibre_creator(a_vec, fv, dnerr, layer)
+        fibre_creator(a_vec, fv, dnerr, master_index, index)
         a_vec, fv, M1, M2, betas, Q_large,D = \
                 load_step_index_params(filename+'_new_'+master_index+'_'+index)
     else:

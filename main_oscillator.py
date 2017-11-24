@@ -66,7 +66,7 @@ def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index, master_index
 
         ex.exporter(index, int_fwm, sim_wind, u, U, P0_p1,
                     P0_s, f_p, f_s, 0, ro,  mode_names, master_index, str(ro)+'1', pulse_pos_dict[3], D_pic[5], plots)
-
+        return None
         u, U = pulse_propagation(
             u, U, int_fwm, M1, M2, Q, sim_wind, hf, Dop, dAdzmm)
 
@@ -122,7 +122,7 @@ def calc_P_out(U, U_original_pump, fv, t):
 
 
 @unpack_args
-def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losses, betas,
+def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losses,
               lamda_c, WDMS_pars, lamp, lams, num_cores, maxerr, ss, ram, plots,
               N, nt, nplot, master_index, nm, mode_names, a_med, a_err,Num_a,dnerr):
     
@@ -149,15 +149,8 @@ def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losse
     "---------------------Aeff-Qmatrixes-----------------------"
     #M1, M2, Q = Q_matrixes(int_fwm.nm, int_fwm.n2, lamda, gama)
     M1, M2, betas, Q_large = fibre_parameter_loader(fv,a_vec,dnerr,index, master_index,'step_index_2m')
-    print(M1.shape)
-    print(M1)
-    print(M2.shape)
-    print(M2)
-    print(betas.shape)
-    print(betas)
-    print(Q_large.shape)
-    print(Q_large)
-    return None
+
+
     "----------------------------------------------------------"
 
     "---------------------Loss-in-fibres-----------------------"
@@ -168,8 +161,9 @@ def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losse
 
     "----------------------------------------------------------"
 
+
     "--------------------Dispersion----------------------------"
-    Dop = dispersion_operator(betas, lamda_c, int_fwm, sim_wind)
+    Dop = dispersion_operator(betas, int_fwm, sim_wind)
     "----------------------------------------------------------"
 
     "--------------------Noise---------------------------------"
@@ -218,8 +212,9 @@ def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losse
     "------------------------------------------------------------"
 
     f_p, f_s = 1e-3*c/lamp, 1e-3*c/lams
+    
     oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index, master_index, P_p, P_s, f_p, f_s, p_pos, s_pos, splicers_vec,
-             WDM_vec, M1, M2, Q, hf, Dop, dAdzmm, D_pic, pulse_pos_dict_or, plots, mode_names,ex)
+             WDM_vec, M1, M2, Q_large, hf, Dop, dAdzmm, D_pic, pulse_pos_dict_or, plots, mode_names,ex)
     return None
 
 
@@ -259,13 +254,14 @@ def main():
         0, 0, 1.4]]					# loss of each type of splices [dB]
     spl_losses = [0, 0, 1.4]
 
-    betas = np.array([0, 0, 0, 6.756e-2,  # propagation constants [ps^n/m]
-                      -1.002e-4, 3.671e-7])*1e-3
+    #betas = np.array([0, 0, 0, 6.756e-2,  # propagation constants [ps^n/m]
+    #                  -1.002e-4, 3.671e-7])*1e-3
+    #betas = np.tile(betas, (nm, 1))
     a_med = 2.2e-6
     a_err = 0.01
     dnerr = 0
-    Num_a = 1
-    betas = np.tile(betas, (nm, 1))
+    Num_a = 3
+    
     lamda_c = 1051.85e-9
     # Zero dispersion wavelength [nm]
     # max at ls,li = 1095, 1010
@@ -293,7 +289,7 @@ def main():
     lams = lams[1]
     var_dic = {'n2': n2, 'gama': gama, 'alphadB': alphadB, 'z': z, 'P_p': P_p,
                'P_s': P_s, 'TFWHM_p': TFWHM_p, 'TFWHM_s': TFWHM_s,
-               'spl_losses': spl_losses, 'betas': betas,
+               'spl_losses': spl_losses,
                'lamda_c': lamda_c, 'WDMS_pars': WDMS_pars,
                'lamp': lamp, 'lams': lams, 'a_med':a_med, 'a_err':a_err,'Num_a':Num_a, 'dnerr':dnerr}
 
