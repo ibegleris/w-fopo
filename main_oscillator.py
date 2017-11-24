@@ -148,7 +148,9 @@ def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losse
 
     "---------------------Aeff-Qmatrixes-----------------------"
     #M1, M2, Q = Q_matrixes(int_fwm.nm, int_fwm.n2, lamda, gama)
-    M1, M2, betas, Q_large = fibre_parameter_loader(fv,a_vec,dnerr,index, master_index,'step_index_2m')
+    M1, M2, betas, Q_large = fibre_parameter_loader(fv,a_vec,dnerr,
+                    index, master_index,filename = 'step_index_2m'
+                    )
 
 
     "----------------------------------------------------------"
@@ -260,7 +262,7 @@ def main():
     a_med = 2.2e-6
     a_err = 0.01
     dnerr = 0
-    Num_a = 3
+    Num_a = 2
     
     lamda_c = 1051.85e-9
     # Zero dispersion wavelength [nm]
@@ -327,7 +329,7 @@ def main():
         else:
             A = Parallel(n_jobs=num_cores)(delayed(formulate)(**{**D_ins[i], ** large_dic}) for i in range(len(D_ins)))
         _temps.cleanup_folder()
-    consolidate_hdf5_steps(len(outside_var), len(inside_var))
+    consolidate_hdf5_steps(len(outside_var), len(inside_var), filepath = 'loading_data/step_data/')
     print('\a')
     return None
 

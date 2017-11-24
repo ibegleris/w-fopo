@@ -55,16 +55,23 @@ def FWHM_fun(X, Y):
 
 
 class Test_Raman(object):
-
+    l_vec = np.linspace(1600e-9, 1500e-9, 20)
+    fv = 1e-12*c/l_vec
+    dnerr = 0
+    index = 0
+    master_index = 0
+    a_vec = [2.2e-6]
+    M1, M2, betas, Q_large = \
+    fibre_parameter_loader(fv,a_vec,dnerr,index, master_index,'step_index_2m', filepath = 'testing_data/')
+    self.M2 = M2
     def test_raman_off(self):
         ram = raman_object('off')
-        M1, M2, Q = Q_matrixes(2, 2.5e-20, 1.55e-6, 0.01)
         ram.raman_load(np.random.rand(10), np.random.rand(1)[0], None)
         assert ram.hf == None
 
     def test_raman_load_1(self):
         ram = raman_object('on', 'load')
-        M1, M2, Q = Q_matrixes(1, 2.5e-20, 1.55e-6, 0.01)
+        #M1, M2, Q = Q_matrixes(1, 2.5e-20, 1.55e-6, 0.01)
         D = loadmat('testing_data/Raman_measured.mat')
         t = D['t']
         t = np.asanyarray([t[i][0] for i in range(t.shape[0])])
@@ -72,27 +79,27 @@ class Test_Raman(object):
         hf_exact = D['hf']
         hf_exact = np.asanyarray([hf_exact[i][0]
                                   for i in range(hf_exact.shape[0])])
-        hf = ram.raman_load(t, dt, M2)
+        hf = ram.raman_load(t, dt, self.M2)
         hf_exact = np.reshape(hf_exact, hf.shape)
         assert_allclose(hf, hf_exact)
 
     def test_raman_analytic_1(self):
         ram = raman_object('on', 'analytic')
         D = loadmat('testing_data/Raman_analytic.mat')
-        M1, M2, Q = Q_matrixes(1, 2.5e-20, 1.55e-6, 0.01)
+        #M1, M2, Q = Q_matrixes(1, 2.5e-20, 1.55e-6, 0.01)
         t = D['t']
         t = np.asanyarray([t[i][0] for i in range(t.shape[0])])
         dt = D['dt'][0][0]
         hf_exact = D['hf']
         hf_exact = np.asanyarray([hf_exact[i][0]
                                   for i in range(hf_exact.shape[0])])
-        hf = ram.raman_load(t, dt, M2)
+        hf = ram.raman_load(t, dt, self.M2)
 
         assert_allclose(hf, hf_exact)
 
     def test_raman_load_2(self):
         ram = raman_object('on', 'load')
-        M1, M2, Q = Q_matrixes(2, 2.5e-20, 1.55e-6, 0.01)
+        #M1, M2, Q = Q_matrixes(2, 2.5e-20, 1.55e-6, 0.01)
         D = loadmat('testing_data/Raman_measured.mat')
         t = D['t']
         t = np.asanyarray([t[i][0] for i in range(t.shape[0])])
@@ -100,22 +107,22 @@ class Test_Raman(object):
         hf_exact = D['hf']
         hf_exact = np.asanyarray([hf_exact[i][0]
                                   for i in range(hf_exact.shape[0])])
-        hf = ram.raman_load(t, dt, M2)
+        hf = ram.raman_load(t, dt, self.M2)
 
-        hf_exact = np.tile(hf_exact, (len(M2[1, :]), 1))
+        hf_exact = np.tile(hf_exact, (len(self.M2[1, :]), 1))
         assert_allclose(hf, hf_exact)
 
     def test_raman_analytic_2(self):
         ram = raman_object('on', 'analytic')
         D = loadmat('testing_data/Raman_analytic.mat')
-        M1, M2, Q = Q_matrixes(2, 2.5e-20, 1.55e-6, 0.01)
+        #M1, M2, Q = Q_matrixes(2, 2.5e-20, 1.55e-6, 0.01)
         t = D['t']
         t = np.asanyarray([t[i][0] for i in range(t.shape[0])])
         dt = D['dt'][0][0]
         hf_exact = D['hf']
         hf_exact = np.asanyarray([hf_exact[i][0]
                                   for i in range(hf_exact.shape[0])])
-        hf = ram.raman_load(t, dt, M2)
+        hf = ram.raman_load(t, dt, self.M2)
         assert_allclose(hf, hf_exact)
 
 

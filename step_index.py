@@ -2,7 +2,7 @@ from step_index_functions import *
 from data_plotters_animators import save_variables
 
 
-def fibre_creator(a_vec, f_vec, dnerr, master_index, index, per=['ge', 'sio2'], filename='step_index_2m', N_points=512):
+def fibre_creator(a_vec, f_vec, dnerr, master_index, index, per=['ge', 'sio2'], filename='step_index_2m',filepath = 'loading_data/step_data/', N_points=512):
     """
     Creates a step index fibre for a given radius vector a_vec over a f_vec freequency window
     given. It then calculates the overlaps (Q matrixes from P Horaks paper) and exports both
@@ -59,7 +59,7 @@ def fibre_creator(a_vec, f_vec, dnerr, master_index, index, per=['ge', 'sio2'], 
                    'Q_large': Q_large, 'betas': betas_large,
                    'a_vec': a_vec, 'fv': f_vec, 'dnerr': dnerr}
 
-    save_variables_step(filename+'_new_'+master_index+'_'+index,  filepath='loading_data/step_data/', **Export_dict)
+    save_variables_step(filename+'_new_'+master_index+'_'+index,  filepath=filepath, **Export_dict)
     return betas_large, Q_large, M, beta2_large, ncore, nclad
 
 
