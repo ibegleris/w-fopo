@@ -51,19 +51,20 @@ def FWHM_fun(X, Y):
     right_idx = np.where(d < 0)[-1]
     return X[right_idx] - X[left_idx]  # return the difference (full width)
 
-"--------------------------------------------Raman response--------------"
+"----------------Raman response--------------"
+#os.system('rm -r testing_data/step_index/*')
 
 
-class Test_Raman(object):
-    l_vec = np.linspace(1600e-9, 1500e-9, 20)
+class Raman():
+    l_vec = np.linspace(1600e-9, 1500e-9, 64)
     fv = 1e-12*c/l_vec
     dnerr = 0
     index = 0
     master_index = 0
     a_vec = [2.2e-6]
     M1, M2, betas, Q_large = \
-    fibre_parameter_loader(fv,a_vec,dnerr,index, master_index,'step_index_2m', filepath = 'testing_data/')
-    self.M2 = M2
+    fibre_parameter_loader(fv,a_vec,dnerr,index, master_index,
+        'step_index_2m', filepath = 'testing_data/step_index/')
     def test_raman_off(self):
         ram = raman_object('off')
         ram.raman_load(np.random.rand(10), np.random.rand(1)[0], None)
@@ -80,7 +81,9 @@ class Test_Raman(object):
         hf_exact = np.asanyarray([hf_exact[i][0]
                                   for i in range(hf_exact.shape[0])])
         hf = ram.raman_load(t, dt, self.M2)
-        hf_exact = np.reshape(hf_exact, hf.shape)
+
+        #hf_exact = np.reshape(hf_exact, hf.shape)
+        hf_exact = np.tile(hf_exact, (len(self.M2[1, :]), 1))
         assert_allclose(hf, hf_exact)
 
     def test_raman_analytic_1(self):
@@ -128,81 +131,48 @@ class Test_Raman(object):
 
 "----------------------------Dispersion operator--------------"
 
+class Test_dispersion(Raman):
+   
+    l_vec = np.linspace(1600e-9, 1500e-9, 64)
+    int_fwm = sim_parameters(2.5e-20, 2, 0)
+    int_fwm.general_options(1e-13, 0, 1, 1)
+    int_fwm.propagation_parameters(6, 18, 2, 1)
+    sim_wind = \
+            sim_window(1e-12*c/l_vec, (l_vec[0]+l_vec[-1])*0.5,
+                     (l_vec[0]+l_vec[-1])*0.5, int_fwm, 10)
 
-class int_fwms(object):
+    def test_dispersion(self):
+        loss = Loss(self.int_fwm, self.sim_wind, amax=0.1)
+        alpha_func = loss.atten_func_full(self.sim_wind.fv)
+        self.int_fwm.alphadB = alpha_func
+        self.int_fwm.alpha = self.int_fwm.alphadB
 
-    def __init__(self, nm, alpha, nt):
-        self.nm = nm
-        self.alphadB = alpha
-        self.alpha = self.alphadB/4.343
-        self.nt = nt
+        #betas = np.array([0, 0, 0, 6.755e-2, -1.001e-4])*1e-3
+        #betas = np.tile(betas, (2, 1))
+        print(self.betas)
+        print(self.sim_wind.w +self.sim_wind.woffset)
+        print(self.int_fwm.alpha)
+        betas_disp = dispersion_operator(self.betas, self.int_fwm, self.sim_wind)
+        #print(betas_disp)
+        #np.savetxt('testing_data/exact_dispersion.txt', betas_disp)
+        #betas_exact = np.loadtxt('testing_data/exact_dispersion.txt').view(complex)
+        assert_allclose(betas_disp[0, :], betas_exact)
 
+    """
+    def test_dispersion_same(self):
+        loss = Loss(self.int_fwm, self.sim_wind, amax=0.1)
+        alpha_func = loss.atten_func_full(self.sim_wind.fv)
+        self.int_fwm.alphadB = alpha_func
+        self.int_fwm.alpha = self.int_fwm.alphadB
 
-class sim_windows(object):
+        #betas = np.array([0, 0, 0, 6.755e-2, -1.001e-4])*1e-3
+        #betas = np.tile(betas, (2, 1))
+        betas_disp = dispersion_operator(self.betas, self.int_fwm, self.sim_wind)
 
-    def __init__(self, lamda, lv, lmin, lmax, nt):
-        self.lamda = lamda
-        self.lmax, self.lmin = lmax, lmin
-        self.w = 2*pi*c/self.lamda*1e-12
-        self.lv = lv
-        self.nt = 512
-        self.fv = 1e-3*c/self.lv
-        self.fmed = 0.5*(max(self.fv) + min(self.fv))*1e12
-        self.woffset = 2*pi*(self.fmed - c/lamda)*1e-12
-        self.deltaf = 1e-3*(c/self.lmin - c/self.lmax)
-        self.df = self.deltaf/len(lv)
-        self.T = 1/self.df
-        self.dt = self.T/len(lv)
-        self.t = (range(nt)-np.ones(nt)*nt/2)*self.dt
+        betas_exact = np.loadtxt('testing_data/exact_dispersion.txt').view(complex)
+        assert_allclose(betas_disp[0, :], betas_disp[1, :])
 
-
-def test_dispersion():
-    nt = 512
-    lmin, lmax = 1000e-9, 2000e-9
-    lamda = np.linspace(lmin, lmax, nt)
-
-    lamda0 = 1500e-9
-    lamdac = 1550e-9
-
-    sim_wind = sim_windows(lamda0, lamda, lmin, lmax, nt)
-    int_fwm = int_fwms(2, np.array([0.1, 0.1]), nt)
-
-    loss = Loss(int_fwm, sim_wind, amax=0.1)
-    alpha_func = loss.atten_func_full(sim_wind.fv)
-    int_fwm.alphadB = alpha_func
-    int_fwm.alpha = int_fwm.alphadB
-
-    betas = np.array([0, 0, 0, 6.755e-2, -1.001e-4])*1e-3
-    betas = np.tile(betas, (2, 1))
-    betas_disp = dispersion_operator(betas, lamdac, int_fwm, sim_wind)
-    betas_exact = np.loadtxt('testing_data/exact_dispersion.txt').view(complex)
-    assert_allclose(betas_disp[0, :], betas_exact)
-
-
-def test_dispersion_same():
-    nt = 512
-    lmin, lmax = 1000e-9, 2000e-9
-    lamda = np.linspace(lmin, lmax, nt)
-
-    lamda0 = 1500e-9
-    lamdac = 1550e-9
-
-    sim_wind = sim_windows(lamda0, lamda, lmin, lmax, nt)
-    int_fwm = int_fwms(2, np.array([0.1, 0.1]), nt)
-
-    loss = Loss(int_fwm, sim_wind, amax=0.1)
-    alpha_func = loss.atten_func_full(sim_wind.fv)
-    int_fwm.alphadB = alpha_func
-    int_fwm.alpha = int_fwm.alphadB
-
-    betas = np.array([0, 0, 0, 6.755e-2, -1.001e-4])*1e-3
-    betas = np.tile(betas, (2, 1))
-    betas_disp = dispersion_operator(betas, lamdac, int_fwm, sim_wind)
-
-    betas_exact = np.loadtxt('testing_data/exact_dispersion.txt').view(complex)
-    assert_allclose(betas_disp[0, :], betas_disp[1, :])
-
-
+    """
 "-----------------------Full soliton--------------------------------------------"
 
 

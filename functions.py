@@ -147,22 +147,21 @@ def dispersion_operator(betas, int_fwm, sim_wind):
 
     w = sim_wind.w + sim_wind.woffset
 
-    betap = np.tile(betas, (int_fwm.nm,1, 1))
+    betap = np.tile(betas, (int_fwm.nm, 1, 1))
     betap = np.reshape(betap, (betas.shape[0], int_fwm.nm, betas.shape[1]))
 
-    Dop = np.zeros((betas.shape[0],int_fwm.nm, w.shape[0]), dtype=np.complex)
+    Dop = np.zeros((betas.shape[0], int_fwm.nm, w.shape[0]), dtype=np.complex)
     alpha = np.reshape(int_fwm.alpha, np.shape(Dop)[1:])
     for i in range(Dop.shape[0]):
-        Dop[i,:,:] -= fftshift(alpha/2)
-    betap[:,:, 0] -= betap[:,:, 0]
-    betap[:,:, 1] -= betap[:,:, 1]
-                
+        Dop[i, :, :] -= fftshift(alpha/2)
+    betap[:, :, 0] -= betap[:, :, 0]
+    betap[:, :, 1] -= betap[:, :, 1]
+
     for k, b in enumerate(betap):
         for l, bb in enumerate(b):
             for m, bbb in enumerate(bb):
-                Dop[k,l, :] = Dop[k,l, :]-1j*(w**m * bbb / factorial(m))
+                Dop[k, l, :] = Dop[k, l, :]-1j*(w**m * bbb / factorial(m))
     return Dop
-
 
 
 def load_step_index_params(filename, filepath):
@@ -174,80 +173,86 @@ def load_step_index_params(filename, filepath):
             except AttributeError:
                 pass
     a_vec, fv, dnerr,  M1, M2, betas, Q_large =\
-        D['a_vec'], D['fv'], D['M1'], \
-        D['M2'], D['betas'], D['Q_large'],\
-        D['dnerr']
-    print(betas.shape)
-    return a_vec, fv, M1, M2, betas, Q_large,D
-def consolidate_hdf5_steps(master_index_l, size_ins,filepath):
+        D['a_vec'], D['fv'], D['dnerr'], D['M1'], \
+        D['M2'], D['betas'], D['Q_large']
+
+    return a_vec, fv, M1, M2, betas, Q_large, D
+
+
+def consolidate_hdf5_steps(master_index_l, size_ins, filepath):
     """
     Puts all exported HDF5 files created to one and saves it for future 
     computational saving time. 
     """
-    os.system('rm ' +filepath+'step_index_2m.hdf5')
+    os.system('rm ' + filepath+'step_index_2m.hdf5')
     for master_index in range(master_index_l):
         for index in range(size_ins):
             layer = str(int(size_ins * master_index + index))
             filename = 'step_index_2m'+'_new_'+str(master_index)+'_'+str(index)
-            D = load_step_index_params(filename,filepath)[-1]
+            D = load_step_index_params(filename, filepath)[-1]
             save_variables('step_index_2m', layer, filepath=filepath, **D)
             os.system('rm '+filepath+filename+'.hdf5')
     return None
 
 
-
-def fibre_parameter_loader(fv, a_vec, dnerr,index,master_index, filename):
+def fibre_parameter_loader(fv, a_vec, dnerr, index, master_index, filename,filepath = 'loading_data/step_data/'):
     """
     This function tried to save time in computation of the step index dipsersion. It
     compares the hdf5 file that was exported from a previous computation if the inputs dont
     fit then it calls the eigenvalue solvers. It has also been extended to look if previous
     results within the same computation hold the same results. Tested on parallell as well.
     """
-    filepath = 'loading_data/step_data/'
+
     index = str(index)
     master_index = str(master_index)
     if os.listdir(filepath) == []:
-        fibre_creator(a_vec, fv, dnerr, master_index, index)
-        a_vec, fv, M1, M2, betas, Q_large,D = \
-            load_step_index_params(filename+'_new_'+master_index+'_'+index,filepath)
+        fibre_creator(a_vec, fv, dnerr, master_index, index, filepath = filepath)
+        a_vec, fv, M1, M2, betas, Q_large, D = \
+            load_step_index_params(
+                filename+'_new_'+master_index+'_'+index, filepath)
         return M1, M2, betas, Q_large
-   
-    D_now = [a_vec, fv,dnerr]
+
+    D_now = [a_vec, fv, dnerr]
     already_done = False
     layer_old = False
     try:
         with h5py.File(filepath+filename+'.hdf5', 'r') as f:
             for layer_old in f.keys():
-                D = [f.get(layer_old + '/' + str(i)).value for i in ('a_vec','fv','dnerr')]
-                already_done = np.array([np.allclose(D_now[i],D[i]) for i in range(3)]).all()
+                D = [f.get(layer_old + '/' + str(i)
+                           ).value for i in ('a_vec', 'fv', 'dnerr')]
+                already_done = np.array(
+                    [np.allclose(D_now[i], D[i]) for i in range(3)]).all()
                 if already_done:
                     break
     except OSError:
         pass
-    
+
     if not(already_done):
         files = os.listdir(filepath)
         if 'step_index_2m.hdf5' in files:
             files.remove('step_index_2m.hdf5')
         for file in files:
             with h5py.File(filepath+file, 'r') as f:
-                D = [f.get(str(i)).value for i in ('a_vec','fv','dnerr')]
-                already_done = np.array([np.allclose(D_now[i],D[i]) for i in range(3)]).all()
+                D = [f.get(str(i)).value for i in ('a_vec', 'fv', 'dnerr')]
+                already_done = np.array(
+                    [np.allclose(D_now[i], D[i]) for i in range(3)]).all()
             if already_done:
                 break
     if not(already_done):
         fibre_creator(a_vec, fv, dnerr, master_index, index)
-        a_vec, fv, M1, M2, betas, Q_large,D = \
-                load_step_index_params(filename+'_new_'+master_index+'_'+index)
+        a_vec, fv, M1, M2, betas, Q_large, D = \
+            load_step_index_params(filename+'_new_'+master_index+'_'+index,filepath = filepath)
     else:
         if layer_old:
             D = read_variables(filename, layer_old, filepath=filepath)
         else:
-            D = load_step_index_params(file[:-5],filepath)[-1]
-        
+            D = load_step_index_params(file[:-5], filepath)[-1]
+
         if os.path.isfile(filepath+filename+'_new_'+master_index+'_'+index+'.hdf5'):
-            os.system('rm ' +filepath+filename+'_new_'+master_index+'_'+index+'.hdf5')   
-        save_variables_step(filename+'_new_'+master_index+'_'+index,  filepath=filepath, **D)
+            os.system('rm ' + filepath+filename+'_new_' +
+                      master_index+'_'+index+'.hdf5')
+        save_variables_step(filename+'_new_'+master_index +
+                            '_'+index,  filepath=filepath, **D)
         M1, M2, betas, Q_large = D['M1'], D['M2'], D['betas'], D['Q_large']
     return M1, M2, betas, Q_large
 
