@@ -146,21 +146,22 @@ def dispersion_operator(betas, int_fwm, sim_wind):
     """
 
     w = sim_wind.w + sim_wind.woffset
-
     betap = np.tile(betas, (int_fwm.nm, 1, 1))
-    betap = np.reshape(betap, (betas.shape[0], int_fwm.nm, betas.shape[1]))
 
     Dop = np.zeros((betas.shape[0], int_fwm.nm, w.shape[0]), dtype=np.complex)
-    alpha = np.reshape(int_fwm.alpha, np.shape(Dop)[1:])
+    
     for i in range(Dop.shape[0]):
-        Dop[i, :, :] -= fftshift(alpha/2)
-    betap[:, :, 0] -= betap[:, :, 0]
-    betap[:, :, 1] -= betap[:, :, 1]
+        Dop[i, :, :] -= fftshift(int_fwm.alpha/2)
+
+
+    for i in range(int_fwm.nm-1, -1, -1):
+        betap[i, :, 0] = betap[i, :, 0] - betap[0, :, 0]
+        betap[i, :, 1] = betap[i, :, 1] - betap[0, :, 1]
 
     for k, b in enumerate(betap):
         for l, bb in enumerate(b):
             for m, bbb in enumerate(bb):
-                Dop[k, l, :] = Dop[k, l, :]-1j*(w**m * bbb / factorial(m))
+                Dop[l, k, :] = Dop[l, k, :]-1j*(w**m * bbb / factorial(m))
     return Dop
 
 
@@ -220,8 +221,11 @@ def fibre_parameter_loader(fv, a_vec, dnerr, index, master_index, filename,filep
             for layer_old in f.keys():
                 D = [f.get(layer_old + '/' + str(i)
                            ).value for i in ('a_vec', 'fv', 'dnerr')]
-                already_done = np.array(
-                    [np.allclose(D_now[i], D[i]) for i in range(3)]).all()
+                try:
+                    already_done = np.array(
+                        [np.allclose(D_now[i], D[i]) for i in range(3)]).all()
+                except ValueError:
+                    pass
                 if already_done:
                     break
     except OSError:
@@ -234,8 +238,11 @@ def fibre_parameter_loader(fv, a_vec, dnerr, index, master_index, filename,filep
         for file in files:
             with h5py.File(filepath+file, 'r') as f:
                 D = [f.get(str(i)).value for i in ('a_vec', 'fv', 'dnerr')]
-                already_done = np.array(
-                    [np.allclose(D_now[i], D[i]) for i in range(3)]).all()
+                try:
+                    already_done = np.array(
+                        [np.allclose(D_now[i], D[i]) for i in range(3)]).all()
+                except ValueError:
+                    pass
             if already_done:
                 break
     if not(already_done):
@@ -394,7 +401,7 @@ class Loss(object):
             self.end = self.flims_large[1] - self.apart
 
     def atten_func_full(self, fv):
-        aten = np.zeros([len(fv), len(self.alpha)])
+        aten = np.zeros([len(self.alpha),len(fv)])
 
         a_s = ((self.amax - self.alpha) / (self.flims_large[0] - self.begin),
 
@@ -403,22 +410,23 @@ class Loss(object):
 
         for i, f in enumerate(fv):
             if f <= self.begin:
-                aten[i, :] = a_s[0][:] * f + b_s[0][:]
+                aten[:,i] = a_s[0][:] * f + b_s[0][:]
             elif f >= self.end:
-                aten[i, :] = a_s[1][:] * f + b_s[1][:]
+                aten[:,i] = a_s[1][:] * f + b_s[1][:]
             else:
-                aten[i, :] = 0
+                aten[:,i] = 0
         for i in range(len(self.alpha)):
-            aten[:, i] += self.alpha[i]
-
+            aten[i,:] += self.alpha[i]
         return aten
 
     def plot(self, fv):
         fig = plt.figure()
         y = self.atten_func_full(fv)
-        plt.plot(fv, y)
+        for l,i in enumerate(y):
+            plt.plot(fv, i, label = 'mode '+str(l))
         plt.xlabel("Frequency (Thz)")
         plt.ylabel("Attenuation (cm -1 )")
+        plt.legend()
         plt.savefig(
             "loss_function_fibre.png", bbox_inches='tight')
         plt.close(fig)

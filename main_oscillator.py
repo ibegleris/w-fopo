@@ -151,14 +151,12 @@ def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losse
     M1, M2, betas, Q_large = fibre_parameter_loader(fv,a_vec,dnerr,
                     index, master_index,filename = 'step_index_2m'
                     )
-
-    print(betas.shape)       
     "----------------------------------------------------------"
 
     "---------------------Loss-in-fibres-----------------------"
     slice_from_edge = (sim_wind.fv[-1] - sim_wind.fv[0])/100
-    loss = Loss(int_fwm, sim_wind, amax=None)
-
+    loss = Loss(int_fwm, sim_wind, amax=10)
+    #loss.plot(sim_wind.fv)
     int_fwm.alpha = loss.atten_func_full(fv)
 
     "----------------------------------------------------------"
@@ -245,7 +243,7 @@ def main():
     n2 = 2.5e-20							# Nonlinear index [m/W]
     gama = 10e-3 							# Overwirtes n2 and Aeff w/m
     # 0.0011667#666666666668		# loss within fibre[dB/m]
-    alphadB = np.array([0, 0])
+    alphadB = np.array([1, 1])
     z = 18									# Length of the fibre
     # P_p = my_arange(5.2,5.45,0.01)
     P_p = [5,6,7]
@@ -262,7 +260,7 @@ def main():
     a_med = 2.2e-6
     a_err = 0.01
     dnerr = 0
-    Num_a = 2
+    Num_a = 4
     
     lamda_c = 1051.85e-9
     # Zero dispersion wavelength [nm]
