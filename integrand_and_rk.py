@@ -148,8 +148,6 @@ def dAdzmm_ron_s1(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
     calculates the nonlinear operator for a given field u0
     use: dA = dAdzmm(u0)
     """
-    #print(u0.shape,M2.shape)
-    #sys.exit()
     M3 = uabs(u0,M2)
     M4 = dt*fftshift(ifft(fft(M3)*hf)) # creates matrix M4
     N = nonlin_ram(M1, Q, u0, M3, M4)
@@ -160,14 +158,14 @@ def dAdzmm_ron_s1(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
 def multi(a,b):
     return a * b
 
-@guvectorize(['void(complex128[:,:], uint8[:,:], float64[:,:])'],\
+@guvectorize(['void(complex128[:,:], int64[:,:], float64[:,:])'],\
                  '(n,m),(o,l)->(l,m)',target = trgt)
 def uabs(u0,M2,M3):
     M3[:,:] = 0
     for ii in range(M2.shape[1]):
         M3[ii,:] = (u0[M2[0,ii],:]*u0[M2[1,ii],:].conj()).real
 
-@guvectorize(['void(int8[:,:], float64[:,:], complex128[:,:],\
+@guvectorize(['void(int64[:,:], complex128[:,:], complex128[:,:],\
             float64[:,:], complex128[:,:], complex128[:,:])'],\
             '(w,a),(i,a),(m,n),(l,n),(l,n)->(m,n)',target = trgt)
 def nonlin_ram(M1, Q, u0, M3, M4, N):
@@ -178,7 +176,7 @@ def nonlin_ram(M1, Q, u0, M3, M4, N):
                                0.54*Q[0,ii]*M4[M1[4,ii],:])
 
 
-@guvectorize(['void(int8[:,:], float64[:,:], complex128[:,:],\
+@guvectorize(['void(int64[:,:], complex128[:,:], complex128[:,:],\
             float64[:,:], complex128[:,:])'],\
             '(w,a),(i,a),(m,n),(l,n)->(m,n)',target = trgt)
 def nonlin_kerr(M1, Q, u0, M3, N):

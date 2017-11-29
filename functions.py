@@ -149,10 +149,9 @@ def dispersion_operator(betas, int_fwm, sim_wind):
     betap = np.tile(betas, (int_fwm.nm, 1, 1))
 
     Dop = np.zeros((betas.shape[0], int_fwm.nm, w.shape[0]), dtype=np.complex)
-    
+
     for i in range(Dop.shape[0]):
         Dop[i, :, :] -= fftshift(int_fwm.alpha/2)
-
 
     for i in range(int_fwm.nm-1, -1, -1):
         betap[i, :, 0] = betap[i, :, 0] - betap[0, :, 0]
@@ -185,7 +184,8 @@ def consolidate_hdf5_steps(master_index_l, size_ins, filepath):
     Puts all exported HDF5 files created to one and saves it for future 
     computational saving time. 
     """
-    os.system('rm ' + filepath+'step_index_2m.hdf5')
+    if os.path.isfile(filepath+'step_index_2m.hdf5'):
+        os.system('rm ' + filepath+'step_index_2m.hdf5')
     for master_index in range(master_index_l):
         for index in range(size_ins):
             layer = str(int(size_ins * master_index + index))
@@ -196,7 +196,7 @@ def consolidate_hdf5_steps(master_index_l, size_ins, filepath):
     return None
 
 
-def fibre_parameter_loader(fv, a_vec, dnerr, index, master_index, filename,filepath = 'loading_data/step_data/'):
+def fibre_parameter_loader(fv, a_vec, dnerr, index, master_index, filename, filepath='loading_data/step_data/'):
     """
     This function tried to save time in computation of the step index dipsersion. It
     compares the hdf5 file that was exported from a previous computation if the inputs dont
@@ -207,7 +207,7 @@ def fibre_parameter_loader(fv, a_vec, dnerr, index, master_index, filename,filep
     index = str(index)
     master_index = str(master_index)
     if os.listdir(filepath) == []:
-        fibre_creator(a_vec, fv, dnerr, master_index, index, filepath = filepath)
+        fibre_creator(a_vec, fv, dnerr, master_index, index, filepath=filepath)
         a_vec, fv, M1, M2, betas, Q_large, D = \
             load_step_index_params(
                 filename+'_new_'+master_index+'_'+index, filepath)
@@ -245,10 +245,12 @@ def fibre_parameter_loader(fv, a_vec, dnerr, index, master_index, filename,filep
                     pass
             if already_done:
                 break
+
     if not(already_done):
         fibre_creator(a_vec, fv, dnerr, master_index, index)
         a_vec, fv, M1, M2, betas, Q_large, D = \
-            load_step_index_params(filename+'_new_'+master_index+'_'+index,filepath = filepath)
+            load_step_index_params(
+                filename+'_new_'+master_index+'_'+index, filepath=filepath)
     else:
         if layer_old:
             D = read_variables(filename, layer_old, filepath=filepath)
@@ -258,6 +260,7 @@ def fibre_parameter_loader(fv, a_vec, dnerr, index, master_index, filename,filep
         if os.path.isfile(filepath+filename+'_new_'+master_index+'_'+index+'.hdf5'):
             os.system('rm ' + filepath+filename+'_new_' +
                       master_index+'_'+index+'.hdf5')
+
         save_variables_step(filename+'_new_'+master_index +
                             '_'+index,  filepath=filepath, **D)
         M1, M2, betas, Q_large = D['M1'], D['M2'], D['betas'], D['Q_large']
@@ -293,15 +296,19 @@ class sim_parameters(object):
         self.how = how
         return None
 
-    def propagation_parameters(self, N, z, nplot, dz_less):
+    def propagation_parameters(self, N, z, nplot, dz_less,Num_a):
         self.N = N
         self.nt = 2**self.N
-        self.z = z
         self.nplot = nplot
-        self.dzstep = self.z/self.nplot
-        self.dz = self.dzstep/dz_less
-        return None
 
+        self.z = np.linspace(0,z, Num_a+1)
+        self.Dz_vec = np.array([self.z[i + 1] - self.z[i] for i in range(len(self.z)-1)])
+        self.dzstep_vec = self.Dz_vec/self.nplot
+        self.dz = self.dzstep_vec[0]/dz_less
+        return None
+    def woble_propagate(self,i):
+        self.dzstep = self.dzstep_vec[i]
+        return None
 
 class sim_window(object):
 
@@ -336,7 +343,7 @@ class sim_window(object):
         # wavelength vector [nm]
         self.lv = 1e-3*c/self.fv
         # space vector [m]
-        self.zv = int_fwm.dzstep*np.asarray(range(0, int_fwm.nplot+1))
+        #self.zv = int_fwm.dzstep*np.asarray(range(0, int_fwm.nplot+1))
         self.fv_idler_int = fv_idler_int
         self.fv_idler_tuple = (
             self.fmed*1e-12 - fv_idler_int, self.fmed*1e-12 + fv_idler_int)
@@ -401,7 +408,7 @@ class Loss(object):
             self.end = self.flims_large[1] - self.apart
 
     def atten_func_full(self, fv):
-        aten = np.zeros([len(self.alpha),len(fv)])
+        aten = np.zeros([len(self.alpha), len(fv)])
 
         a_s = ((self.amax - self.alpha) / (self.flims_large[0] - self.begin),
 
@@ -410,20 +417,20 @@ class Loss(object):
 
         for i, f in enumerate(fv):
             if f <= self.begin:
-                aten[:,i] = a_s[0][:] * f + b_s[0][:]
+                aten[:, i] = a_s[0][:] * f + b_s[0][:]
             elif f >= self.end:
-                aten[:,i] = a_s[1][:] * f + b_s[1][:]
+                aten[:, i] = a_s[1][:] * f + b_s[1][:]
             else:
-                aten[:,i] = 0
+                aten[:, i] = 0
         for i in range(len(self.alpha)):
-            aten[i,:] += self.alpha[i]
+            aten[i, :] += self.alpha[i]
         return aten
 
     def plot(self, fv):
         fig = plt.figure()
         y = self.atten_func_full(fv)
-        for l,i in enumerate(y):
-            plt.plot(fv, i, label = 'mode '+str(l))
+        for l, i in enumerate(y):
+            plt.plot(fv, i, label='mode '+str(l))
         plt.xlabel("Frequency (Thz)")
         plt.ylabel("Attenuation (cm -1 )")
         plt.legend()
@@ -654,7 +661,7 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf, Dop, dAdzmm):
             # update the propagated distance
             dztot += dz
             # update the number of steps taken
-
+            
             # store the dz just taken
             #dzv = np.append(dzv, dz)
             # calculate the next step (longer)
@@ -675,7 +682,6 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf, Dop, dAdzmm):
                 dz = int_fwm.dzstep*(jj+1) - dztot
             #dz = np.copy(dz2)
             ###################################################################
-
         u[jj+1, :] = u1
         U[jj+1, :] = fftshift(fft(u[jj+1, :]))
     int_fwm.dz = dz*1

@@ -29,7 +29,8 @@ def kv_(n, z):
 def save_variables_step(filename,filepath='', **variables):
 
     file = os.path.join(filepath, filename+'.hdf5')
-    os.system('rm '+file)
+    if os.path.isfile(file):
+        os.system('rm '+file)
     with h5py.File(file, 'a') as f:
         for i in (variables):
             f.create_dataset(str(i), data=variables[i])

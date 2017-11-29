@@ -137,7 +137,7 @@ class Test_dispersion_raman(Raman):
     l_vec = np.linspace(1600e-9, 1500e-9, 64)
     int_fwm = sim_parameters(2.5e-20, 2, 0)
     int_fwm.general_options(1e-13, 0, 1, 1)
-    int_fwm.propagation_parameters(6, 18, 2, 1)
+    int_fwm.propagation_parameters(6, 18, 2, 1,1)
     sim_wind = \
             sim_window(1e-12*c/l_vec, (l_vec[0]+l_vec[-1])*0.5,
                      (l_vec[0]+l_vec[-1])*0.5, int_fwm, 10)
@@ -177,7 +177,7 @@ def pulse_propagations(ram, ss, nm, N_sol=1):
     "-----------------------------General options------------------------------"
     maxerr = 1e-13                # maximum tolerable error per step
     "----------------------------Simulation parameters-------------------------"
-    N = 14
+    N = 8
     z = 70                     # total distance [m]
     nplot = 10                  # number of plots
     nt = 2**N                     # number of grid points
@@ -185,22 +185,21 @@ def pulse_propagations(ram, ss, nm, N_sol=1):
     dz_less = 1e30
     dz = dzstep/dz_less         # starting guess value of the step
 
-    lam_p1 = 835
-    lamda_c = 835e-9
+    lam_p1 = 1550
+    lamda_c =1550e-9
     lamda = lam_p1*1e-9
 
     beta2 = -1e-3
     P0_p1 = 1
-
+    betas = np.array([0,0,beta2])
     T0 = (N_sol**2 * np.abs(beta2) / (gama * P0_p1))**0.5
     TFWHM = (2*np.log(1+2**0.5)) * T0
-    print(TFWHM)
-    sys.exit()
+
     int_fwm = sim_parameters(n2, nm, alphadB)
     int_fwm.general_options(maxerr, raman_object, ss, ram)
-    int_fwm.propagation_parameters(N, z, nplot, dz_less)
+    int_fwm.propagation_parameters(N, z, nplot, dz_less,1)
 
-    fv, where = fv_creator(lam_p1 - 25, lam_p1, int_fwm)
+    fv, where = fv_creator(lam_p1, lam_p1 - 25, int_fwm, prot_casc=0)
     sim_wind = sim_window(fv, lamda, lamda_c, int_fwm, fv_idler_int=1)
 
     loss = Loss(int_fwm, sim_wind, amax=int_fwm.alphadB)
@@ -211,7 +210,8 @@ def pulse_propagations(ram, ss, nm, N_sol=1):
     index = 1
     master_index = 0
     a_vec = [2.2e-6]
-    M1, M2, betas, Q_large = \
+    
+    M1, M2, dump, Q_large = \
     fibre_parameter_loader(fv,a_vec,dnerr,index, master_index,
         'step_index_2m', filepath = 'testing_data/step_index/')
     Dop = dispersion_operator(betas, int_fwm, sim_wind)
@@ -227,7 +227,7 @@ def pulse_propagations(ram, ss, nm, N_sol=1):
 
     dAdzmm = func_dict[string]
 
-    M1, M2, Q = Q_matrixes(1, n2, lamda, gama=gama)
+    #M1, M2, Q = Q_matrixes(1, n2, lamda, gama=gama)
     raman = raman_object(int_fwm.ram, int_fwm.how)
     raman.raman_load(sim_wind.t, sim_wind.dt, M2)
 
@@ -237,8 +237,8 @@ def pulse_propagations(ram, ss, nm, N_sol=1):
         hf = None
 
     u = np.empty(
-        [len(sim_wind.zv), int_fwm.nm, len(sim_wind.t)], dtype='complex128')
-    U = np.empty([len(sim_wind.zv), int_fwm.nm,
+        [nplot+1, int_fwm.nm, len(sim_wind.t)], dtype='complex128')
+    U = np.empty([nplot+1, int_fwm.nm,
                   len(sim_wind.t)], dtype='complex128')
 
     sim_wind.w_tiled = np.tile(sim_wind.w + sim_wind.woffset, (int_fwm.nm, 1))
@@ -381,7 +381,7 @@ def test_time_frequency():
 class Test_WDM_1m():
     x1 = 950
     x2 = 1050
-    N = 16
+    N = 17
     nt = 2**N
     l1, l2 = 900, 1250
     f1, f2 = 1e-3 * c / l1, 1e-3 * c / l2
@@ -392,7 +392,7 @@ class Test_WDM_1m():
     lamda = (lv[-1] + lv[0])/2
     int_fwm = sim_parameters(2.5e-20, 1, 0)
     int_fwm.general_options(1e-13, 'off', 1, 1)
-    int_fwm.propagation_parameters(N, 18, 2, 1)
+    int_fwm.propagation_parameters(N, 18, 2, 1,1)
     sim_wind = \
             sim_window(fv, lamda,
                      lamda, int_fwm, N)
@@ -448,7 +448,7 @@ class Test_WDM_2m():
     lamda = (lv[-1] + lv[0])/2
     int_fwm = sim_parameters(2.5e-20, 2, 0)
     int_fwm.general_options(1e-13, 'off', 2, 2)
-    int_fwm.propagation_parameters(N, 18, 2, 2)
+    int_fwm.propagation_parameters(N, 18, 2, 2,1)
     sim_wind = \
             sim_window(fv, lamda,
                      lamda, int_fwm, N)
@@ -548,7 +548,7 @@ class Test_splicer_1m():
     lamda = (lv[-1] + lv[0])/2
     int_fwm = sim_parameters(2.5e-20, 1, 0)
     int_fwm.general_options(1e-13, 'off', 1, 1)
-    int_fwm.propagation_parameters(N, 18, 2, 1)
+    int_fwm.propagation_parameters(N, 18, 2, 1,1)
     sim_wind = \
             sim_window(fv, lamda,
                      lamda, int_fwm, N)
@@ -592,7 +592,7 @@ class Test_splicer_2m():
     lamda = (lv[-1] + lv[0])/2
     int_fwm = sim_parameters(2.5e-20, 1, 0)
     int_fwm.general_options(1e-13, 'off', 1, 1)
-    int_fwm.propagation_parameters(N, 18, 2, 1)
+    int_fwm.propagation_parameters(N, 18, 2, 1,1)
     sim_wind = \
             sim_window(fv, lamda,
                      lamda, int_fwm, N)
@@ -722,7 +722,7 @@ def test_full_trans_in_cavity_1():
     from scipy.constants import c, pi
     int_fwm = sim_parameters(2.5e-20, 1, 0)
     int_fwm.general_options(1e-6, raman_object, 0, 0)
-    int_fwm.propagation_parameters(N, 18, 1, 1)
+    int_fwm.propagation_parameters(N, 18, 1, 1,1)
 
     lam_p1 = 1048.17107345
     fv, where = fv_creator(850, lam_p1, int_fwm)
@@ -760,7 +760,7 @@ def test_full_trans_in_cavity_2():
     from scipy.constants import c, pi
     int_fwm = sim_parameters(2.5e-20, 1, 0)
     int_fwm.general_options(1e-6, raman_object, 0, 0)
-    int_fwm.propagation_parameters(N, 18, 1, 1)
+    int_fwm.propagation_parameters(N, 18, 1, 1,1)
 
     lam_p1 = 1048.17107345
     fv, where = fv_creator(850, lam_p1, int_fwm)
