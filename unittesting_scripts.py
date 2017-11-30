@@ -210,10 +210,13 @@ def pulse_propagations(ram, ss, nm, N_sol=1):
     index = 1
     master_index = 0
     a_vec = [2.2e-6]
-
-    M1, M2, dump, Q_large = \
-    fibre_parameter_loader(fv,a_vec,dnerr,index, master_index,
-        filename = 'step_index_2m', filepath = 'testing_data/step_index/')
+    if nm ==1:
+        D = loadmat('M1_M2_1m.mat', squeeze_me=True)
+        M1,M2 = D['M1'],D['M2']
+    else:
+        M1, M2, dump, Q_large = \
+        fibre_parameter_loader(fv,a_vec,dnerr,index, master_index,
+            filename = 'step_index_2m', filepath = 'testing_data/step_index/')
 
     betas = np.reshape(betas, (dump.shape[0], betas.shape[0]))
     betas = betas[np.newaxis,:]
