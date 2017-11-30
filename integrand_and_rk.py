@@ -101,7 +101,7 @@ def A6_temp(u1, A1, A2, A3, A4, A5):
 
 
 
-@jit
+#@jit
 def dAdzmm_roff_s0(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
     """
     calculates the nonlinear operator for a given field u0
@@ -115,7 +115,7 @@ def dAdzmm_roff_s0(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
 
 
 
-@jit
+#@jit
 def dAdzmm_roff_s1(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
     """
     calculates the nonlinear operator for a given field u0
@@ -128,7 +128,7 @@ def dAdzmm_roff_s1(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
 
 
 
-@jit
+#@jit
 def dAdzmm_ron_s0(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
     """
     calculates the nonlinear operator for a given field u0
@@ -142,7 +142,7 @@ def dAdzmm_ron_s0(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
 
 
 
-@jit
+#@jit
 def dAdzmm_ron_s1(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
     """
     calculates the nonlinear operator for a given field u0

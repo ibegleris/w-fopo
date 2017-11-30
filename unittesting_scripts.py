@@ -198,7 +198,7 @@ def pulse_propagations(ram, ss, nm, N_sol=1):
     int_fwm = sim_parameters(n2, nm, alphadB)
     int_fwm.general_options(maxerr, raman_object, ss, ram)
     int_fwm.propagation_parameters(N, z, nplot, dz_less,1)
-
+    int_fwm.woble_propagate(0)
     fv, where = fv_creator(lam_p1, lam_p1 - 25, int_fwm, prot_casc=0)
     sim_wind = sim_window(fv, lamda, lamda_c, int_fwm, fv_idler_int=1)
 
@@ -210,12 +210,16 @@ def pulse_propagations(ram, ss, nm, N_sol=1):
     index = 1
     master_index = 0
     a_vec = [2.2e-6]
-    
+
     M1, M2, dump, Q_large = \
     fibre_parameter_loader(fv,a_vec,dnerr,index, master_index,
-        'step_index_2m', filepath = 'testing_data/step_index/')
+        filename = 'step_index_2m', filepath = 'testing_data/step_index/')
+
+    betas = np.reshape(betas, (dump.shape[0], betas.shape[0]))
+    betas = betas[np.newaxis,:]
+    #sys.exit()
     Dop = dispersion_operator(betas, int_fwm, sim_wind)
-    
+    print(Dop.shape)
     string = "dAdzmm_r"+str(ram)+"_s"+str(ss)
     func_dict = {'dAdzmm_ron_s1': dAdzmm_ron_s1,
                  'dAdzmm_ron_s0': dAdzmm_ron_s0,
@@ -247,7 +251,7 @@ def pulse_propagations(ram, ss, nm, N_sol=1):
         np.exp(-1j*(sim_wind.woffset)*sim_wind.t)
     U[0, :, :] = fftshift(sim_wind.dt*fft(u[0, :, :]))
 
-    u, U = pulse_propagation(u, U, int_fwm, M1, M2, Q,
+    u, U = pulse_propagation(u, U, int_fwm, M1, M2, Q_large[0],
                              sim_wind, hf, Dop, dAdzmm)
     U_start = np.abs(U[0, :, :])**2
 

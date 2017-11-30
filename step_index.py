@@ -58,7 +58,7 @@ def fibre_creator(a_vec, f_vec, dnerr, master_index, index, per=['ge', 'sio2'], 
     Export_dict = {'M1': M1, 'M2': M2,
                    'Q_large': Q_large, 'betas': betas_large,
                    'a_vec': a_vec, 'fv': f_vec, 'dnerr': dnerr}
-
+    #print(filepath)
     save_variables_step(filename+'_new_'+master_index+'_'+index,  filepath=filepath, **Export_dict)
     return betas_large, Q_large, M, beta2_large, ncore, nclad
 

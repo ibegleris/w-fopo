@@ -203,14 +203,14 @@ def fibre_parameter_loader(fv, a_vec, dnerr, index, master_index, filename, file
     fit then it calls the eigenvalue solvers. It has also been extended to look if previous
     results within the same computation hold the same results. Tested on parallell as well.
     """
-
+    print(filepath)
     index = str(index)
     master_index = str(master_index)
     if os.listdir(filepath) == []:
         fibre_creator(a_vec, fv, dnerr, master_index, index, filepath=filepath)
         a_vec, fv, M1, M2, betas, Q_large, D = \
             load_step_index_params(
-                filename+'_new_'+master_index+'_'+index, filepath)
+                filename+'_new_'+master_index+'_'+index, filepath = filepath)
         return M1, M2, betas, Q_large
 
     D_now = [a_vec, fv, dnerr]
@@ -247,7 +247,7 @@ def fibre_parameter_loader(fv, a_vec, dnerr, index, master_index, filename, file
                 break
 
     if not(already_done):
-        fibre_creator(a_vec, fv, dnerr, master_index, index)
+        fibre_creator(a_vec, fv, dnerr, master_index, index,filepath = filepath)
         a_vec, fv, M1, M2, betas, Q_large, D = \
             load_step_index_params(
                 filename+'_new_'+master_index+'_'+index, filepath=filepath)
