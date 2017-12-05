@@ -16,7 +16,7 @@ from time import time, sleep
 def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
              master_index, P0_p1, P0_s, f_p, f_s, p_pos, s_pos,
              splicers_vec, WDM_vec, M1, M2, Q_large, hf, Dop_large, dAdzmm, D_pic,
-             pulse_pos_dict_or, plots, mode_names, ex):
+             pulse_pos_dict_or, plots, mode_names, ex, Dtheta):
 
     u = np.empty(
         [int_fwm.nplot+1, int_fwm.nm, len(sim_wind.t)], dtype='complex128')
@@ -74,7 +74,7 @@ def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
             int_fwm.woble_propagate(index_woble)  
             u, U = pulse_propagation(u, U, int_fwm, M1, M2, Q,
                                      sim_wind, hf, Dop, dAdzmm)
-        
+            u = Dtheta.bire_pass(u,index_woble)
         ex.exporter(index, int_fwm, sim_wind, u, U, P0_p1,
                     P0_s, f_p, f_s, -1, ro, mode_names, master_index,
                     str(ro)+'2', pulse_pos_dict[0], D_pic[2], plots)
@@ -132,7 +132,7 @@ def calc_P_out(U, U_original_pump, fv, t):
 @unpack_args
 def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losses,
               lamda_c, WDMS_pars, lamp, lams, num_cores, maxerr, ss, ram, plots,
-              N, nt, nplot, master_index, nm, mode_names, a_vec, dnerr):
+              N, nt, nplot, master_index, nm, mode_names, a_vec, dnerr,Dtheta):
 
     ex = Plotter_saver(plots, True)  # construct exporter
     "------------------propagation paramaters------------------"
@@ -168,7 +168,7 @@ def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losse
     # loss.plot(sim_wind.fv)
     
     int_fwm.alpha = loss.atten_func_full(fv)
-    print(int_fwm.alpha)
+    #print(int_fwm.alpha)
     "----------------------------------------------------------"
 
     "--------------------Dispersion----------------------------"
@@ -223,7 +223,7 @@ def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losse
     f_p, f_s = 1e-3*c/lamp, 1e-3*c/lams
 
     oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index, master_index, P_p, P_s, f_p, f_s, p_pos, s_pos, splicers_vec,
-             WDM_vec, M1, M2, Q_large, hf, Dop_large, dAdzmm, D_pic, pulse_pos_dict_or, plots, mode_names, ex)
+             WDM_vec, M1, M2, Q_large, hf, Dop_large, dAdzmm, D_pic, pulse_pos_dict_or, plots, mode_names, ex, Dtheta)
     return None
 
 
@@ -236,7 +236,7 @@ def main():
     ss = 1                                  # includes self steepening term
     ram = 'on'                              # Raman contribution 'on' if yes and 'off' if no
     # Do you want plots, be carefull it makes the code very slow!
-    plots = True
+    plots = False
     N = 8                                   # 2**N grid points
     nt = 2**N                               # number of grid points
     nplot = 2                               # number of plots within fibre min is 2
@@ -259,7 +259,7 @@ def main():
     alphadB = np.array([0,0])              # loss within fibre[dB/m]
     z = 18                                  # Length of the fibre
     # P_p = my_arange(5.2,5.45,0.01)
-    P_p = [5, 6, 7]
+    P_p = [5,6]
     # *my_arange(100e-3,1100e-3, 100e-3)                           # Signal power [W]
     P_s = 0
     TFWHM_p = 0                             # full with half max of pump
@@ -272,10 +272,13 @@ def main():
     #                  -1.002e-4, 3.671e-7])*1e-3
     #betas = np.tile(betas, (nm, 1))
     a_med = 2.2e-6
-    a_err = 0.0
+    a_err = 0.01
     dnerr = 0
-    Num_a = 1
+    Num_a = 5
     a_vec = np.random.uniform(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
+    a_vec = np.linspace(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
+    
+    Dtheta = birfeg_variation(Num_a)
     lamda_c = 1051.85e-9
     # Zero dispersion wavelength [nm]
     # max at ls,li = 1095, 1010
@@ -305,7 +308,8 @@ def main():
                'P_s': P_s, 'TFWHM_p': TFWHM_p, 'TFWHM_s': TFWHM_s,
                'spl_losses': spl_losses,
                'lamda_c': lamda_c, 'WDMS_pars': WDMS_pars,
-               'lamp': lamp, 'lams': lams, 'a_vec':a_vec, 'dnerr': dnerr}
+               'lamp': lamp, 'lams': lams, 'a_vec':a_vec, 'dnerr': dnerr,
+               'Dtheta' : Dtheta}
 
     "--------------------------------------------------------------------------"
     outside_var_key = 'lamp'

@@ -63,9 +63,10 @@ class Raman():
     master_index = 0
     a_vec = [2.2e-6]
     M1, M2, betas, Q_large = \
-    fibre_parameter_loader(fv,a_vec,dnerr,index, master_index,
-        'step_index_2m', filepath = 'testing_data/step_index/')
+        fibre_parameter_loader(fv, a_vec, dnerr, index, master_index,
+                               'step_index_2m', filepath='testing_data/step_index/')
     print(betas)
+
     def test_raman_off(self):
         ram = raman_object('off')
         ram.raman_load(np.random.rand(10), np.random.rand(1)[0], None)
@@ -132,19 +133,20 @@ class Raman():
 
 "----------------------------Dispersion operator--------------"
 
+
 class Test_dispersion_raman(Raman):
-   
+
     l_vec = np.linspace(1600e-9, 1500e-9, 64)
     int_fwm = sim_parameters(2.5e-20, 2, 0)
     int_fwm.general_options(1e-13, 0, 1, 1)
-    int_fwm.propagation_parameters(6, 18, 2, 1,1)
+    int_fwm.propagation_parameters(6, 18, 2, 1, 1)
     sim_wind = \
-            sim_window(1e-12*c/l_vec, (l_vec[0]+l_vec[-1])*0.5,
-                     (l_vec[0]+l_vec[-1])*0.5, int_fwm, 10)
+        sim_window(1e-12*c/l_vec, (l_vec[0]+l_vec[-1])*0.5,
+                   (l_vec[0]+l_vec[-1])*0.5, int_fwm, 10)
     loss = Loss(int_fwm, sim_wind, amax=10)
     alpha_func = loss.atten_func_full(sim_wind.fv)
     int_fwm.alphadB = alpha_func
-    int_fwm.alpha =int_fwm.alphadB
+    int_fwm.alpha = int_fwm.alphadB
     betas_disp = dispersion_operator(Raman.betas, int_fwm, sim_wind)
 
     def test_dispersion(self):
@@ -157,12 +159,12 @@ class Test_dispersion_raman(Raman):
             betas_exact = f.get('betas').value
 
         assert_allclose(self.betas_disp, betas_exact)
-    
+
     def test_dispersion_same(self):
         """
         Tests if the dispersion of the first two modes (degenerate) are the same. 
         """
-        assert_allclose(self.betas_disp[:,0, :], self.betas_disp[:,1, :])
+        assert_allclose(self.betas_disp[:, 0, :], self.betas_disp[:, 1, :])
 
 
 "-----------------------Full soliton--------------------------------------------"
@@ -177,7 +179,7 @@ def pulse_propagations(ram, ss, nm, N_sol=1):
     "-----------------------------General options------------------------------"
     maxerr = 1e-13                # maximum tolerable error per step
     "----------------------------Simulation parameters-------------------------"
-    N = 8
+    N = 14
     z = 70                     # total distance [m]
     nplot = 10                  # number of plots
     nt = 2**N                     # number of grid points
@@ -186,18 +188,18 @@ def pulse_propagations(ram, ss, nm, N_sol=1):
     dz = dzstep/dz_less         # starting guess value of the step
 
     lam_p1 = 1550
-    lamda_c =1550e-9
+    lamda_c = 1550e-9
     lamda = lam_p1*1e-9
 
     beta2 = -1e-3
     P0_p1 = 1
-    betas = np.array([0,0,beta2])
+    betas = np.array([0, 0, beta2])
     T0 = (N_sol**2 * np.abs(beta2) / (gama * P0_p1))**0.5
     TFWHM = (2*np.log(1+2**0.5)) * T0
 
     int_fwm = sim_parameters(n2, nm, alphadB)
     int_fwm.general_options(maxerr, raman_object, ss, ram)
-    int_fwm.propagation_parameters(N, z, nplot, dz_less,1)
+    int_fwm.propagation_parameters(N, z, nplot, dz_less, 1)
     int_fwm.woble_propagate(0)
     fv, where = fv_creator(lam_p1, lam_p1 - 25, int_fwm, prot_casc=0)
     sim_wind = sim_window(fv, lamda, lamda_c, int_fwm, fv_idler_int=1)
@@ -210,17 +212,26 @@ def pulse_propagations(ram, ss, nm, N_sol=1):
     index = 1
     master_index = 0
     a_vec = [2.2e-6]
-    if nm ==1:
-        D = loadmat('M1_M2_1m.mat', squeeze_me=True)
-        M1,M2 = D['M1'],D['M2']
+    if nm == 1:
+        D = loadmat('loading_data/M1_M2_1m_new.mat')
+        M1_temp, M2 = D['M1'], D['M2']
+        M2[:, :] -= 1
+        M1 = np.empty([np.shape(M1_temp)[0]-2,
+                       np.shape(M1_temp)[1]], dtype=np.int64)
+
+        M1[:4] = M1_temp[:4] - 1
+        Q_large = M1_temp[np.newaxis, 4:6, :]
+        M1[-1] = M1_temp[6, :] - 1
+        Q_large[:,:,:] = gama / (3*n2*(2*pi/lamda))
     else:
         M1, M2, dump, Q_large = \
-        fibre_parameter_loader(fv,a_vec,dnerr,index, master_index,
-            filename = 'step_index_2m', filepath = 'testing_data/step_index/')
-
-    betas = np.reshape(betas, (dump.shape[0], betas.shape[0]))
-    betas = betas[np.newaxis,:]
-    #sys.exit()
+            fibre_parameter_loader(fv, a_vec, dnerr, index, master_index,
+                                   filename='step_index_2m', filepath='testing_data/step_index/')
+        print(Q_large.shape)
+        Q_large[0,0,:] = gama / (3*n2*(2*pi/lamda)) * np.array([1,1,0,0,0,0,1,1])
+        Q_large[0,1,:] = gama / (3*n2*(2*pi/lamda)) * np.array([1,0,0,1,1,0,0,1])
+    betas = betas[np.newaxis, :]
+    # sys.exit()
     Dop = dispersion_operator(betas, int_fwm, sim_wind)
     print(Dop.shape)
     string = "dAdzmm_r"+str(ram)+"_s"+str(ss)
@@ -299,10 +310,15 @@ class Test_pulse_prop(object):
 
     def test_solit_r0_ss0(self):
         u, U, maxerr = pulse_propagations('off', 0, nm=1)
-        print(np.linalg.norm(np.abs(u[:, 0])**2 - np.abs(u[:, -1])**2, 2))
-
         assert_allclose(np.abs(u[0, :, :])**2,
                         np.abs(u[-1, :, :])**2, atol=9e-4)
+
+    def test_solit_r0_ss0_2(self):
+        u, U, maxerr = pulse_propagations('off', 0, nm=2)
+        #print(np.linalg.norm(np.abs(u[:, 0])**2 - np.abs(u[:, -1])**2, 2))
+
+        assert_allclose(np.abs(u[0, :, :])**2,
+                        np.abs(u[-1, :, :])**2, atol=9e-3)
 
     def test_energy_r0_ss0(self):
         u, U, maxerr = pulse_propagations(
@@ -336,12 +352,7 @@ class Test_pulse_prop(object):
             E.append(np.linalg.norm(u[:, i], 2)**2)
         assert np.all(x == E[0] for x in E)
 
-    def test_solit_r0_ss0_2(self):
-        u, U, maxerr = pulse_propagations('off', 0, nm=2)
-        print(np.linalg.norm(np.abs(u[:, 0])**2 - np.abs(u[:, -1])**2, 2))
-
-        assert_allclose(np.abs(u[0, :, :])**2,
-                        np.abs(u[-1, :, :])**2, atol=9e-3)
+    
 
     def test_energy_r0_ss0_2(self):
         u, U, maxerr = pulse_propagations(
@@ -385,10 +396,12 @@ def test_time_frequency():
     assert_allclose(u1, u2)
 
 "-------------------------------WDM------------------------------------"
+
+
 class Test_WDM_1m():
     x1 = 950
     x2 = 1050
-    N = 17
+    N = 18
     nt = 2**N
     l1, l2 = 900, 1250
     f1, f2 = 1e-3 * c / l1, 1e-3 * c / l2
@@ -399,43 +412,42 @@ class Test_WDM_1m():
     lamda = (lv[-1] + lv[0])/2
     int_fwm = sim_parameters(2.5e-20, 1, 0)
     int_fwm.general_options(1e-13, 'off', 1, 1)
-    int_fwm.propagation_parameters(N, 18, 2, 1,1)
+    int_fwm.propagation_parameters(N, 18, 2, 1, 1)
     sim_wind = \
-            sim_window(fv, lamda,
-                     lamda, int_fwm, N)
+        sim_window(fv, lamda,
+                   lamda, int_fwm, N)
     #sim_wind = sim_windows(lamda, lv, 900, 1250, nt)
     WDMS = WDM(x1, x2, fv, c)
 
     U1 = 100*(np.random.randn(1, nt) +
-             1j * np.random.randn(1, nt))
-    U2 = 100 * (np.random.randn(1, nt) +
               1j * np.random.randn(1, nt))
+    U2 = 100 * (np.random.randn(1, nt) +
+                1j * np.random.randn(1, nt))
     U_in = (U1, U2)
     U_in_tot = np.abs(U1)**2 + np.abs(U2)**2
-    
 
     u_in1 = ifft(fftshift(U1))
     u_in2 = ifft(fftshift(U2))
     u_in_tot = simps(np.abs(u_in1)**2, sim_wind.t) + \
-                simps(np.abs(u_in2)**2, sim_wind.t)
-   
+        simps(np.abs(u_in2)**2, sim_wind.t)
+
     a, b = WDMS.pass_through(U_in, sim_wind)
-    
 
     U_out1, U_out2 = a[1], b[1]
     u_out1, u_out2 = a[0], b[0]
-
 
     U_out_tot = np.abs(U_out1)**2 + np.abs(U_out2)**2
 
     u_out_tot = simps(np.abs(u_out1)**2, sim_wind.t) + \
         simps(np.abs(u_out2)**2, sim_wind.t)
+
     def test1m_WDM_freq(self):
-       
+
         assert_allclose(self.U_in_tot, self.U_out_tot)
 
     def test1m_WDM_time(self):
         assert_allclose(self.u_in_tot, self.u_out_tot, rtol=1e-05)
+
 
 class Test_WDM_2m():
     """
@@ -444,7 +456,7 @@ class Test_WDM_2m():
     """
     x1 = 950
     x2 = 1050
-    N = 17
+    N = 18
     nt = 2**N
     l1, l2 = 900, 1250
     f1, f2 = 1e-3 * c / l1, 1e-3 * c / l2
@@ -455,31 +467,28 @@ class Test_WDM_2m():
     lamda = (lv[-1] + lv[0])/2
     int_fwm = sim_parameters(2.5e-20, 2, 0)
     int_fwm.general_options(1e-13, 'off', 2, 2)
-    int_fwm.propagation_parameters(N, 18, 2, 2,1)
+    int_fwm.propagation_parameters(N, 18, 2, 2, 1)
     sim_wind = \
-            sim_window(fv, lamda,
-                     lamda, int_fwm, N)
+        sim_window(fv, lamda,
+                   lamda, int_fwm, N)
     #sim_wind = sim_windows(lamda, lv, 900, 1250, nt)
     WDMS = WDM(x1, x2, fv, c)
     U1 = 100*(np.random.randn(2, nt) +
-             1j * np.random.randn(2, nt))
+              1j * np.random.randn(2, nt))
     U2 = 100*(np.random.randn(2, nt) +
-             1j * np.random.randn(2, nt))
+              1j * np.random.randn(2, nt))
     U_in = (U1, U2)
     U_in_tot = np.abs(U1)**2 + np.abs(U2)**2
-    
 
     u_in1 = ifft(fftshift(U1))
     u_in2 = ifft(fftshift(U2))
     u_in_tot = simps(np.abs(u_in1)**2, sim_wind.t) + \
-                simps(np.abs(u_in2)**2, sim_wind.t)
-   
+        simps(np.abs(u_in2)**2, sim_wind.t)
+
     a, b = WDMS.pass_through(U_in, sim_wind)
-    
 
     U_out1, U_out2 = a[1], b[1]
     u_out1, u_out2 = a[0], b[0]
-
 
     U_out_tot = np.abs(U_out1)**2 + np.abs(U_out2)**2
 
@@ -518,7 +527,7 @@ class Test_loss:
         alpha_func = loss.atten_func_full(sim_wind.fv)
         ex = np.zeros_like(alpha_func)
         for i, a in enumerate(alpha_func):
-            ex[i,:] = np.ones_like(a)*alphadB[i]/4.343
+            ex[i, :] = np.ones_like(a)*alphadB[i]/4.343
         assert_allclose(alpha_func, ex)
 
     def test_loss2(a):
@@ -541,6 +550,7 @@ class Test_loss:
         minim = np.min(alpha_func)
         assert minim == np.min(alphadB)/4.343
 
+
 class Test_splicer_1m():
     x1 = 950
     x2 = 1050
@@ -555,16 +565,16 @@ class Test_splicer_1m():
     lamda = (lv[-1] + lv[0])/2
     int_fwm = sim_parameters(2.5e-20, 1, 0)
     int_fwm.general_options(1e-13, 'off', 1, 1)
-    int_fwm.propagation_parameters(N, 18, 2, 1,1)
+    int_fwm.propagation_parameters(N, 18, 2, 1, 1)
     sim_wind = \
-            sim_window(fv, lamda,
-                     lamda, int_fwm, N)
+        sim_window(fv, lamda,
+                   lamda, int_fwm, N)
     #sim_wind = sim_windows(lamda, lv, 900, 1250, nt)
     WDMS = WDM(x1, x2, fv, c)
     U1 = 10*(np.random.randn(1, nt) +
              1j * np.random.randn(1, nt))
     U2 = 10 * (np.random.randn(1, nt) +
-              1j * np.random.randn(1, nt))
+               1j * np.random.randn(1, nt))
     splicer = Splicer(loss=np.random.rand()*10)
     U_in = (U1, U2)
     U1 = U1
@@ -585,6 +595,7 @@ class Test_splicer_1m():
     def test1_splicer_time(self):
         assert_allclose(self.u_in_tot, self.u_out_tot)
 
+
 class Test_splicer_2m():
     x1 = 950
     x2 = 1050
@@ -599,10 +610,10 @@ class Test_splicer_2m():
     lamda = (lv[-1] + lv[0])/2
     int_fwm = sim_parameters(2.5e-20, 1, 0)
     int_fwm.general_options(1e-13, 'off', 1, 1)
-    int_fwm.propagation_parameters(N, 18, 2, 1,1)
+    int_fwm.propagation_parameters(N, 18, 2, 1, 1)
     sim_wind = \
-            sim_window(fv, lamda,
-                     lamda, int_fwm, N)
+        sim_window(fv, lamda,
+                   lamda, int_fwm, N)
     #sim_wind = sim_windows(lamda, lv, 900, 1250, nt)
     WDMS = WDM(x1, x2, fv, c)
     U1 = 10*(np.random.randn(2, nt) +
@@ -622,7 +633,7 @@ class Test_splicer_2m():
     U_out1, U_out2 = a[1], b[1]
     U_out_tot = np.abs(U_out1)**2 + np.abs(U_out2)**2
     u_out_tot = np.abs(u_out1)**2 + np.abs(u_out2)**2
-    
+
     def test2_splicer_freq(self):
         assert_allclose(self.U_in_tot, self.U_out_tot)
 
@@ -729,7 +740,7 @@ def test_full_trans_in_cavity_1():
     from scipy.constants import c, pi
     int_fwm = sim_parameters(2.5e-20, 1, 0)
     int_fwm.general_options(1e-6, raman_object, 0, 0)
-    int_fwm.propagation_parameters(N, 18, 1, 1,1)
+    int_fwm.propagation_parameters(N, 18, 1, 1, 1)
 
     lam_p1 = 1048.17107345
     fv, where = fv_creator(850, lam_p1, int_fwm)
@@ -767,7 +778,7 @@ def test_full_trans_in_cavity_2():
     from scipy.constants import c, pi
     int_fwm = sim_parameters(2.5e-20, 1, 0)
     int_fwm.general_options(1e-6, raman_object, 0, 0)
-    int_fwm.propagation_parameters(N, 18, 1, 1,1)
+    int_fwm.propagation_parameters(N, 18, 1, 1, 1)
 
     lam_p1 = 1048.17107345
     fv, where = fv_creator(850, lam_p1, int_fwm)
@@ -806,10 +817,10 @@ from step_index import *
 def eigenvalues_test_case(l_vec, a_vec, margin):
 
     fibre = Fibre()
-    per=[ 'ge', 'sio2']
+    per = ['ge', 'sio2']
     err = 0.002
     ncore, nclad = fibre.indexes(l_vec, a_vec, per, err)
-    #fibre.plot_fibre_n(l_vec,a_vec,per,err)
+    # fibre.plot_fibre_n(l_vec,a_vec,per,err)
     E = Eigenvalues(l_vec, a_vec, ncore, nclad)
 
     u_vec = np.zeros([len(a_vec), len(l_vec)])
@@ -818,10 +829,11 @@ def eigenvalues_test_case(l_vec, a_vec, margin):
         print('New a = ', a)
         for j, l in enumerate(l_vec):
             u_vec[i, j], w_vec[i, j] = E.eigen_solver(margin, i, j)
-    return u_vec, w_vec, E.V,ncore,nclad
+    return u_vec, w_vec, E.V, ncore, nclad
 
 
 class Test_eigenvalues:
+
     def test_V(self):
         margin = 5e-15
         a_med = 10e-6
@@ -833,15 +845,15 @@ class Test_eigenvalues:
 
         l_vec = np.linspace(l_p - l_span, l_p + l_span, 20)
         a_vec = np.linspace(low_a, high_a, 5)
-           
-        u_vec, w_vec, V_vec,ncore, nclad = eigenvalues_test_case(l_vec, a_vec, margin)
+
+        u_vec, w_vec, V_vec, ncore, nclad = eigenvalues_test_case(
+            l_vec, a_vec, margin)
 
         assert_allclose((u_vec**2 + w_vec**2)**0.5, V_vec)
 
 
-
 class Test_betas:
-    
+
     margin = 5e-15
     a_med = 7e-6
     a_err_p = 0.01
@@ -852,38 +864,59 @@ class Test_betas:
 
     l_vec = np.linspace(l_p - l_span, l_p + l_span, 2**4)
     a_vec = np.linspace(low_a, high_a, 5)
-    
+
     o_vec = 1e-12*2*pi * c / l_vec
     o = (o_vec[0]+o_vec[-1])/2
-    u_vec, w_vec, V_vec,ncore, nclad =\
-     eigenvalues_test_case(l_vec, a_vec, margin)
-    
-    betas = np.zeros([len(a_vec),len(o_vec)])
+    u_vec, w_vec, V_vec, ncore, nclad =\
+        eigenvalues_test_case(l_vec, a_vec, margin)
+
+    betas = np.zeros([len(a_vec), len(o_vec)])
     beta_interpo = np.zeros(betas.shape)
-    b = Betas(u_vec, w_vec, l_vec, o_vec, o, ncore,nclad)
-        
+    b = Betas(u_vec, w_vec, l_vec, o_vec, o, ncore, nclad)
+
     def test_neffs(self):
-        for i,a in enumerate(self.a_vec):
-            self.betas[i,:] = self.b.beta_func(i)
+        for i, a in enumerate(self.a_vec):
+            self.betas[i, :] = self.b.beta_func(i)
         neffs = self.betas/self.b.k
         assert (neffs < self.b.core).all() and (neffs > self.b.clad).all()
 
     def test_poly(self):
-        for i,a in enumerate(self.a_vec):
-            self.betas[i,:] = self.b.beta_func(i)
+        for i, a in enumerate(self.a_vec):
+            self.betas[i, :] = self.b.beta_func(i)
             beta_coef = self.b.beta_extrapo(i)
             p = np.poly1d(beta_coef)
-            self.beta_interpo[i,:] = p(self.b.o_norm)
-        assert_allclose(self.betas,self.beta_interpo,rtol=1e-07)
-    
+            self.beta_interpo[i, :] = p(self.b.o_norm)
+        assert_allclose(self.betas, self.beta_interpo, rtol=1e-07)
+
     def test_taylor(self):
-        taylor_dispersion = np.zeros([len(self.a_vec),len(self.b.o_vec)])
-        for i,a in enumerate(self.a_vec):
-            self.betas[i,:] = self.b.beta_func(i)
+        taylor_dispersion = np.zeros([len(self.a_vec), len(self.b.o_vec)])
+        for i, a in enumerate(self.a_vec):
+            self.betas[i, :] = self.b.beta_func(i)
             beta_coef = self.b.beta_extrapo(i)
             p = np.poly1d(1e-12*self.b.o_norm)
             betass = self.b.beta_dispersions(i)
             for j, bb in enumerate(betass):
-                taylor_dispersion[i,:] += (bb/factorial(j))*((self.b.o_vec - self.b.o))**j
-        assert_allclose(self.betas, taylor_dispersion, rtol = 1e-7)
-    
+                taylor_dispersion[
+                    i, :] += (bb/factorial(j))*((self.b.o_vec - self.b.o))**j
+        assert_allclose(self.betas, taylor_dispersion, rtol=1e-7)
+
+class Test_birefring():
+    """
+    Tests a conservation of energy for the birefringence angle change 
+    that occurs at the wobbly sections. 
+    """
+    Num_a = 10
+    Dtheta = birfeg_variation(Num_a)
+
+    def test_energy_1m(self):
+        u1 = 100*(np.random.randn(2,1, 1024) +
+              1j * np.random.randn(2,1, 1024))
+        u2 = self.Dtheta.bire_pass(u1,0)
+        assert_allclose(np.abs(u1)**2, np.abs(u2)**2)
+
+    def test_energy_2m(self):
+        u1 = 100*(np.random.randn(2,2, 1024) +
+              1j * np.random.randn(2,2, 1024))
+        u2 = self.Dtheta.bire_pass(u1,0)
+        assert_allclose(np.abs(u1[:,0,:])**2 + np.abs(u1[:,1,:])**2,
+                        np.abs(u2[:,0,:])**2 + np.abs(u2[:,1,:])**2)

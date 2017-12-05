@@ -195,59 +195,86 @@ def consolidate_hdf5_steps(master_index_l, size_ins, filepath):
             os.system('rm '+filepath+filename+'.hdf5')
     return None
 
+def find_large_block_data(already_done,layer_old,filepath,filename,D_now):
+    """
+    Searches the large block file to see if the data is already cached
+    Returns a bool. 
+    """
+    #print(filepath+filename+'.hdf5')
+    with h5py.File(filepath+filename+'.hdf5', 'r') as f:
+        for layer_old in f.keys():
+            D = [f.get(layer_old + '/' + str(i)
+                       ).value for i in ('a_vec', 'fv', 'dnerr')]
+            try:
+                #print(D_now, [D[i] for i in range(3)])
+                already_done = np.array(
+                    [np.allclose(D_now[i], D[i]) for i in range(3)]).all()
+            except ValueError:
+                pass
+            if already_done:
+                print('found in large')
+                break
+    return already_done,layer_old
 
-def fibre_parameter_loader(fv, a_vec, dnerr, index, master_index, filename, filepath='loading_data/step_data/'):
+def find_small_block_data(already_done,layer_old,filepath,filename,D_now):
+    """
+    Searches the small block files to see if the data is already cached
+    Returns a bool. 
+    """
+
+    files = os.listdir(filepath)
+    if 'step_index_2m.hdf5' in files:
+        files.remove('step_index_2m.hdf5')
+    f = None
+    for file in files:
+        with h5py.File(filepath+file, 'r') as f:
+            D = [f.get(str(i)).value for i in ('a_vec', 'fv', 'dnerr')]
+            try:
+
+                already_done = np.array(
+                    [np.allclose(D_now[i], D[i]) for i in range(3)]).all()
+            except ValueError:
+                pass
+        if already_done:
+            print('found in small')
+            f = file
+            break
+    return already_done, f
+
+def fibre_parameter_loader(fv, a_vec, dnerr, index, master_index,
+                           filename, filepath='loading_data/step_data/'):
     """
     This function tried to save time in computation of the step index dipsersion. It
     compares the hdf5 file that was exported from a previous computation if the inputs dont
     fit then it calls the eigenvalue solvers. It has also been extended to look if previous
-    results within the same computation hold the same results. Tested on parallell as well.
+    results within the same computation hold the same results. Tested on parallell.
     """
-    print(filepath)
+    # print(filepath)
     index = str(index)
     master_index = str(master_index)
     if os.listdir(filepath) == []:
+        print('no files in dir, calculating new radius:', filepath)
         fibre_creator(a_vec, fv, dnerr, master_index, index, filepath=filepath)
         a_vec, fv, M1, M2, betas, Q_large, D = \
             load_step_index_params(
-                filename+'_new_'+master_index+'_'+index, filepath = filepath)
+                filename+'_new_'+master_index+'_'+index, filepath=filepath)
         return M1, M2, betas, Q_large
 
     D_now = [a_vec, fv, dnerr]
     already_done = False
     layer_old = False
-    try:
-        with h5py.File(filepath+filename+'.hdf5', 'r') as f:
-            for layer_old in f.keys():
-                D = [f.get(layer_old + '/' + str(i)
-                           ).value for i in ('a_vec', 'fv', 'dnerr')]
-                try:
-                    already_done = np.array(
-                        [np.allclose(D_now[i], D[i]) for i in range(3)]).all()
-                except ValueError:
-                    pass
-                if already_done:
-                    break
-    except OSError:
-        pass
+    #try:
+    already_done,layer_old  =\
+             find_large_block_data(already_done,layer_old,filepath,filename,D_now)
+    #except OSError:
+    #    pass
 
     if not(already_done):
-        files = os.listdir(filepath)
-        if 'step_index_2m.hdf5' in files:
-            files.remove('step_index_2m.hdf5')
-        for file in files:
-            with h5py.File(filepath+file, 'r') as f:
-                D = [f.get(str(i)).value for i in ('a_vec', 'fv', 'dnerr')]
-                try:
-                    already_done = np.array(
-                        [np.allclose(D_now[i], D[i]) for i in range(3)]).all()
-                except ValueError:
-                    pass
-            if already_done:
-                break
+        already_done, file = \
+            find_small_block_data(already_done,layer_old,filepath,filename,D_now)
 
     if not(already_done):
-        fibre_creator(a_vec, fv, dnerr, master_index, index,filepath = filepath)
+        fibre_creator(a_vec, fv, dnerr, master_index, index, filepath=filepath)
         a_vec, fv, M1, M2, betas, Q_large, D = \
             load_step_index_params(
                 filename+'_new_'+master_index+'_'+index, filepath=filepath)
@@ -257,7 +284,8 @@ def fibre_parameter_loader(fv, a_vec, dnerr, index, master_index, filename, file
         else:
             D = load_step_index_params(file[:-5], filepath)[-1]
 
-        if os.path.isfile(filepath+filename+'_new_'+master_index+'_'+index+'.hdf5'):
+        if os.path.isfile(filepath+filename+'_new_' +
+                          master_index+'_'+index+'.hdf5'):
             os.system('rm ' + filepath+filename+'_new_' +
                       master_index+'_'+index+'.hdf5')
 
@@ -296,19 +324,22 @@ class sim_parameters(object):
         self.how = how
         return None
 
-    def propagation_parameters(self, N, z, nplot, dz_less,Num_a):
+    def propagation_parameters(self, N, z, nplot, dz_less, Num_a):
         self.N = N
         self.nt = 2**self.N
         self.nplot = nplot
 
-        self.z = np.linspace(0,z, Num_a+1)
-        self.Dz_vec = np.array([self.z[i + 1] - self.z[i] for i in range(len(self.z)-1)])
+        self.z = np.linspace(0, z, Num_a+1)
+        self.Dz_vec = np.array([self.z[i + 1] - self.z[i]
+                                for i in range(len(self.z)-1)])
         self.dzstep_vec = self.Dz_vec/self.nplot
         self.dz = self.dzstep_vec[0]/dz_less
         return None
-    def woble_propagate(self,i):
+
+    def woble_propagate(self, i):
         self.dzstep = self.dzstep_vec[i]
         return None
+
 
 class sim_window(object):
 
@@ -482,8 +513,6 @@ class WDM(object):
         Passes the amplitudes through the object. returns the u, U and Uabs
         in a form of a tuple of (port1,port2)
         """
-        # print(np.shape(U_in[0]))
-        #U_in[0],U_in[1] = U_in[0][:,np.newaxis],U_in[1][:,np.newaxis]
 
         U_out = self.U_calc(U_in)
         u_out = ()
@@ -623,17 +652,13 @@ class Noise(object):
         noise = self.noise_func(int_fwm)
         noise_freq = fftshift(fft(noise))
         return noise_freq
-#import warnings
-# warnings.filterwarnings("error")
 
 
 def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf, Dop, dAdzmm):
-    """Pulse propagation"""
-    # badz = 0  # counter for bad steps
-    # goodz = 0  # counter for good steps
+    """Pulse propagation part of the code. We use the split-step fourier method
+       with a modified step using the RK45 algorithm. 
+    """
     dztot = 0  # total distance traveled
-    #dzv = np.zeros(1)
-    #dzv[0] = int_fwm.dz
     Safety = 0.95
     u1 = u[0, :, :]
     dz = int_fwm.dz * 1
@@ -652,27 +677,20 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf, Dop, dAdzmm):
                 if (delta > int_fwm.maxerr):
                     # calculate the step (shorter) to redo
                     dz *= Safety*(int_fwm.maxerr/delta)**0.25
-                    #badz += 1
             #####################################Successful step###############
             # propagate the remaining half step
 
             u1 = ifft(np.exp(Dop*dz/2)*fft(A))
-            #goodz +=1
             # update the propagated distance
             dztot += dz
+            #print(dztot)
             # update the number of steps taken
-            
-            # store the dz just taken
-            #dzv = np.append(dzv, dz)
-            # calculate the next step (longer)
-            # # without exceeding max dzstep
             try:
                 dz = np.min(
-                    [Safety*dz*(int_fwm.maxerr/delta)**0.2, Safety*int_fwm.dzstep])
+                    [Safety*dz*(int_fwm.maxerr/delta)**0.2,
+                     Safety*int_fwm.dzstep])
             except RuntimeWarning:
                 dz = Safety*int_fwm.dzstep
-            #dz = 0.95*dz*(int_fwm.maxerr/delta)**0.2
-            # print(dz)
             ###################################################################
 
             if dztot == (int_fwm.dzstep*(jj+1)):
@@ -680,7 +698,6 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf, Dop, dAdzmm):
 
             elif ((dztot + dz) >= int_fwm.dzstep*(jj+1)):
                 dz = int_fwm.dzstep*(jj+1) - dztot
-            #dz = np.copy(dz2)
             ###################################################################
         u[jj+1, :] = u1
         U[jj+1, :] = fftshift(fft(u[jj+1, :]))
@@ -766,7 +783,7 @@ def check_ft_grid(fv, diff):
     if np.log2(np.shape(fv)[0]) == int(np.log2(np.shape(fv)[0])):
         nt = np.shape(fv)[0]
     else:
-        print(            "fix the grid for optimization\
+        print("fix the grid for optimization  \
              of the fft's, grid:" + str(np.shape(fv)[0]))
         sys.exit(1)
 
@@ -818,3 +835,26 @@ def power_idler(spec, fv, sim_wind, fv_id):
                   np.abs(spec[fv_id[0]:fv_id[1], 0])**2, fv[fv_id[0]:fv_id[1]])
     P_bef = E_out/(2*np.max(sim_wind.t))
     return P_bef
+
+
+class birfeg_variation(object):
+
+    def __init__(self, N):
+        self.Da = np.random.uniform(0, 2*pi, N)
+        self._P_mat()
+        return None
+
+    def _P_mat(self):
+        self.P = np.array([[np.cos(self.Da), 1j*np.sin(self.Da)],
+                           [1j*np.sin(self.Da), np.cos(self.Da)]])
+        return None
+
+    def bire_pass(self, u, i):
+        try:
+            u[0, 0, :] = self.P[0, 0][i] * u[-1, 0, :] + \
+                self.P[0, 1][i] * u[-1, 1, :]
+            u[0, 1, :] = self.P[1, 0][i] * u[-1, 0, :] + \
+                self.P[1, 1][i] * u[-1, 1, :]
+        except IndexError:
+            u[0, 0, :] = u[-1, 0, :]
+        return u
