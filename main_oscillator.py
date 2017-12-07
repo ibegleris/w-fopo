@@ -277,9 +277,13 @@ def main():
     Num_a = 5
     a_vec = np.random.uniform(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
     a_vec = np.linspace(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
-
-    dnerr = dnerr_med*np.random.randn(len(a_vec))
+    a_vec = np.concatenate((a_vec,np.array([a_med + 2*a_err * a_med])))
+    #dnerr = dnerr_med*np.random.randn(len(a_vec))
     dnerr = np.linspace(-dnerr_med, dnerr_med, len(a_vec))
+    #dnerr = np.concatenate((dnerr,np.array([1])))
+    
+    #print(np.shape(dnerr), np.shape(a_vec))
+    #sys.exit()
     Dtheta = birfeg_variation(Num_a)
     lamda_c = 1051.85e-9
     # Zero dispersion wavelength [nm]

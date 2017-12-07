@@ -458,7 +458,7 @@ for pos in ('4','2'):
 
         for i in inside_vec[int(ii)]:
             print(ii,i)
-            CE = Conversion_efficiency(freq_band = 2,possition = pos,last = 2,\
+            CE = Conversion_efficiency(freq_band = 2,possition = pos,last = 500,\
                 safety = 2, filename = 'data_large',\
                 filepath = which+'/output'+str(i)+'/data/',filepath2 = 'output_final/'+str(ii)+'/pos'+str(pos)+'/')
 

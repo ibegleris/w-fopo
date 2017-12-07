@@ -172,22 +172,13 @@ def load_step_index_params(filename, filepath):
                 D[str(i)] = f.get(str(i)).value
             except AttributeError:
                 pass
-    a_vec, fv, dnerr,  M1, M2, betas, Q_large =\
+    a_vec, fv, dnerr,  M1, M2, betas, Q_large, dnerr =\
         D['a_vec'], D['fv'], D['dnerr'], D['M1'], \
-        D['M2'], D['betas'], D['Q_large']
+        D['M2'], D['betas'], D['Q_large'], D['dnerr']
 
-    return a_vec, fv, M1, M2, betas, Q_large, D
+    return a_vec, fv, M1, M2, betas, Q_large, dnerr, D
 
 
-def save_variables_step(filename,filepath='', **variables):
-
-    file = os.path.join(filepath, filename+'.hdf5')
-    if os.path.isfile(file):
-        os.system('rm '+file)
-    with h5py.File(file, 'a') as f:
-        for i in (variables):
-            f.create_dataset(str(i), data=variables[i])
-    return None
 
 
 
@@ -288,12 +279,12 @@ def fibre_parameter_loader(fv, a_vec, dnerr, index, master_index,
              find_large_block_data_full(already_done,layer_old,filepath,filename,D_now)
     except OSError:
         pass
-
+    """
     if not(already_done):
         #Try and find in the normal ones
         already_done, file = \
             find_small_block_data_full(already_done,layer_old,filepath,filename,D_now)
-
+    """
     
     if already_done:
         #If the entire computation is already done then simply load and save variables
@@ -313,21 +304,23 @@ def fibre_parameter_loader(fv, a_vec, dnerr, index, master_index,
         M1, M2, betas, Q_large = D['M1'], D['M2'], D['betas'], D['Q_large']
         return M1, M2, betas, Q_large
     ##########################################################################################
+    M1, M2, betas, Q_large = find_small_block_data_small(D_now,filename,filepath,master_index, index)
 
-
-    if not(already_done):
-        Export_dict = fibre_creator(a_vec, fv, dnerr,
-                         master_index, index, filepath=filepath)[-1]
-        save_variables_step(filename+'_new_'+master_index+'_'+index,
-                          filepath=filepath, **Export_dict)
-        M1, M2, betas, Q_large = Export_dict['M1'], Export_dict['M2'], \
-                                 np.asanyarray(Export_dict['betas']), Export_dict['Q_large']
+    #if not(already_done):
+        #Export_dict = fibre_creator(a_vec, fv, dnerr,
+        #                 master_index, index, filepath=filepath)[-1]
+        #save_variables_step(filename+'_new_'+master_index+'_'+index,
+        #                  filepath=filepath, **Export_dict)
+        #M1, M2, betas, Q_large = Export_dict['M1'], Export_dict['M2'], \
+        #                         np.asanyarray(Export_dict['betas']), Export_dict['Q_large']
+    sys.exit()
     return M1, M2, betas, Q_large
 
-def find_small_block_data_small(D_now,filepath):
+def find_small_block_data_small(D_now,filename,filepath, master_index, index):
     """
-    Searches the small block files to see if the data is already cached
-    Returns a bool. 
+    Searches the block files to see if there is any
+    data that has already been calculated prior to launch, calculates what
+    is left. Only works for 2 modes!
     """
     a_vec, fv, dnerr = D_now 
     files = os.listdir(filepath)
@@ -335,23 +328,57 @@ def find_small_block_data_small(D_now,filepath):
         files.remove('step_index_2m.hdf5')
     Q_large = np.zeros([len(a_vec), 2, 8], dtype =np.complex128)
     betas = np.zeros([len(a_vec),len(fv)])
+    not_found = np.ones(len(a_vec))
 
     for file in files:
-        with h5py.File(filepath+file, 'r') as f:
-            D = [f.get(str(i)).value for i in ('a_vec', 'fv', 'dnerr')]
-            a_vec_, fv_, M1, M2, betas_,\
-                             Q_large_ = \
-                             load_step_index_params(filename, filepath)[:-1]
-            #if np.allclose(fv,fv_):
-                
+        #with h5py.File(filepath+file, 'r') as f:
+        #D = [f.get(str(i)).value for i in ('a_vec', 'fv', 'dnerr')]
+        print(file)
+        a_vec_old, fv_old, M1_old, M2_old, betas_old,\
+                         Q_large_old, dnerr_old = \
+                         load_step_index_params(file[:-5], filepath)[:-1]
+        if np.allclose(fv_old, fv):
+            #i_vec = ()
+            for j in range(len(a_vec_old)):
+                i_vec = np.where(np.isclose(a_vec, [a_vec_old[j]]) *\
+                                 np.isclose(dnerr, [dnerr_old[j]]))[0]
+                for i in i_vec:
+                    print('found', a_vec_old[j])
+                    Q_large[i, :,:] =Q_large_old[j,:,:]
+                    betas[i,:] = betas[j,:]
+                    not_found[i] = 0
+        if (not_found == False).all():
+            break
 
+    # What is missing? Fix the array and send it though to calculate them. 
+    dnerr_temp = np.ones_like(dnerr) # Dirty fix because dnerr can be zero
+    a_vec_needed, dnerr_needed = a_vec * not_found, dnerr_temp * not_found
+    a_vec_needed, dnerr_needed = a_vec_needed[a_vec_needed != 0], \
+                                 dnerr_needed[dnerr_needed !=0]
+    dnerr_needed[:] = 0
+    if a_vec_needed.any():
+        print('Doing some extra calculations for data not cached')
+        print(a_vec_needed, dnerr_needed)
+        Export_dict = fibre_creator(a_vec_needed, fv, dnerr_needed,
+                             master_index, index, filepath=filepath)[-1]
+        M1, M2, betas_new, Q_large_new = Export_dict['M1'], Export_dict['M2'], \
+                             np.asanyarray(Export_dict['betas']), Export_dict['Q_large']
+        count = 0
+        for i in range(len(a_vec)):
+            if not_found[i]:
+                Q_large[i,:,:] = Q_large_new[count, :,:]
+                betas[i,:] = betas_new[count,:]
+                count += 1
+    else:
+        M1,M2 = M1_old, M2_old
+    Export_dict = {'M1': M1, 'M2': M2,
+               'Q_large': Q_large, 'betas': betas,
+               'a_vec': a_vec, 'fv': fv, 'dnerr': dnerr}
+    sys.exit()
+    save_variables_step(filename+'_new_'+master_index+'_'+index,
+                          filepath=filepath, **Export_dict)
 
-            try:
-                already_done = np.array(
-                    [np.allclose(D_now[i], D[i]) for i in range(3)]).all()
-            except ValueError:
-                pass
-    return already_done, f
+    return M1, M2, betas, Q_large
 
 class sim_parameters(object):
 
