@@ -26,15 +26,6 @@ def kv_(n, z):
     return -0.5 * (kv(n-1, z) + kv(n+1, z))
 
 
-def save_variables_step(filename,filepath='', **variables):
-
-    file = os.path.join(filepath, filename+'.hdf5')
-    if os.path.isfile(file):
-        os.system('rm '+file)
-    with h5py.File(file, 'a') as f:
-        for i in (variables):
-            f.create_dataset(str(i), data=variables[i])
-    return None
 
 
 class Fibre(object):
@@ -68,8 +59,8 @@ class Fibre(object):
 
             self.core = np.zeros([N_cores, len(l)])
             for i in range(N_cores):
-                self.core[i, :] = np.random.rand(
-                    len(core))*err*(core - clad) + core
+                self.core[i, :] = \
+                        err[i]*(core - clad) + core
         except IndexError:
             #print('index')
             self.clad = clad

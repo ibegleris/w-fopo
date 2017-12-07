@@ -273,11 +273,13 @@ def main():
     #betas = np.tile(betas, (nm, 1))
     a_med = 2.2e-6
     a_err = 0.01
-    dnerr = 0
+    dnerr_med = 0
     Num_a = 5
     a_vec = np.random.uniform(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
     a_vec = np.linspace(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
-    
+
+    dnerr = dnerr_med*np.random.randn(len(a_vec))
+    dnerr = np.linspace(-dnerr_med, dnerr_med, len(a_vec))
     Dtheta = birfeg_variation(Num_a)
     lamda_c = 1051.85e-9
     # Zero dispersion wavelength [nm]
@@ -345,6 +347,7 @@ def main():
         else:
             A = Parallel(n_jobs=num_cores)(delayed(formulate)(**{**D_ins[i], ** large_dic}) for i in range(len(D_ins)))
         _temps.cleanup_folder()
+    sys.exit()
     consolidate_hdf5_steps(len(outside_var), len(
         inside_var), filepath='loading_data/step_data/')
     print('\a')

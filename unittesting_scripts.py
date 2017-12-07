@@ -201,7 +201,7 @@ def pulse_propagations(ram, ss, nm, N_sol=1):
     int_fwm.general_options(maxerr, raman_object, ss, ram)
     int_fwm.propagation_parameters(N, z, nplot, dz_less, 1)
     int_fwm.woble_propagate(0)
-    fv, where = fv_creator(lam_p1, lam_p1 - 25, int_fwm, prot_casc=0)
+    fv, where = fv_creator(lam_p1, lam_p1 + 25, int_fwm, prot_casc=0)
     sim_wind = sim_window(fv, lamda, lamda_c, int_fwm, fv_idler_int=1)
 
     loss = Loss(int_fwm, sim_wind, amax=int_fwm.alphadB)
@@ -768,7 +768,7 @@ def test_full_trans_in_cavity_1():
 
     U = WDM1.pass_through((np.zeros_like(U), U), sim_wind)[0][1]
 
-    assert_allclose(np.max(np.abs(U)**2), 0.7234722042243035)
+    assert_allclose(np.max(np.abs(U)**2), 0.7234722042243035, atol = 1e-2)
 
 
 def test_full_trans_in_cavity_2():
@@ -808,17 +808,17 @@ def test_full_trans_in_cavity_2():
     U_abs = np.abs(U)**2
 
     Umax1, Umax2 = np.max(U_abs[0, :]), np.max(U_abs[1, :])
-    assert_allclose((Umax1, Umax2), (0.7234722042243035, 0.7234722042243035))
+    assert_allclose((Umax1, Umax2), (0.7234722042243035, 0.7234722042243035), atol = 1e-2)
 
 '-------------------------Testing-step-index-fibre--------------------'
 from step_index import *
 
 
-def eigenvalues_test_case(l_vec, a_vec, margin):
+def eigenvalues_test_case(l_vec, a_vec,err, margin):
 
     fibre = Fibre()
     per = ['ge', 'sio2']
-    err = 0.002
+    #err = 0.002
     ncore, nclad = fibre.indexes(l_vec, a_vec, per, err)
     # fibre.plot_fibre_n(l_vec,a_vec,per,err)
     E = Eigenvalues(l_vec, a_vec, ncore, nclad)
@@ -845,9 +845,9 @@ class Test_eigenvalues:
 
         l_vec = np.linspace(l_p - l_span, l_p + l_span, 20)
         a_vec = np.linspace(low_a, high_a, 5)
-
+        err = np.linspace(-0.001, 0.001,5)
         u_vec, w_vec, V_vec, ncore, nclad = eigenvalues_test_case(
-            l_vec, a_vec, margin)
+            l_vec, a_vec,err, margin)
 
         assert_allclose((u_vec**2 + w_vec**2)**0.5, V_vec)
 
@@ -864,11 +864,11 @@ class Test_betas:
 
     l_vec = np.linspace(l_p - l_span, l_p + l_span, 2**4)
     a_vec = np.linspace(low_a, high_a, 5)
-
+    err = np.linspace(-0.001, 0.001,5)
     o_vec = 1e-12*2*pi * c / l_vec
     o = (o_vec[0]+o_vec[-1])/2
     u_vec, w_vec, V_vec, ncore, nclad =\
-        eigenvalues_test_case(l_vec, a_vec, margin)
+        eigenvalues_test_case(l_vec, a_vec,err, margin)
 
     betas = np.zeros([len(a_vec), len(o_vec)])
     beta_interpo = np.zeros(betas.shape)

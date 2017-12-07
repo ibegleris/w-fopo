@@ -59,8 +59,7 @@ def fibre_creator(a_vec, f_vec, dnerr, master_index, index, per=['ge', 'sio2'], 
                    'Q_large': Q_large, 'betas': betas_large,
                    'a_vec': a_vec, 'fv': f_vec, 'dnerr': dnerr}
     #print(filepath)
-    save_variables_step(filename+'_new_'+master_index+'_'+index,  filepath=filepath, **Export_dict)
-    return betas_large, Q_large, M, beta2_large, ncore, nclad
+    return betas_large, Q_large, M, beta2_large, ncore, nclad, Export_dict
 
 
 def main(a_med, a_err_p, l_p, l_span, N_points):
@@ -74,7 +73,8 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
     #a_vec = np.linspace(2.2e-6, 2.2e-6, 1)
     a_vec = np.linspace(low_a, high_a, 8)
     per = ['ge', 'sio2']
-    err = 0
+    err_med = 0.001
+    err = err_med*np.random.randn(len(a_vec))
     betas, Q_large, M, beta2, ncore, nclad =\
         fibre_creator(a_vec, f_vec, err, per=per, N_points=N_points)
 
