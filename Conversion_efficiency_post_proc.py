@@ -33,21 +33,21 @@ def selmier(l):
 
 
 class Conversion_efficiency(object):
-    def __init__(self, freq_band, last, safety, possition, filename=None, filepath='',                 filename2 = 'CE',filepath2 = 'output_final/'):
+    def __init__(self, freq_band, last, safety, possition, filename=None, filepath='',filename2 = 'CE',filepath2 = 'output_final/'):
         self.mode_names = ('LP01x', 'LP01y')
         self.n = 1.444
         self.last = last
         self.safety = safety
         self.variables = ('P_p', 'P_s', 'f_p', 'f_s','l_p','l_s,' 'P_out', 'P_bef','CE', 'CE_std', 'P_out_std','rin')
         self.spec, self.fv, self.t, self.P0_p, self.P0_s,self.f_p,\
-        self.f_s, self.P_bef,self.ro,self.U_large,tt,self.u_large,self.L =\
+        self.f_s, self.P_bef,self.ro,self.U_large,tt,self.L =\
                                         self.load_spectrum('0',filename, filepath)
         self.pos_of_pump()
 
         self.P_max = np.array([np.max(i) for i in self.spec])
    
         self.spec, self.fv, self.t, self.P0_p, self.P0_s,self.f_p,\
-        self.f_s, self.P_bef,self.ro,U_large,tt,self.u_large,self.L =\
+        self.f_s, self.P_bef,self.ro,U_large,tt,self.L =\
                    self.load_spectrum(possition,filename, filepath)
         self.tt = tt
         self.freq_band = freq_band
@@ -72,6 +72,8 @@ class Conversion_efficiency(object):
         self.lam_wanted = 1e-3*c/self.fv[fv_id]
         self.lamp = 1e-3*c/self.f_p
         self.l_s = 1e-3*c/self.f_s
+        print(np.shape(self.spec))
+        #sys.exit()
         self.U_large_norm = np.empty_like(U_large)
 
         self.n = selmier(1e-3*self.lam_wanted)
@@ -80,7 +82,7 @@ class Conversion_efficiency(object):
         
         for i,P_max in enumerate(self.P_max):
             self.U_large_norm[:,i,:] =\
-                    w2dbm(np.abs(self.U_large[:,i,:])**2) - w2dbm(P_max)
+                    w2dbm(np.abs(self.U_large[:,i,:])**2) - P_max
 
         P_out_vec = []
         P_out_vec_casc = []
@@ -102,13 +104,14 @@ class Conversion_efficiency(object):
         self.P_out_vec_casc = np.asanyarray(P_out_vec_casc)
         self.P_out_vec = np.asanyarray(P_out_vec)
 
-        
+
         #for l, la in enumerate(last):
         D_now = {}
         D_now['P_out'] = np.mean(self.P_out_vec[-last::,:], axis = 0)
         D_now['CE'] = 100*D_now['P_out']/ (self.P0_p + self.P0_s)
         D_now['P_out_std'] = np.std(self.P_out_vec[-last::,:], axis = 0)
         D_now['CE_std'] = np.std(self.P_out_vec[-last::,:] / (self.P0_p + self.P0_s), axis = 0)
+
         D_now['rin'] = 10*np.log10(self.time_trip*D_now['P_out_std']**2 / D_now['P_out']**2)
         D_now['P_p'], D_now['P_s'], D_now['f_p'], D_now['f_s'],\
             D_now['l_p'], D_now['l_s'], D_now['P_bef'] =\
@@ -169,7 +172,6 @@ class Conversion_efficiency(object):
         with h5py.File(filepath+filename+'.hdf5','r') as f: 
             l = f.get(possition)
             U_large = ()
-            u_large = ()
             integers_list = [int(i) for i in l.keys()]
             integers_list.sort()
             integers_generator = (str(n) for n in integers_list)
@@ -178,21 +180,19 @@ class Conversion_efficiency(object):
                 steady_state = i
                 layers = possition + '/' + steady_state
                 D = read_variables(filename,layers, filepath)
-                U,u = D['U'],D['u']
-                u_large += (u,)
+                U= D['U']
                 U_large += (U,)
-            u_large = np.asanyarray(u_large)
+
             U_large = np.asanyarray(U_large)
-            fv,ro = D['fv'],D['ro']
+            fv,t  = D['fv'],D['t']
             Uabs = w2dbm(np.abs(U)**2)
-            P0_s, P0_p, t = D['P0_s'], D['P0_p'], D['t'] 
-            f_p, f_s, L = D['f_p'], D['f_s'], D['L']
+            L, which, nm, P0_p, P0_s, f_p, f_s, ro = D['extra_data']
             layers = '1/0'
             D = read_variables(filename,layers, filepath)
-            Uabss =np.abs(D['U']*(t[1] - t[0]))**2
             fvs,tt = D['fv'],D['t']
+            Uabss =np.abs(D['U']*(t[1] - t[0]))**2
             P_bef = simps(Uabss,fvs)/(2*np.max(tt))
-        return dbm2w(Uabs), fv,t, P0_p, P0_s, f_p, f_s,P_bef, ro, U_large,t, u_large,L
+        return dbm2w(Uabs), fv,t, P0_p, P0_s, f_p, f_s,P_bef, ro, U_large,t ,L
 
     
     def calc_P_out(self,start,end):
@@ -368,14 +368,11 @@ def contor_plot(CE,fmin = None,fmax = None,  rounds = None,folder = None,filenam
     x,y = np.meshgrid(CE.ro[:rounds], CE.fv[i:j])
     z = CE.U_large_norm[:rounds,:,i:j]
     
-    #low_values_indices =   # Where values are low
-    print(np.max(z))
-    z[z < -60] = -60  # All low values set to 0
-    print(np.shape(z))
-    print(np.max(z))
+    low_values_indices = z < -60  # Where values are low
+    z[low_values_indices] = -60  # All low values set to 0
     for nm in range(z.shape[1]):
         fig = plt.figure(figsize=(20,10))
-        plt.contourf(x,y, z[:,nm,:].T,np.arange(-60,2,2),extend = 'min',cmap=plt.cm.jet)
+        plt.contourf(x,y, z[:,nm,:].T, np.arange(-60,2,2),extend = 'min',cmap=plt.cm.jet)
         plt.xlabel(r'$rounds$')
         plt.ylim(fmin,fmax)
         plt.ylabel(r'$f(THz)$')
@@ -480,7 +477,7 @@ for pos in ('4','2'):
             #contor_plot_time(CE, rounds = None,filename = 'output_final/'+str(ii)+'/pos'+pos+'/'+'time_'+str(ii)+'_'+str(i))
             CE.P_out_round(CE.P_out_vec,filepath =  'output_final/'+str(ii)+'/pos'+pos+'/powers/', filesave =str(ii)+'_'+str(i))
             CE.P_out_round(CE.P_out_vec_casc,filepath =  'output_final/'+str(ii)+'/pos'+pos+'/casc_powers/',filesave = str(ii)+'_'+str(i))
-            CE.final_1D_spec(filename = 'output_final/'+str(ii)+'/pos'+pos+'/final_specs/'+'spectrum_fopo_final'+str(ii)+'_'+str(i),wavelengths = wavelengths)
+            CE.final_1D_spec(filename = 'output_final/'+str(ii)+'/pos'+pos+'/final_specs/'+'spectrum_fopo_final'+str(ii),wavelengths = wavelengths)
             del CE
             gc.collect()
         for x_key,y_key,std in (('P_p', 'P_out',True), ('P_p', 'CE',True), ('P_p', 'rin',False)):

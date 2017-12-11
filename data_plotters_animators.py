@@ -78,7 +78,7 @@ class Plotter_saver(object):
                 filename=None, title=None, im=0, plots=True):
         """Plots many modes"""
 
-        x, y = 1e-3*c/sim_wind.fv, w2dbm(np.abs(U[which, :, :])**2)
+        x, y = 1e-3*c/sim_wind.fv, w2dbm(np.abs(U[:, :])**2)
         xlim, ylim = [900, 1250], [-80, 100]
         xlabel, ylabel = r'$\lambda (nm)$', r'$Spectrum (a.u.)$'
         filesave = 'output'+pump_wave+'/output' + \
@@ -87,7 +87,7 @@ class Plotter_saver(object):
                             ylim, xlim, xlabel, ylabel, title, filesave, im)
 
         # Frequency
-        x, y = sim_wind.fv, w2dbm(np.abs(U[which, :, :])**2)
+        x, y = sim_wind.fv, w2dbm(np.abs(U[:, :])**2)
         xlim, ylim = [np.min(x), np.max(x)], [-20, 120]
         xlabel, ylabel = r'$f (THz)$', r'$Spectrum (a.u.)$'
         filesave = 'output'+pump_wave+'/output' + \
@@ -96,7 +96,7 @@ class Plotter_saver(object):
                             ylim, xlim, xlabel, ylabel, title, filesave, im)
 
         # Time
-        x, y = sim_wind.t, np.abs(u[which, :, :])**2
+        x, y = sim_wind.t, np.abs(u[:, :])**2
         xlim, ylim = [np.min(x), np.max(x)], [np.min(y), np.max(y)]
         xlabel, ylabel = r'$\lambda (nm)$', r'$Spectrum (W)$'
         filesave = 'output'+pump_wave+'/output' + \
@@ -114,20 +114,18 @@ class Plotter_saver(object):
             layer = filename[-1]+'/'+filename[:-1]
         else:
             layer = filename
-        try:
+        extra_data = np.array([int_fwm.tot_z, which, int_fwm.nm,P0_p, P0_s, f_p, f_s, ro])
 
-            save_variables('data_large', layer, filepath='output'+pump_wave+'/output'+str(index)+'/data/', U=U[which, :, :], t=sim_wind.t, u=u[which, :, :],
-                           L=int_fwm.z, fv=sim_wind.fv, lv=sim_wind.lv,
-                           which=which, nm=int_fwm.nm, P0_p=P0_p, P0_s=P0_s, f_p=f_p, f_s=f_s, ro=ro)
+        try:
+            save_variables('data_large', str(layer), filepath='output'+pump_wave+'/output'+str(index)+'/data/', U=np.abs(U[:, :]), t=sim_wind.t,
+                           fv=sim_wind.fv, lv=sim_wind.lv, extra_data = extra_data)
         except RuntimeError:
             os.system('rm output'+pump_wave+'/output' +
                       str(index)+'/data/data_large.hdf5')
-            save_variables('data_large', layer, filepath='output'+pump_wave+'/output'+str(index)+'/data/', U=U[which, :, :], t=sim_wind.t, u=u[which, :, :],
-                           L=int_fwm.z, fv=sim_wind.fv, lv=sim_wind.lv,
-                           which=which, nm=int_fwm.nm, P0_p=P0_p, P0_s=P0_s, f_p=f_p, f_s=f_s, ro=ro)
+            save_variables('data_large', layer, filepath='output'+pump_wave+'/output'+str(index)+'/data/', U=np.abs(U[:, :]), t=sim_wind.t, 
+                           fv=sim_wind.fv, lv=sim_wind.lv, extra_data = extra_data)
             pass
         return None
-
 
 
 def plot_multiple_modes(nm, x, y, which, mode_names, ylim, xlim, xlabel, ylabel, title, filesave=None, im=None):
@@ -229,6 +227,7 @@ def read_variables(filename, layer, filepath=''):
 
 
 def save_variables(filename, layers, filepath='', **variables):
+
     with h5py.File(filepath + filename + '.hdf5', 'a') as f:
         for i in (variables):
             f.create_dataset(layers+'/'+str(i), data=variables[i])

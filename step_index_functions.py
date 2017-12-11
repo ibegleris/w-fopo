@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import brenth, root, brentq, bisect
 from scipy.constants import c, pi
-from scipy.special import jv, kv
+from scipy.special import jv, kv,jvp,kvp
 from scipy.interpolate import interp1d
 from scipy.integrate import simps
 import sys
@@ -14,14 +14,20 @@ from itertools import combinations_with_replacement, permutations
 import h5py
 import os
 from scipy.interpolate import UnivariateSpline
-from numba import jit
+from numba import jit, vectorize
 import time
+from six.moves import builtins
+try:
+    builtins.profile
+except AttributeError:
+    def profile(func):
+        return func
 
-
+#@jit
 def jv_(n, z):
     return 0.5 * (jv(n-1, z) - jv(n+1, z))
 
-
+#@jit
 def kv_(n, z):
     return -0.5 * (kv(n-1, z) + kv(n+1, z))
 
@@ -76,6 +82,8 @@ class Fibre(object):
             self.core = np.random.rand(N_cores)*err*(core - clad) + core
             pass
         if not(plot):
+            #print(self.core)
+            #print(self.clad)
             assert((self.core > self.clad).all())
         return self.core, self.clad
 
@@ -98,7 +106,6 @@ class Fibre(object):
 
     def plot_fibre_n(self, l, r, per, err):
         n = {}
-        #for per in ((20, 20),(30, 30), (40, 40), (50, 50),(60, 60),('poly','poly')):
         for per in (('ge', 'ge'),('sio2','sio2')):
             nn = self.indexes(l, r, per, err,plot = True)
             n[str(per[0])] = nn[0]
@@ -121,6 +128,13 @@ class Fibre(object):
         return betas
 
 
+@vectorize('float64(float64,float64,float64,float64,float64,float64)')
+def res_faster(a,b,r,u,w,n):
+    return (a + b) * (a + b*r**2) \
+           - n**2 * (1/u**2 + 1/w**2) * (1/u**2 + r**2 / w**2)
+
+
+
 class Eigenvalues(Fibre):
     """
     Sets up to solve and solves the eigenvalue equation
@@ -136,26 +150,30 @@ class Eigenvalues(Fibre):
         self.k = 2 * pi * c / l
         self.ratio = self.clad/self.core
         return None
-
+    #@profile
     def w_f(self, u, i, j):
         """
         Equation to get w eigenvalue with respect to guess u, and V. 
         """
         return (self.V[i, j]**2 - u**2)**0.5
-
+    #@profile
     def eq(self, u_vec, i, j, n=1):
         """
         The eigenvalue equation of a single mdoe fibre,
         set by default to find the HE11 mode. 
         """
         u = u_vec
+        #@vectorize('float64(float64,float64,float64)')
         w = self.w_f(u, i, j)
 
-        a =  (jv_(n, u)/(u*jv(n, u)) + kv_(n, w)/(w*kv(n, w))) * \
-            (jv_(n, u)/(u*jv(n, u)) + kv_(n, w)/(w*kv(n, w))*self.ratio[i, j]**2) \
-            - n**2 * (1/u**2 + 1/w**2) * (1/u**2 + self.ratio[i, j]**2 / w**2)
+        a = jv_(n, u)/(u*jv(n, u))   
+        b = kv_(n, w)/(w*kv(n, w))
 
-        return a
+        res =  res_faster(a,b,self.ratio[i, j],u,w,n)
+
+        return res
+
+
 
     def neff(self, i, j, u, w):
         """
@@ -180,7 +198,7 @@ class Eigenvalues(Fibre):
 
         nm = -1
         s = []
-        count = 10
+        count = 8
         N_points = 2**count
         found_all = 0
 
@@ -191,7 +209,6 @@ class Eigenvalues(Fibre):
             s = np.where(np.sign(eq[:-1]) != np.sign(eq[1:]))[0] + 1
             count += 1
             N_points = 2**count
-            #print(len(s))
             if nm == len(s):
                 found_all +=1
         u_sol, w_sol = np.zeros(len(s)), np.zeros(len(s))
@@ -322,7 +339,7 @@ class Modes(Fibre):
              + kv_(self.n, self.w)/(self.w*kv(self.n, self.w)))
         return None
 
-    #@jit
+
     def E_r(self, r, theta):
         r0_ind = np.where(r <= self.a)
         r1_ind = np.where(r > self.a)
@@ -338,7 +355,7 @@ class Modes(Fibre):
 
         return temp*np.cos(self.n*theta), temp*np.cos(self.n*theta+pi/2)
 
-    #@jit
+
     def E_theta(self, r, theta):
         r0_ind = np.where(r <= self.a)
         r1_ind = np.where(r > self.a)
@@ -354,7 +371,7 @@ class Modes(Fibre):
                - 0.5*(1 + self.s)*kv(self.n+1, self.w * r1 / self.a))
         return temp*np.sin(self.n*theta), temp*np.sin(self.n*theta+pi/2)
 
-    #@jit
+
     def E_zeta(self, r, theta):
         r0_ind = np.where(r <= self.a)
         r1_ind = np.where(r > self.a)
@@ -375,8 +392,7 @@ class Modes(Fibre):
         Ez = self.E_zeta(self.R, self.T)
 
         return (Ex[0], Ey[0], Ez[0]), (Ex[1], Ey[1], Ez[1])
-    #@profile
-
+    @profile
     def Q_matrixes(self):
         self.combination_matrix_assembler()
         Q_large = []

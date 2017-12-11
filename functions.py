@@ -259,8 +259,7 @@ def fibre_parameter_loader(fv, a_vec, dnerr, index, master_index,
     ############################Total step index computation################################
     if os.listdir(filepath) == []: # No files in dir, all to be calc
         print('No files in dir, calculating new radius:', filepath)
-        Export_dict = fibre_creator(a_vec, fv, dnerr,
-                         master_index, index, filepath=filepath)[-1]
+        Export_dict = fibre_creator(a_vec, fv, dnerr, filepath=filepath)[-1]
         save_variables_step(filename+'_new_'+master_index+'_'+index,
                           filepath=filepath, **Export_dict)
         M1, M2, betas, Q_large = Export_dict['M1'], Export_dict['M2'], \
@@ -283,9 +282,11 @@ def fibre_parameter_loader(fv, a_vec, dnerr, index, master_index,
 
     if not(already_done):
         #Try and find in the normal ones
-        already_done, file = \
-            find_small_block_data_full(already_done,layer_old,filepath,filename,D_now)
-    
+        try:
+            already_done, file = \
+                find_small_block_data_full(already_done,layer_old,filepath,filename,D_now)
+        except OSError:
+            pass
     if already_done:
         #If the entire computation is already done then simply load and save variables
         if layer_old:
@@ -309,17 +310,21 @@ def fibre_parameter_loader(fv, a_vec, dnerr, index, master_index,
 
 def compare_single_data(fv_old, fv, a_vec, dnerr, a_vec_old,
                         dnerr_old, betas, betas_old, Q_large,
-                        Q_large_old, not_found):
-    if np.allclose(fv_old, fv):
-        for j in range(len(a_vec_old)):
-            i_vec = np.where(np.isclose(a_vec, [a_vec_old[j]]) *\
-                             np.isclose(dnerr, [dnerr_old[j]]))[0]
-            for i in i_vec:
-                print('found', a_vec_old[j])
-                Q_large[i] = Q_large_old[j,:,:]
-                betas[i] = betas_old[j,:]
-                not_found[i] = 0
-    return not_found, Q_large, betas
+                        Q_large_old, found):
+    try:
+        if np.allclose(fv_old, fv):
+            for j in range(len(a_vec_old)):
+                i_vec = np.where(np.isclose(a_vec, [a_vec_old[j]]) *\
+                                 np.isclose(dnerr, [dnerr_old[j]]))[0]
+                for i in i_vec:
+                    print('found', a_vec_old[j])
+                    Q_large[i] = Q_large_old[j,:,:]
+                    betas[i] = betas_old[j,:]
+                    found[i] = True
+                #print(a_vec_old[j],dnerr_old[j]) 
+    except ValueError:
+        pass
+    return found, Q_large, betas
 
 def find_small_block_data_small(D_now,filename,filepath, master_index, index):
     """
@@ -334,62 +339,72 @@ def find_small_block_data_small(D_now,filename,filepath, master_index, index):
         files.remove('step_index_2m.hdf5')
     Q_large = [0 for i in a_vec]
     betas = [0 for i in a_vec]
-    not_found = np.ones(len(a_vec))
+    found = np.zeros(len(a_vec))
 
 
     ####################looking in the large block cashes###############
-    with h5py.File(filepath+filename+'.hdf5', 'r') as f:
-        for layer_old in f.keys():
-            D = read_variables(filename, layer_old, filepath)
-            a_vec_old, fv_old,M1_old, M2_old, \
-            betas_old,Q_large_old, dnerr_old = \
-                    D['a_vec'], D['fv'], D['M1'], D['M2'],\
-                    D['betas'], D['Q_large'], D['dnerr'] 
-                             
-            
-            not_found, Q_large, betas = \
-                compare_single_data(fv_old, fv, a_vec, dnerr, a_vec_old,
-                            dnerr_old, betas, betas_old, Q_large,
-                            Q_large_old, not_found)
-            
-            if (not_found == False).all():
-                break
+    try:
+        with h5py.File(filepath+filename+'.hdf5', 'r') as f:
+            for layer_old in f.keys():
+                D = read_variables(filename, layer_old, filepath)
+                a_vec_old, fv_old,M1_old, M2_old, \
+                betas_old,Q_large_old, dnerr_old = \
+                        D['a_vec'], D['fv'], D['M1'], D['M2'],\
+                        D['betas'], D['Q_large'], D['dnerr'] 
+                                 
+                
+                found, Q_large, betas = \
+                    compare_single_data(fv_old, fv, a_vec, dnerr, a_vec_old,
+                                dnerr_old, betas, betas_old, Q_large,
+                                Q_large_old, found)
+                
+                if (found == True).all():
+                    break
+    except OSError:
+        pass
     ######################################################################
 
 
 
     ####################looking in the small block cashes###############
-    for file in files:
-        a_vec_old, fv_old, M1_old, M2_old, betas_old,\
-                         Q_large_old, dnerr_old = \
-                         load_step_index_params(file[:-5], filepath)[:-1]
-        not_found, Q_large, betas = \
-            compare_single_data(fv_old, fv, a_vec, dnerr, a_vec_old,
-                        dnerr_old, betas, betas_old, Q_large,
-                        Q_large_old, not_found)
-        
-        if (not_found == False).all():
-            break
+    try:
+        for file in files:
+            a_vec_old, fv_old, M1_old, M2_old, betas_old,\
+                             Q_large_old, dnerr_old = \
+                             load_step_index_params(file[:-5], filepath)[:-1]
+            found, Q_large, betas = \
+                compare_single_data(fv_old, fv, a_vec, dnerr, a_vec_old,
+                            dnerr_old, betas, betas_old, Q_large,
+                            Q_large_old, found)
+            
+            if (found == True).all():
+                break
+    except OSError:
+        pass
     ######################################################################
 
-
-
+    print(found)
+    found = np.array([np.nan if i else 1 for i in found])
     # What is missing? Fix the array and send it though to calculate them. 
-    dnerr_temp = np.ones_like(dnerr) # Dirty fix because dnerr can be zero
-    a_vec_needed, dnerr_needed = a_vec * not_found, dnerr_temp * not_found
-    a_vec_needed, dnerr_needed = a_vec_needed[a_vec_needed != 0], \
-                                 dnerr_needed[dnerr_needed !=0]
-    dnerr_needed[:] = 0
+    #dnerr_temp = np.ones_like(dnerr) # Dirty fix because dnerr can be zero
+    a_vec_needed, dnerr_needed = a_vec * found, dnerr * found
+    a_vec_needed, dnerr_needed = a_vec_needed[np.isfinite(a_vec_needed)], \
+                                 dnerr_needed[np.isfinite(dnerr_needed)]
+    print(found)
+    print(a_vec)
+    print(a_vec_needed)
+    #sys.exit()
+    #dnerr_needed[:] = 0
     if a_vec_needed.any():
         print('Doing some extra calculations for data not cached')
         print(a_vec_needed, dnerr_needed)
-        Export_dict = fibre_creator(a_vec_needed, fv, dnerr_needed,
-                             master_index, index, filepath=filepath)[-1]
+        Export_dict = fibre_creator(a_vec_needed, fv, dnerr_needed, filepath=filepath)[-1]
         M1, M2, betas_new, Q_large_new = Export_dict['M1'], Export_dict['M2'], \
                              np.asanyarray(Export_dict['betas']), Export_dict['Q_large']
         count = 0
         for i in range(len(a_vec)):
-            if not_found[i]:
+            if np.isfinite(found[i]):
+
                 Q_large[i] = Q_large_new[count, :,:]
                 betas[i] = betas_new[count,:]
                 count += 1
@@ -438,7 +453,7 @@ class sim_parameters(object):
         self.N = N
         self.nt = 2**self.N
         self.nplot = nplot
-
+        self.tot_z = z
         self.z = np.linspace(0, z, Num_a+1)
         self.Dz_vec = np.array([self.z[i + 1] - self.z[i]
                                 for i in range(len(self.z)-1)])
@@ -464,7 +479,7 @@ class sim_window(object):
 
         self.woffset = 2*pi*(self.fmed - c/lamda)*1e-12  # [rad/ps]
 
-        self.woffset2 = 2*pi*(self.fmed - c/lamda_c)*1e-12
+        #self.woffset2 = 2*pi*(self.fmed - c/lamda_c)*1e-12
 
         self.w0 = 2*pi*self.fmed  # central angular frequency [rad/s]
 
@@ -770,47 +785,46 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf, Dop, dAdzmm):
     """
     dztot = 0  # total distance traveled
     Safety = 0.95
-    u1 = u[0, :, :]
+    u1 = u[:, :]
     dz = int_fwm.dz * 1
-    for jj in range(int_fwm.nplot):
-        exitt = False
-        while not(exitt):
-            # trick to do the first iteration
-            delta = 2*int_fwm.maxerr
-            while delta > int_fwm.maxerr:
-                u1new = ifft(np.exp(Dop*dz/2)*fft(u1))
 
-                A, delta = RK45CK(dAdzmm, u1new, dz, M1, M2, Q, int_fwm.n2,
-                                  sim_wind.lamda, sim_wind.tsh,
-                                  sim_wind.dt, hf, sim_wind.w_tiled)
+    exitt = False
+    while not(exitt):
+        # trick to do the first iteration
+        delta = 2*int_fwm.maxerr
+        while delta > int_fwm.maxerr:
+            u1new = ifft(np.exp(Dop*dz/2)*fft(u1))
 
-                if (delta > int_fwm.maxerr):
-                    # calculate the step (shorter) to redo
-                    dz *= Safety*(int_fwm.maxerr/delta)**0.25
-            #####################################Successful step###############
-            # propagate the remaining half step
+            A, delta = RK45CK(dAdzmm, u1new, dz, M1, M2, Q, int_fwm.n2,
+                              sim_wind.lamda, sim_wind.tsh,
+                              sim_wind.dt, hf, sim_wind.w_tiled)
 
-            u1 = ifft(np.exp(Dop*dz/2)*fft(A))
-            # update the propagated distance
-            dztot += dz
-            #print(dztot)
-            # update the number of steps taken
-            try:
-                dz = np.min(
-                    [Safety*dz*(int_fwm.maxerr/delta)**0.2,
-                     Safety*int_fwm.dzstep])
-            except RuntimeWarning:
-                dz = Safety*int_fwm.dzstep
-            ###################################################################
+            if (delta > int_fwm.maxerr):
+                # calculate the step (shorter) to redo
+                dz *= Safety*(int_fwm.maxerr/delta)**0.25
+        #####################################Successful step###############
+        # propagate the remaining half step
 
-            if dztot == (int_fwm.dzstep*(jj+1)):
-                exitt = True
+        u1 = ifft(np.exp(Dop*dz/2)*fft(A))
+        # update the propagated distance
+        dztot += dz
+        #print(dztot)
+        # update the number of steps taken
+        try:
+            dz = np.min(
+                [Safety*dz*(int_fwm.maxerr/delta)**0.2,
+                 Safety*int_fwm.dzstep])
+        except RuntimeWarning:
+            dz = Safety*int_fwm.dzstep
+        ###################################################################
 
-            elif ((dztot + dz) >= int_fwm.dzstep*(jj+1)):
-                dz = int_fwm.dzstep*(jj+1) - dztot
-            ###################################################################
-        u[jj+1, :] = u1
-        U[jj+1, :] = fftshift(fft(u[jj+1, :]))
+        if dztot == (int_fwm.dzstep):
+            exitt = True
+        elif ((dztot + dz) >= int_fwm.dzstep):
+            dz = int_fwm.dzstep - dztot
+        ###################################################################
+    u[:, :] = u1
+    U[:, :] = fftshift(fft(u[:, :]))
     int_fwm.dz = dz*1
 
     return u, U
@@ -980,11 +994,12 @@ class birfeg_variation(object):
         return None
 
     def bire_pass(self, u, i):
+        u1_end, u2_end = u[0, :], u[1, :]
         try:
-            u[0, 0, :] = self.P[0, 0][i] * u[-1, 0, :] + \
-                self.P[0, 1][i] * u[-1, 1, :]
-            u[0, 1, :] = self.P[1, 0][i] * u[-1, 0, :] + \
-                self.P[1, 1][i] * u[-1, 1, :]
+            u[0, :] = self.P[0, 0][i] * u1_end + \
+                self.P[0, 1][i] * u2_end
+            u[1, :] = self.P[1, 0][i] * u1_end + \
+                self.P[1, 1][i] * u2_end
         except IndexError:
-            u[0, 0, :] = u[-1, 0, :]
+            pass
         return u

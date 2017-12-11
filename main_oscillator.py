@@ -12,30 +12,30 @@ os.system('export FONTCONFIG_PATH=/etc/fonts')
 from functions import *
 from time import time, sleep
 
-
+@profile
 def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
              master_index, P0_p1, P0_s, f_p, f_s, p_pos, s_pos,
              splicers_vec, WDM_vec, M1, M2, Q_large, hf, Dop_large, dAdzmm, D_pic,
              pulse_pos_dict_or, plots, mode_names, ex, Dtheta):
 
     u = np.empty(
-        [int_fwm.nplot+1, int_fwm.nm, len(sim_wind.t)], dtype='complex128')
-    U = np.empty([int_fwm.nplot+1, int_fwm.nm,
+        [int_fwm.nm, len(sim_wind.t)], dtype='complex128')
+    U = np.empty([int_fwm.nm,
                   len(sim_wind.t)], dtype='complex128')
 
     T0_p = TFWHM_p/2/(np.log(2))**0.5
     T0_s = TFWHM_s/2/(np.log(2))**0.5
     noise_new = noise_obj.noise_func(int_fwm)
-    u[0, :, :] = noise_new
+    u[:, :] = noise_new
 
     woff1 = (p_pos+(int_fwm.nt)//2)*2*pi*sim_wind.df
-    u[0, :, :] += (0.5*P0_p1)**0.5 * np.exp(1j*(woff1)*sim_wind.t)
+    u[:, :] += (P0_p1)**0.5 * np.exp(1j*(woff1)*sim_wind.t)
 
     woff2 = -(s_pos - (int_fwm.nt-1)//2)*2*pi*sim_wind.df
-    u[0, :, :] += (0.5*P0_s)**0.5 * np.exp(-1j*(woff2) *
+    u[:, :] += (0*P0_s)**0.5 * np.exp(-1j*(woff2) *
                                            sim_wind.t)  # *np.exp(-sim_wind.t**2/T0_s)
 
-    U[0, :, :] = fftshift(fft(u[0, :, :]))
+    U[:, :] = fftshift(fft(u[:, :]))
 
     sim_wind.w_tiled = np.tile(sim_wind.w + sim_wind.woffset, (int_fwm.nm, 1))
     master_index = str(master_index)
@@ -43,13 +43,13 @@ def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
     ex.exporter(index, int_fwm, sim_wind, u, U, P0_p1,
                 P0_s, f_p, f_s, 0, 0,  mode_names, master_index, '00', 'original pump', D_pic[0], plots)
 
-    U_original_pump = np.copy(U[0, :, :])
+    U_original_pump = np.copy(U[:, :])
 
     # Pass the original pump through the WDM1, port1 is in to the loop, port2
     # junk
     noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
-    u[0, :, :], U[0, :, :] = WDM_vec[0].pass_through(
-        (U[0, :, :], noise_new), sim_wind)[0]
+    u[:, :], U[:, :] = WDM_vec[0].pass_through(
+        (U[:, :], noise_new), sim_wind)[0]
 
     max_rounds = arguments_determine(-1)
 
@@ -81,8 +81,8 @@ def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
 
         # pass through WDM2 port 2 continues and port 1 is out of the loop
         noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
-        (out1, out2), (u[-1, :, :], U[-1, :, :]) = WDM_vec[1].pass_through(
-            (U[-1, :, :], noise_new), sim_wind)
+        (out1, out2), (u[:, :], U[:, :]) = WDM_vec[1].pass_through(
+            (U[:, :], noise_new), sim_wind)
 
         ex.exporter(index, int_fwm, sim_wind, u, U, P0_p1,
                     P0_s, f_p, f_s, -1, ro,  mode_names, master_index,
@@ -91,18 +91,18 @@ def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
         # Splice7 after WDM2 for the signal
         noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
 
-        (u[-1, :, :], U[-1, :, :]) = splicers_vec[2].pass_through(
-            (U[-1, :, :], noise_new), sim_wind)[0]
+        (u[:, :], U[:, :]) = splicers_vec[2].pass_through(
+            (U[:, :], noise_new), sim_wind)[0]
 
         # Pass again through WDM1 with the signal now
-        (u[0, :, :], U[0, :, :]) = WDM_vec[0].pass_through(
-            (U_original_pump, U[-1, :, :]), sim_wind)[0]
+        (u[:, :], U[:, :]) = WDM_vec[0].pass_through(
+            (U_original_pump, U[:, :]), sim_wind)[0]
 
         ################################The outbound stuff#####################
 
-        U_out = np.reshape(out2, (1,)+U.shape[1:])
-        u_out = np.reshape(out1, (1,)+u.shape[1:])
-        ex.exporter(index, int_fwm, sim_wind, u_out, U_out, P0_p1,
+        #U_out = np.reshape(out2, (1,)+U.shape[1:])
+        #u_out = np.reshape(out1, (1,)+u.shape[1:])
+        ex.exporter(index, int_fwm, sim_wind, out1, out2, P0_p1,
                     P0_s, f_p, f_s, -
                     1, ro,  mode_names, master_index, str(ro)+'4',
                     pulse_pos_dict[4], D_pic[6], plots)
@@ -234,9 +234,9 @@ def main():
     # maximum tolerable error per step in integration
     maxerr = 1e-13
     ss = 1                                  # includes self steepening term
-    ram = 'on'                              # Raman contribution 'on' if yes and 'off' if no
+    ram = 'off'                              # Raman contribution 'on' if yes and 'off' if no
     # Do you want plots, be carefull it makes the code very slow!
-    plots = False
+    plots = True
     N = 8                                   # 2**N grid points
     nt = 2**N                               # number of grid points
     nplot = 2                               # number of plots within fibre min is 2
@@ -259,7 +259,7 @@ def main():
     alphadB = np.array([0,0])              # loss within fibre[dB/m]
     z = 18                                  # Length of the fibre
     # P_p = my_arange(5.2,5.45,0.01)
-    P_p = [5,6]
+    P_p = [5]
     # *my_arange(100e-3,1100e-3, 100e-3)                           # Signal power [W]
     P_s = 0
     TFWHM_p = 0                             # full with half max of pump
@@ -273,11 +273,11 @@ def main():
     #betas = np.tile(betas, (nm, 1))
     a_med = 2.2e-6
     a_err = 0.01
-    dnerr_med = 0
-    Num_a = 5
+    dnerr_med = 0#0.0002
+    Num_a = 10
     a_vec = np.random.uniform(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
     a_vec = np.linspace(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
-    a_vec = np.concatenate((a_vec,np.array([a_med + 2*a_err * a_med])))
+    a_vec = np.concatenate((a_vec,[2.5e-6,2.6e-6]))
     #dnerr = dnerr_med*np.random.randn(len(a_vec))
     dnerr = np.linspace(-dnerr_med, dnerr_med, len(a_vec))
     #dnerr = np.concatenate((dnerr,np.array([1])))
@@ -351,7 +351,7 @@ def main():
         else:
             A = Parallel(n_jobs=num_cores)(delayed(formulate)(**{**D_ins[i], ** large_dic}) for i in range(len(D_ins)))
         _temps.cleanup_folder()
-    sys.exit()
+    #sys.exit()
     consolidate_hdf5_steps(len(outside_var), len(
         inside_var), filepath='loading_data/step_data/')
     print('\a')
