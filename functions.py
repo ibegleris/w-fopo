@@ -383,18 +383,13 @@ def find_small_block_data_small(D_now,filename,filepath, master_index, index):
         pass
     ######################################################################
 
-    print(found)
     found = np.array([np.nan if i else 1 for i in found])
     # What is missing? Fix the array and send it though to calculate them. 
     #dnerr_temp = np.ones_like(dnerr) # Dirty fix because dnerr can be zero
     a_vec_needed, dnerr_needed = a_vec * found, dnerr * found
     a_vec_needed, dnerr_needed = a_vec_needed[np.isfinite(a_vec_needed)], \
                                  dnerr_needed[np.isfinite(dnerr_needed)]
-    print(found)
-    print(a_vec)
-    print(a_vec_needed)
-    #sys.exit()
-    #dnerr_needed[:] = 0
+
     if a_vec_needed.any():
         print('Doing some extra calculations for data not cached')
         print(a_vec_needed, dnerr_needed)
@@ -453,11 +448,12 @@ class sim_parameters(object):
         self.N = N
         self.nt = 2**self.N
         self.nplot = nplot
+
         self.tot_z = z
         self.z = np.linspace(0, z, Num_a+1)
         self.Dz_vec = np.array([self.z[i + 1] - self.z[i]
                                 for i in range(len(self.z)-1)])
-        self.dzstep_vec = self.Dz_vec/self.nplot
+        self.dzstep_vec = self.Dz_vec#/self.nplot
         self.dz = self.dzstep_vec[0]/dz_less
         return None
 
@@ -778,7 +774,7 @@ class Noise(object):
         noise_freq = fftshift(fft(noise))
         return noise_freq
 
-
+@profile
 def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf, Dop, dAdzmm):
     """Pulse propagation part of the code. We use the split-step fourier method
        with a modified step using the RK45 algorithm. 

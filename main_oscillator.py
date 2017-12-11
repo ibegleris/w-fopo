@@ -137,7 +137,7 @@ def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losse
     ex = Plotter_saver(plots, True)  # construct exporter
     "------------------propagation paramaters------------------"
     dzstep = z/nplot                        # distance per step
-    dz_less = 1e2
+    dz_less = 2
     # dz = dzstep/dz_less        # starting guess value of the step
     Num_a = len(a_vec)
     int_fwm = sim_parameters(n2, nm, alphadB)
@@ -236,8 +236,8 @@ def main():
     ss = 1                                  # includes self steepening term
     ram = 'off'                              # Raman contribution 'on' if yes and 'off' if no
     # Do you want plots, be carefull it makes the code very slow!
-    plots = True
-    N = 8                                   # 2**N grid points
+    plots = False
+    N = 14                                   # 2**N grid points
     nt = 2**N                               # number of grid points
     nplot = 2                               # number of plots within fibre min is 2
     # Number of modes (include degenerate polarisation)
@@ -259,7 +259,7 @@ def main():
     alphadB = np.array([0,0])              # loss within fibre[dB/m]
     z = 18                                  # Length of the fibre
     # P_p = my_arange(5.2,5.45,0.01)
-    P_p = [5]
+    P_p = [6]
     # *my_arange(100e-3,1100e-3, 100e-3)                           # Signal power [W]
     P_s = 0
     TFWHM_p = 0                             # full with half max of pump
@@ -274,10 +274,10 @@ def main():
     a_med = 2.2e-6
     a_err = 0.01
     dnerr_med = 0#0.0002
-    Num_a = 10
+    Num_a = 1
     a_vec = np.random.uniform(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
     a_vec = np.linspace(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
-    a_vec = np.concatenate((a_vec,[2.5e-6,2.6e-6]))
+    #a_vec = np.concatenate((a_vec,[2.5e-6,2.6e-6]))
     #dnerr = dnerr_med*np.random.randn(len(a_vec))
     dnerr = np.linspace(-dnerr_med, dnerr_med, len(a_vec))
     #dnerr = np.concatenate((dnerr,np.array([1])))

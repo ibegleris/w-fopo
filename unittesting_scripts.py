@@ -65,12 +65,14 @@ class Raman():
     M1, M2, betas, Q_large = \
         fibre_parameter_loader(fv, a_vec, dnerr, index, master_index,
                                'step_index_2m', filepath='testing_data/step_index/')
-    print(betas)
+
+
 
     def test_raman_off(self):
         ram = raman_object('off')
         ram.raman_load(np.random.rand(10), np.random.rand(1)[0], None)
         assert ram.hf == None
+
 
     def test_raman_load_1(self):
         ram = raman_object('on', 'load')
@@ -87,6 +89,7 @@ class Raman():
         #hf_exact = np.reshape(hf_exact, hf.shape)
         hf_exact = np.tile(hf_exact, (len(self.M2[1, :]), 1))
         assert_allclose(hf, hf_exact)
+
 
     def test_raman_analytic_1(self):
         ram = raman_object('on', 'analytic')

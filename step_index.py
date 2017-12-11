@@ -67,12 +67,12 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
     low_a = a_med - a_err_p * a_med
     high_a = a_med + a_err_p * a_med
     #l_span = 50e-9
-    l_vec = np.linspace(l_p + l_span, l_p - l_span, 2**12)
+    l_vec = np.linspace(l_p + l_span, l_p - l_span, 2**5)
     #l_vec = np.linspace(1600e-9, 1500e-9, 32)
     f_vec = 1e-12*c/l_vec
     print('Frequency step: ',np.max([f_vec[i+1] - f_vec[i] for i in range(len(f_vec)-1)]), 'Thz')
     #a_vec = np.linspace(2.2e-6, 2.2e-6, 1)
-    a_vec = np.linspace(low_a, high_a, 12)
+    a_vec = np.linspace(low_a, high_a, 3)
     per = ['ge', 'sio2']
     err_med = 0.02*0.01
     err = err_med*np.random.randn(len(a_vec))
@@ -153,21 +153,17 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
         ax1.set_xlim([-2*np.max(a_vec)*1e6, 2*np.max(a_vec)*1e6])
         ax1.set_ylim([-2*np.max(a_vec)*1e6, 2*np.max(a_vec)*1e6])
         plt.axis('off')
-    #X *= 1e6
-    #Y *= 1e6
-    #Enorm = E/np.max(E)
-    plt.show()
-    # sys.exit()
 
+    plt.show()
     return None
 
 if __name__ == '__main__':
     import matplotlib as mpl
     font = {'size': 18}
     mpl.rc('font', **font)
-    a_med = 2.225e-6
+    a_med = 2.20e-6
     a_err_p = 0.01
-    l_span = 50e-9
+    l_span = 100e-9
     l_p = 1550e-9
     N_points = 128
     main(a_med, a_err_p, l_p, l_span, N_points)

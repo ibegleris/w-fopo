@@ -56,10 +56,9 @@ def RK45CK(dAdzmm, u1, dz, M1,M2,Q, n2, lamda, tsh, dt, hf, w_tiled):
 
     A =  A_temp(u1, A1, A3, A4, A6) # Fifth order accuracy
     Afourth =  Afourth_temp(u1, A1, A3, A4,A5, A6) # Fourth order accuracy
-    delta = np.zeros(len(A[:,0]))
-    for ii in range(len(A[:,0])):
-        delta[ii] = np.linalg.norm(A[ii,:] - Afourth[ii,:],2)
-    delta = np.max(delta)
+
+    delta = np.linalg.norm(A - Afourth,2, axis = 1).max()
+
     return A, delta
 
 trgt = 'cpu'
@@ -101,7 +100,7 @@ def A6_temp(u1, A1, A2, A3, A4, A5):
 
 
 
-#@jit
+@jit
 def dAdzmm_roff_s0(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
     """
     calculates the nonlinear operator for a given field u0
@@ -115,7 +114,7 @@ def dAdzmm_roff_s0(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
 
 
 
-#@jit
+@jit
 def dAdzmm_roff_s1(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
     """
     calculates the nonlinear operator for a given field u0
@@ -128,7 +127,7 @@ def dAdzmm_roff_s1(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
 
 
 
-#@jit
+@jit
 def dAdzmm_ron_s0(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
     """
     calculates the nonlinear operator for a given field u0
@@ -142,7 +141,7 @@ def dAdzmm_ron_s0(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
 
 
 
-#@jit
+@jit
 def dAdzmm_ron_s1(u0, M1, M2, Q, n2, lamda, tsh, dt, hf, w_tiled):
     """
     calculates the nonlinear operator for a given field u0
