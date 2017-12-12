@@ -120,8 +120,8 @@ class Fibre(object):
         #plt.show()
         return None
 
-    def beta_dispersions(self, i):
-        coefs = self.beta_extrapo(i)
+    def beta_dispersions(self,o_vec, i):
+        coefs = self.beta_extrapo(o_vec,i)
         betas = np.empty_like(coefs)
         for i, c in enumerate(coefs[::-1]):
             betas[i] = c * factorial(i)
@@ -255,10 +255,12 @@ class Eigenvalues(Fibre):
 
 
 class Betas(Fibre):
-    """Calculates the betas of the fibre mode. """
+    """
+    Calculates the betas of the fibre mode.
+    """
 
     def __init__(self, u_vec, w_vec, l_vec, o_vec, o, ncore, nclad):
-        self.k = 2*pi/(l_vec)#[::-1]
+        #self.k = 2*pi/(l_vec)
         self.u = u_vec
         self.w = w_vec
         self.core, self.clad = ncore, nclad
@@ -267,22 +269,22 @@ class Betas(Fibre):
         self.o_norm = self.o_vec - self.o
         return None
 
-    def beta_func(self, i):
+    def beta_func(self, o_vec,i):
         """
         Calculates and returns the betas of the fibre 
         """
 
-        return (self.k**2*((self.core[i, :]/self.u[i, :])**2 +
+        return ((o_vec*1e12/c)**2*((self.core[i, :]/self.u[i, :])**2 +
                            (self.clad[i, :]/self.w[i, :])**2)/(1/self.u[i, :]**2
                                                                + 1/self.w[i, :]**2))**0.5
         #return (((self.core[i, j]/u)**2 + (self.clad[i, j]/w)**2)
         #        / (1/u**2 + 1/w**2))**0.5
-    def beta_extrapo(self, i):
+    def beta_extrapo(self,o_vec, i):
         """
         Gets the polyonomial coefficiencts of beta(omega) with the 
         highest order possible. 
         """
-        betas = self.beta_func(i)
+        betas = self.beta_func(o_vec,i)
         deg = 30
         fitted = False
         # warnings.warn(Warning())
