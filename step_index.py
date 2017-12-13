@@ -1,7 +1,7 @@
 from step_index_functions import *
 from data_plotters_animators import save_variables
 from scipy.interpolate import interp1d
-from scipy.optimize import fsolve
+from scipy.optimize import brenth
 
 @profile
 def fibre_creator(a_vec, f_vec, dnerr, per=['ge', 'sio2'], filename='step_index_2m', filepath='loading_data/step_data/', N_points=512):
@@ -65,44 +65,81 @@ def fibre_creator(a_vec, f_vec, dnerr, per=['ge', 'sio2'], filename='step_index_
     # print(filepath)
     return beta_large, Q_large, M, beta2_large, ncore, nclad, Export_dict
 
-
+from scipy.optimize import newton
 class Sidebands(object):
 
     def __init__(self, Q_large, a_vec, o_vec,beta_large, P=6, n2=2.5e-20):
         self.o_vec = o_vec
-        print(o_vec)
+        #print(o_vec.min(),o_vec.max())
         omega_m = (o_vec[0] + o_vec[-1])/2
-        gama = np.real(n2 * (1e12*omega_m) / (c * (3 / Q_large[:,0,0])))
-
+        omega_m = 1e-12*2*pi*c/1550e-9
+        gama = np.real(3*n2 * (1e12*omega_m) * Q_large[:,0,0] / c )
         self.dbnon = 2 * gama * P
         self.interp_betas = [
             interp1d(self.o_vec, b, kind='cubic') for b in beta_large]
         self.a_vec = a_vec
 
-    def dbeta(self, Omega_side, omega_p):
-        """
-        db = np.zeros(len(self.a_vec))
-        for i in range(len(self.a_vec)):
-            db[i] = self.interp_betas[i](
-                omega_p - Omega_side) + self.interp_betas[i](omega_p + Omega_side) \
-                - 2*self.interp_betas[i](omega_p)
-        print(Omega_side,db)
-        """
-        i = 0
-        db = self.interp_betas[i](omega_p - Omega_side) + self.interp_betas[i](omega_p + Omega_side) \
-                - 2*self.interp_betas[i](omega_p)# +10*self.dbnon[i]
+    def dbeta(self, Omega_side, omega_p,i):
+        db = self.interp_betas[i](omega_p - Omega_side) + \
+             self.interp_betas[i](omega_p + Omega_side) + \
+             - 2*self.interp_betas[i](omega_p) + \
+             +self.dbnon[i]
+        
         return db
 
-    def solve_omega_side(self,lamdap):
-        omegap = 1e-12*c*(2*pi/(lamdap*1e-9))
-        Omega_side = 1#fsolve(self.dbeta, [ 1.49011612e-08], args=(omegap, ))
+    def solve_omega_side(self,omegap):
+        Omega_side = np.zeros(len(self.a_vec))
+        for i in range(len(self.a_vec)):
+            a, b = 1e-2, 0.5*(omegap - self.o_vec[0])
+            if self.dbeta(a, omegap, i) * self.dbeta(b, omegap, i) > 0:
+                
+                print('Warning no sideband in radius ', self.a_vec, 'and pump ',
+                    1e9 * 2 * pi * c / (1e12 * omegap))
+                Rr = np.array([None])
+            else:
+                Rr = brenth(self.dbeta, a,b,
+                            args=(omegap,i), full_output=True)
+
+            Omega_side[i] = Rr[0]
+        """
         omega_sides = np.linspace(0, 200)
-        plt.plot(omega_sides, self.dbeta(omega_sides, omegap))
+        y = []
+        for i in range(len(self.a_vec)):
+            for o in omega_sides:
+                y.append(self.dbeta(o, omegap,i))
+            plt.plot(omega_sides, y, label = 'a = '+str(self.a_vec[i]))
         plt.ylim([-1,1])
+        plt.legend()
         plt.show()
+        """
         return Omega_side
 
+    def get_sidebands(self, lamdap_vec):
+        omegap_vec = 1e-12*c*(2*pi/(lamdap_vec*1e-9))
+        omega_side_vec = np.zeros([len(self.a_vec),len(omegap_vec)])
+        omega_sig = np.zeros([len(self.a_vec),len(omegap_vec)])
+        omega_idler = np.zeros([len(self.a_vec),len(omegap_vec)])
+        
+        for pump,omegap in enumerate(omegap_vec):
+            omega_side_vec[:,pump] = self.solve_omega_side(omegap)
+        
+        omegap_vec = np.vstack([omegap_vec for i in range(len(self.a_vec))])
+        omega_sig = omegap_vec + omega_side_vec
+        omega_idler = omegap_vec - omega_side_vec
 
+        self.lamp_vec = 1e9 * 2 * pi * c / (1e12 * omegap_vec)
+        self.lams_vec = 1e9 * 2 * pi * c / (1e12 * omega_sig)
+        self.lami_vec = 1e9 * 2 * pi * c / (1e12 * omega_idler)
+        return self.lamp_vec, self.lams_vec, self.lami_vec
+    
+    def plot_sidebands(self):
+        fig = plt.figure(figsize = (10,5))
+        for i in range(len(self.a_vec)):
+            axs = plt.plot(self.lamp_vec[i,:], self.lams_vec[i,:], label = 'r: '+str(1e6*self.a_vec[i])+r' $\mu m$')
+            colour = axs[0]._color
+            plt.plot(self.lamp_vec[i,:], self.lami_vec[i,:], color = colour,label = 'r: '+str(1e6*self.a_vec[i])+r' $\mu m$')
+        plt.legend()
+        plt.show()
 def main(a_med, a_err_p, l_p, l_span, N_points):
 
     low_a = a_med - a_err_p * a_med
@@ -114,7 +151,7 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
     print('Frequency step: ', np.max(
         [f_vec[i+1] - f_vec[i] for i in range(len(f_vec)-1)]), 'Thz')
     #a_vec = np.linspace(2.2e-6, 2.2e-6, 1)
-    a_vec = np.linspace(low_a, high_a, 1)
+    a_vec = np.linspace(low_a, high_a, 3)
     per = ['ge', 'sio2']
     err_med = 0.02*0.01
     err = err_med*np.random.randn(len(a_vec))
@@ -122,8 +159,10 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
         fibre_creator(a_vec, f_vec, err, per=per, N_points=N_points)[:-1]
 
     side = Sidebands(Q_large, a_vec, 2*pi*f_vec,betas)
-    sd = side.solve_omega_side(1750)
-    print(sd)
+    pumps = np.linspace(1500,1560,50)
+    sd = side.get_sidebands(pumps)
+    
+    side.plot_sidebands()
     #sys.exit()
     fig1 = plt.figure(figsize=(15, 7.5))
     for i, a in enumerate(a_vec):
@@ -142,7 +181,8 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
         plt.ylabel(r'$\beta_{2} (ps^{2}/m)$')
     plt.axhline(0, color='black')
     plt.legend()
-
+    plt.show()
+    sys.exit()
     print(np.asanyarray(betas).shape)
 
     fig3 = plt.figure(figsize=(15, 7.5))
@@ -211,7 +251,7 @@ if __name__ == '__main__':
     mpl.rc('font', **font)
     a_med = 2.20e-6
     a_err_p = 0.01
-    l_span = 1000e-9
+    l_span = 1300e-9
     l_p = 1550e-9
     N_points = 128
     main(a_med, a_err_p, l_p, l_span, N_points)

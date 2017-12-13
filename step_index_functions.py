@@ -324,8 +324,8 @@ class Modes(Fibre):
         return None
 
     def set_coordinates(self, a):
-        self.x, self.y = np.linspace(-a, a, self.N_points),\
-                         np.linspace(-a, a, self.N_points)
+        self.x, self.y = np.linspace(-2*a, 2*a, self.N_points),\
+                         np.linspace(-2*a, 2*a, self.N_points)
         self.X, self.Y = np.meshgrid(self.x,self.y)
         self.R = ((self.X)**2 + (self.Y)**2)**0.5
         self.T = np.arctan(self.Y/self.X)
@@ -407,10 +407,10 @@ class Modes(Fibre):
             for j, com in enumerate(self.M1_top):
                 d = self.product_4(com, E)
 
-                Q[0, j] = self.core[i]**2*self.integrate(d[0]) / (N[com[0]]
-                                             * N[com[1]]*N[com[2]]*N[com[3]])
-                Q[1, j] = self.core[i]**2 *self.integrate(d[1]) / (N[com[0]]
-                                             * N[com[1]]*N[com[2]]*N[com[3]])
+                Q[0, j] = (1/3) * self.core[i]**2 * self.integrate(d[0]) / (N[com[0]]
+                                             * N[com[1]]*N[com[2]] * N[com[3]])
+                Q[1, j] = (1/3) * self.core[i]**2 * self.integrate(d[1]) / (N[com[0]]
+                                             * N[com[1]]*N[com[2]] * N[com[3]])
                 #print(Q)
             if i is 0:
                 list_to_keep = []
