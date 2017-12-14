@@ -880,14 +880,14 @@ class Test_betas:
 
     def test_neffs(self):
         for i, a in enumerate(self.a_vec):
-            self.betas[i, :] = self.b.beta_func(i)
-        neffs = self.betas/self.b.k
+            self.betas[i, :] = self.b.beta_func(self.o_vec,i)
+        neffs = self.betas/(1e12*self.o_vec/c)
         assert (neffs < self.b.core).all() and (neffs > self.b.clad).all()
 
     def test_poly(self):
         for i, a in enumerate(self.a_vec):
-            self.betas[i, :] = self.b.beta_func(i)
-            beta_coef = self.b.beta_extrapo(i)
+            self.betas[i, :] = self.b.beta_func(self.o_vec,i)
+            beta_coef = self.b.beta_extrapo(self.o_vec,i)
             p = np.poly1d(beta_coef)
             self.beta_interpo[i, :] = p(self.b.o_norm)
         assert_allclose(self.betas, self.beta_interpo, rtol=1e-07)
@@ -895,10 +895,10 @@ class Test_betas:
     def test_taylor(self):
         taylor_dispersion = np.zeros([len(self.a_vec), len(self.b.o_vec)])
         for i, a in enumerate(self.a_vec):
-            self.betas[i, :] = self.b.beta_func(i)
-            beta_coef = self.b.beta_extrapo(i)
+            self.betas[i, :] = self.b.beta_func(self.o_vec,i)
+            beta_coef = self.b.beta_extrapo(self.o_vec,i)
             p = np.poly1d(1e-12*self.b.o_norm)
-            betass = self.b.beta_dispersions(i)
+            betass = self.b.beta_dispersions(self.o_vec,i)
             for j, bb in enumerate(betass):
                 taylor_dispersion[
                     i, :] += (bb/factorial(j))*((self.b.o_vec - self.b.o))**j
