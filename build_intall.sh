@@ -22,5 +22,9 @@ if [ "$1" != 'cluster' ]; then
 fi
 echo 'export PATH="/home/$USER/miniconda/bin:$PATH"' >> ~/.bashrc
 source activate intel
-pip install mpi4py=3.0
-pytest unittesting_scripts.py
+git clone https://github.com/mpi4py/mpi4py.git
+cd mpi4py
+python setup.py build
+python setup.py install
+cd ..
+rm -rf mpi4py
