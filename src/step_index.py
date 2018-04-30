@@ -140,6 +140,8 @@ class Sidebands(object):
             plt.plot(self.lamp_vec[i,:], self.lami_vec[i,:], color = colour,label = 'r: '+str(1e6*self.a_vec[i])+r' $\mu m$')
         plt.legend()
         plt.show()
+
+        
 def main(a_med, a_err_p, l_p, l_span, N_points):
 
     low_a = a_med - a_err_p * a_med

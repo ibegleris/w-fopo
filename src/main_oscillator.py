@@ -57,7 +57,7 @@ def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
 
     t_total = 0
     converged = False
-    
+    gam_no_aeff = -1j*int_fwm.n2*2*pi/sim_wind.lamda
 
     while ro < max_rounds and not(converged):
 
@@ -73,7 +73,7 @@ def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
         for index_woble,(Q,Dop) in enumerate(zip(Q_large, Dop_large)):
             int_fwm.woble_propagate(index_woble)  
             u, U = pulse_propagation(u, U, int_fwm, M1, M2, Q,
-                                     sim_wind, hf, Dop, dAdzmm)
+                                     sim_wind, hf, Dop, dAdzmm,gam_no_aeff)
             u = Dtheta.bire_pass(u,index_woble)
         ex.exporter(index, int_fwm, sim_wind, u, U, P0_p1,
                     P0_s, f_p, f_s, -1, ro, mode_names, master_index,
@@ -106,7 +106,6 @@ def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
                     P0_s, f_p, f_s, -
                     1, ro,  mode_names, master_index, str(ro)+'4',
                     pulse_pos_dict[4], D_pic[6], plots)
-
     return None
 
 
@@ -132,8 +131,8 @@ def calc_P_out(U, U_original_pump, fv, t):
 @unpack_args
 def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losses,
               lamda_c, WDMS_pars, lamp, lams, num_cores, maxerr, ss, ram, plots,
-              N, nt, nplot, master_index, nm, mode_names, a_vec, dnerr,Dtheta):
-
+              N, nt, nplot, master_index, nm, mode_names, pertb_vec):
+    a_vec, dnerr  = pertb_vec
     ex = Plotter_saver(plots, True)  # construct exporter
     "------------------propagation paramaters------------------"
     dzstep = z/nplot                        # distance per step
@@ -146,7 +145,7 @@ def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losse
     lamda = lamp*1e-9  # central wavelength of the grid[m]
     fv_idler_int = 10  # safety for the idler to be spotted used only for idler power
     "-----------------------------f-----------------------------"
-
+    Dtheta = birfeg_variation(Num_a)
     "---------------------Grid&window-----------------------"
     fv, where = fv_creator(lamp, lams, int_fwm, prot_casc=0)
     p_pos, s_pos = where
@@ -234,10 +233,10 @@ def main():
     # maximum tolerable error per step in integration
     maxerr = 1e-13
     ss = 1                                  # includes self steepening term
-    ram = 'off'                              # Raman contribution 'on' if yes and 'off' if no
+    ram = 'on'                              # Raman contribution 'on' if yes and 'off' if no
     # Do you want plots, be carefull it makes the code very slow!
     plots = False
-    N = 14                                   # 2**N grid points
+    N = 10                                   # 2**N grid points
     nt = 2**N                               # number of grid points
     nplot = 2                               # number of plots within fibre min is 2
     # Number of modes (include degenerate polarisation)
@@ -254,13 +253,10 @@ def main():
                   'N': N, 'nt': nt, 'nplot': nplot, 'nm': nm, 'mode_names': mode_names}
     "------------------------Can be variable parameters------------------------"
     n2 = 2.5e-20                            # Nonlinear index [m/W]
-    gama = 10e-3                            # Overwirtes n2 and Aeff w/m
-    # 0.0011667#666666666668        
+    gama = 10e-3                            # Overwirtes n2 and Aeff w/m        
     alphadB = np.array([0,0])              # loss within fibre[dB/m]
     z = 18                                  # Length of the fibre
-    # P_p = my_arange(5.2,5.45,0.01)
     P_p = [6]
-    # *my_arange(100e-3,1100e-3, 100e-3)                           # Signal power [W]
     P_s = 0
     TFWHM_p = 0                             # full with half max of pump
     TFWHM_s = 0                             # full with half max of signal
@@ -268,58 +264,37 @@ def main():
         0, 0, 1.4]]                 # loss of each type of splices [dB]
     spl_losses = [0, 0, 1.4]
 
-    # betas = np.array([0, 0, 0, 6.756e-2,  # propagation constants [ps^n/m]
-    #                  -1.002e-4, 3.671e-7])*1e-3
-    #betas = np.tile(betas, (nm, 1))
     a_med = 2.2e-6
     a_err = 0.01
     dnerr_med = 0#0.0002
-    Num_a = 1
+    cutting = 1
+    Num_a = 5
     a_vec = np.random.uniform(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
     a_vec = np.linspace(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
-    #a_vec = np.concatenate((a_vec,[2.5e-6,2.6e-6]))
-    #dnerr = dnerr_med*np.random.randn(len(a_vec))
     dnerr = np.linspace(-dnerr_med, dnerr_med, len(a_vec))
-    #dnerr = np.concatenate((dnerr,np.array([1])))
-    
-    #print(np.shape(dnerr), np.shape(a_vec))
-    #sys.exit()
-    Dtheta = birfeg_variation(Num_a)
+
+    pertb_vec = [[a_vec,dnerr]] # pertubation vector for dn and a_vec
+    pertb_vec += [[a_vec[:-(cutting+i)],dnerr[:-(cutting+i)]]  for i in range(len(a_vec)-1)]
+
     lamda_c = 1051.85e-9
-    # Zero dispersion wavelength [nm]
-    # max at ls,li = 1095, 1010
-    # variation = np.arange(-28,42,2)
-    # variation = [0]
     WDMS_pars = ([1050., 1199.32],
                  [930.996,  1199.32])  # WDM up downs in wavelengths [m]
 
-    # WDMS_pars = []
-    # for i in variation:
-    #   WDMS_pars.append(([1051.5, 1095+i],     # WDM up downs in wavelengths [m]
-    #                   [1011.4,  1095],
-    #                   [1011.4,1051.5],
-    #                   [1011.4, 1095]))
-
-    # print(WDMS_pars)
-    # sys.exit()
-    # WDMS_pars = 'signal_locked' # lockes the WDMS to keep the max amount of
-    # signal in the cavity (seeded)
 
     lamp = [1046, 1048, 1050]
     lams = [1241.09, 1199.32, 1149.35]
-    lamp = [lamp[1]]
+    lamp = lamp[1]
 
     lams = lams[1]
     var_dic = {'n2': n2, 'gama': gama, 'alphadB': alphadB, 'z': z, 'P_p': P_p,
                'P_s': P_s, 'TFWHM_p': TFWHM_p, 'TFWHM_s': TFWHM_s,
                'spl_losses': spl_losses,
                'lamda_c': lamda_c, 'WDMS_pars': WDMS_pars,
-               'lamp': lamp, 'lams': lams, 'a_vec':a_vec, 'dnerr': dnerr,
-               'Dtheta' : Dtheta}
+               'lamp': lamp, 'lams': lams, 'pertb_vec':pertb_vec}
 
     "--------------------------------------------------------------------------"
-    outside_var_key = 'lamp'
-    inside_var_key = 'P_p'
+    outside_var_key = 'P_p'
+    inside_var_key = 'pertb_vec'
     inside_var = var_dic[inside_var_key]
     outside_var = var_dic[outside_var_key]
     del var_dic[outside_var_key]
@@ -351,7 +326,6 @@ def main():
         else:
             A = Parallel(n_jobs=num_cores)(delayed(formulate)(**{**D_ins[i], ** large_dic}) for i in range(len(D_ins)))
         _temps.cleanup_folder()
-    #sys.exit()
     consolidate_hdf5_steps(len(outside_var), len(
         inside_var), filepath='loading_data/step_data/')
     print('\a')

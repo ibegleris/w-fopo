@@ -773,7 +773,7 @@ class Noise(object):
         return noise_freq
 
 @profile
-def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf, Dop, dAdzmm):
+def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf, Dop, dAdzmm,gam_no_aeff):
     """Pulse propagation part of the code. We use the split-step fourier method
        with a modified step using the RK45 algorithm. 
     """
@@ -789,9 +789,8 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf, Dop, dAdzmm):
         while delta > int_fwm.maxerr:
             u1new = ifft(np.exp(Dop*dz/2)*fft(u1))
 
-            A, delta = RK45CK(dAdzmm, u1new, dz, M1, M2, Q, int_fwm.n2,
-                              sim_wind.lamda, sim_wind.tsh,
-                              sim_wind.dt, hf, sim_wind.w_tiled)
+            A, delta = RK45CK(dAdzmm, u1new, dz, M1, M2, Q, sim_wind.tsh,
+                              sim_wind.dt, hf, sim_wind.w_tiled,gam_no_aeff)
 
             if (delta > int_fwm.maxerr):
                 # calculate the step (shorter) to redo
