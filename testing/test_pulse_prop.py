@@ -5,9 +5,29 @@ import numpy as np
 from numpy.testing import assert_allclose
 
 "-----------------------Full soliton--------------------------------------------"
+def get_Qs(nm, gama,fv, a_vec, dnerr, index, master_index,lamda, n2):
+    if nm == 1:
+        D = loadmat('loading_data/M1_M2_1m_new.mat')
+        M1_temp, M2 = D['M1'], D['M2']
+        M2[:, :] -= 1
+        M1 = np.empty([np.shape(M1_temp)[0]-2,
+                       np.shape(M1_temp)[1]], dtype=np.int64)
+
+        M1[:4] = M1_temp[:4] - 1
+        Q_large = M1_temp[np.newaxis, 4:6, :]
+        M1[-1] = M1_temp[6, :] - 1
+        Q_large[:,:,:] = gama / (3*n2*(2*pi/lamda))
+    else:
+        M1, M2, dump, Q_large = \
+            fibre_parameter_loader(fv, a_vec, dnerr, index, master_index,
+                                   filename='step_index_2m', filepath='testing/testing_data/step_index/')
+        print(Q_large.shape)
+        Q_large[0,0,:] = gama / (3*n2*(2*pi/lamda)) * np.array([1,1,0,0,0,0,1,1])
+        Q_large[0,1,:] = gama / (3*n2*(2*pi/lamda)) * np.array([1,0,0,1,1,0,0,1])
+    return Q_large, M1, M2
 
 
-def pulse_propagations(ram, ss, nm, N_sol=1):
+def pulse_propagations(ram, ss, nm, N_sol=1, cython = True, u = None):
     "SOLITON TEST. IF THIS FAILS GOD HELP YOU!"
     n2 = 2.5e-20                                # n2 for silica [m/W]
     # 0.0011666666666666668             # loss [dB/m]
@@ -16,7 +36,7 @@ def pulse_propagations(ram, ss, nm, N_sol=1):
     "-----------------------------General options------------------------------"
     maxerr = 1e-13                # maximum tolerable error per step
     "----------------------------Simulation parameters-------------------------"
-    N = 14
+    N = 9
     z = 70                     # total distance [m]
     nplot = 10                  # number of plots
     nt = 2**N                     # number of grid points
@@ -49,38 +69,17 @@ def pulse_propagations(ram, ss, nm, N_sol=1):
     index = 1
     master_index = 0
     a_vec = [2.2e-6]
-    if nm == 1:
-        D = loadmat('loading_data/M1_M2_1m_new.mat')
-        M1_temp, M2 = D['M1'], D['M2']
-        M2[:, :] -= 1
-        M1 = np.empty([np.shape(M1_temp)[0]-2,
-                       np.shape(M1_temp)[1]], dtype=np.int64)
-
-        M1[:4] = M1_temp[:4] - 1
-        Q_large = M1_temp[np.newaxis, 4:6, :]
-        M1[-1] = M1_temp[6, :] - 1
-        Q_large[:,:,:] = gama / (3*n2*(2*pi/lamda))
-    else:
-        M1, M2, dump, Q_large = \
-            fibre_parameter_loader(fv, a_vec, dnerr, index, master_index,
-                                   filename='step_index_2m', filepath='testing/testing_data/step_index/')
-        print(Q_large.shape)
-        Q_large[0,0,:] = gama / (3*n2*(2*pi/lamda)) * np.array([1,1,0,0,0,0,1,1])
-        Q_large[0,1,:] = gama / (3*n2*(2*pi/lamda)) * np.array([1,0,0,1,1,0,0,1])
+    Q_large,M1,M2 = get_Qs(nm, gama, fv, a_vec, dnerr, index, master_index, lamda, n2)
     betas = betas[np.newaxis, :]
     # sys.exit()
     Dop = dispersion_operator(betas, int_fwm, sim_wind)
     print(Dop.shape)
-    string = "dAdzmm_r"+str(ram)+"_s"+str(ss)
-    func_dict = {'dAdzmm_ron_s1': dAdzmm_ron_s1,
-                 'dAdzmm_ron_s0': dAdzmm_ron_s0,
-                 'dAdzmm_roff_s0': dAdzmm_roff_s0,
-                 'dAdzmm_roff_s1': dAdzmm_roff_s1}
+    integrand = Integrand(ram, ss, cython = cython, timing = False)
+    dAdzmm = integrand.dAdzmm
     pulse_pos_dict_or = ('after propagation', "pass WDM2",
                          "pass WDM1 on port2 (remove pump)",
                          'add more pump', 'out')
 
-    dAdzmm = func_dict[string]
 
     #M1, M2, Q = Q_matrixes(1, n2, lamda, gama=gama)
     raman = raman_object(int_fwm.ram, int_fwm.how)
@@ -97,52 +96,96 @@ def pulse_propagations(ram, ss, nm, N_sol=1):
                   len(sim_wind.t)], dtype='complex128')
 
     sim_wind.w_tiled = np.tile(sim_wind.w + sim_wind.woffset, (int_fwm.nm, 1))
-
+    
     u[:, :] = ((P0_p1)**0.5 / np.cosh(sim_wind.t/T0)) * \
-        np.exp(-1j*(sim_wind.woffset)*sim_wind.t)
+            np.exp(-1j*(sim_wind.woffset)*sim_wind.t)
     U[:, :] = fftshift(sim_wind.dt*fft(u[:, :]))
     
     gam_no_aeff = -1j*int_fwm.n2*2*pi/sim_wind.lamda
 
-    u, U = pulse_propagation(u, U, int_fwm, M1, M2, Q_large[0],
-                             sim_wind, hf, Dop, dAdzmm, gam_no_aeff)
+    u, U = pulse_propagation(u, U, int_fwm, M1, M2.astype(np.int64), Q_large[0].astype(np.complex128),
+                             sim_wind, hf, Dop[0], dAdzmm, gam_no_aeff)
     U_start = np.abs(U[ :, :])**2
 
     u[:, :] = u[:, :] * \
         np.exp(1j*z/2)*np.exp(-1j*(sim_wind.woffset)*sim_wind.t)
     """
     fig1 = plt.figure()
-    plt.plot(sim_wind.fv,np.abs(U[0,1,:])**2)
+    plt.plot(sim_wind.fv,np.abs(U[1,:])**2)
     plt.savefig('1.png')
 
     fig2 = plt.figure()
-    plt.plot(sim_wind.fv,np.abs(U[-1,1,:])**2)
+    plt.plot(sim_wind.fv,np.abs(U[1,:])**2)
     plt.savefig('2.png')    
     
     
     fig3 = plt.figure()
-    plt.plot(sim_wind.t,np.abs(u[0,1,:])**2)
+    plt.plot(sim_wind.t,np.abs(u[1,:])**2)
     plt.xlim(-10*T0, 10*T0)
     plt.savefig('3.png')
 
     fig4 = plt.figure()
-    plt.plot(sim_wind.t,np.abs(u[-1,1,:])**2)
+    plt.plot(sim_wind.t,np.abs(u[1,:])**2)
     plt.xlim(-10*T0, 10*T0)
     plt.savefig('4.png')    
     
 
     fig5 = plt.figure()
-    plt.plot(fftshift(sim_wind.w),(np.abs(U[0,1,:])**2 - np.abs(U[-1,1,:])**2 ))
+    plt.plot(fftshift(sim_wind.w),(np.abs(U[1,:])**2 - np.abs(U[1,:])**2 ))
     plt.savefig('error.png')
 
     
     fig6 = plt.figure()
-    plt.plot(sim_wind.t,np.abs(u[-1,1,:])**2 - np.abs(u[3,1,:])**2)
+    plt.plot(sim_wind.t,np.abs(u[1,:])**2 - np.abs(u[1,:])**2)
     plt.xlim(-10*T0, 10*T0)
     plt.savefig('error2.png')
     plt.show()
     """
     return u, U, maxerr
+class Test_cython(object):
+
+    def test_ramoff_s0_nm1(self):
+        u_c, U_c, maxerr = pulse_propagations('off', 0, nm=1, cython = True)
+        u_p, U_p, maxerr = pulse_propagations('off', 0, nm=1, cython = False)
+
+        assert_allclose(u_c,u_p)
+
+    def test_ramon_s0_nm1(self):
+        u_c, U_c, maxerr = pulse_propagations('on', 0, nm=1, cython = True)
+        u_p, U_p, maxerr = pulse_propagations('on', 0, nm=1, cython = False)
+        assert_allclose(u_c, u_p)
+    def test_ramoff_s0_nm1(self):
+        u_c, U_c, maxerr = pulse_propagations('off', 1, nm=1, cython = True)
+        u_p, U_p, maxerr = pulse_propagations('off', 1, nm=1, cython = False)
+        assert_allclose(u_c, u_p)
+
+    def test_ramon_s1_nm1(self):
+        u_c, U_c, maxerr = pulse_propagations('on', 1, nm=1, cython = True)
+        u_p, U_p, maxerr = pulse_propagations('on', 1, nm=1, cython = False)
+        assert_allclose(u_c, u_p)
+    
+
+    def test_ramoff_s0_nm2(self):
+        u_c, U_c, maxerr = pulse_propagations('off', 0, nm=2, cython = True)
+        u_p, U_p, maxerr = pulse_propagations('off', 0, nm=2, cython = False)
+        assert_allclose(u_c, u_p)
+    
+    def test_ramon_s0_nm2(self):
+        u_c, U_c, maxerr = pulse_propagations('on', 0, nm=2, cython = True)
+        u_p, U_p, maxerr = pulse_propagations('on', 0, nm=2, cython = False)
+        assert_allclose(u_c, u_p)
+    
+    def test_ramoff_s1_nm2(self):
+        u_c, U_c, maxerr = pulse_propagations('off', 1, nm=2, cython = True)
+        u_p, U_p, maxerr = pulse_propagations('off', 1, nm=2, cython = False)
+        assert_allclose(u_c, u_p)
+    
+    def test_ramon_s1_nm2(self):
+        u_c, U_c, maxerr = pulse_propagations('on', 1, nm=2, cython = True)
+        u_p, U_p, maxerr = pulse_propagations('on', 1, nm=2, cython = False)
+        assert_allclose(u_c, u_p)
+
+
 
 
 class Test_pulse_prop(object):

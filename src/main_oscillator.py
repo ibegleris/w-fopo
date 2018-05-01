@@ -73,7 +73,7 @@ def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
                     P0_s, f_p, f_s, 0, ro,  mode_names, master_index,
                     str(ro)+'1', pulse_pos_dict[3], D_pic[5], plots)
         for index_woble,(Q,Dop) in enumerate(zip(Q_large, Dop_large)):
-            int_fwm.woble_propagate(index_woble)  
+            int_fwm.woble_propagate(index_woble)                   
             u, U = pulse_propagation(u, U, int_fwm, M1, M2, Q,
                                      sim_wind, hf, Dop, dAdzmm,gam_no_aeff)
             u = Dtheta.bire_pass(u,index_woble)
@@ -182,11 +182,6 @@ def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losse
     "----------------------------------------------------------"
 
     "---------------Formulate the functions to use-------------"
-    string = "dAdzmm_r"+str(int_fwm.ram)+"_s"+str(int_fwm.ss)
-    func_dict = {'dAdzmm_ron_s1': dAdzmm_ron_s1,
-                 'dAdzmm_ron_s0': dAdzmm_ron_s0,
-                 'dAdzmm_roff_s0': dAdzmm_roff_s0,
-                 'dAdzmm_roff_s1': dAdzmm_roff_s1}
     pulse_pos_dict_or = ('after propagation', "pass WDM2",
                          "pass WDM1 on port2 (remove pump)",
                          'add more pump', 'out')
@@ -195,7 +190,9 @@ def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losse
             str(i)+str('.png') for i in range(7)]
     D_pic = [plt.imread(i) for i in keys]
 
-    dAdzmm = func_dict[string]
+
+    integrand = Integrand(ram, ss, cython = True, timing = False)
+    dAdzmm = integrand.dAdzmm
     raman = raman_object(int_fwm.ram, int_fwm.how)
     raman.raman_load(sim_wind.t, sim_wind.dt, M2)
     hf = raman.hf
@@ -272,8 +269,8 @@ def main():
     dnerr_med = 0#0.0002
     cutting = 1
     Num_a = 4
-    a_vec = np.random.uniform(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
-    #a_vec = np.linspace(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
+    #a_vec = np.random.uniform(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
+    a_vec = np.linspace(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
     dnerr = np.linspace(-dnerr_med, dnerr_med, len(a_vec))
 
     pertb_vec = [[a_vec,dnerr]] # pertubation vector for dn and a_vec

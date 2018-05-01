@@ -2,6 +2,7 @@
 from __future__ import division, print_function
 import sys
 import os
+from cython_files.cython_integrand import *
 import numpy as np
 from scipy.constants import pi, c
 from scipy.io import loadmat
@@ -783,7 +784,7 @@ class Noise(object):
         noise = self.noise_func(int_fwm)
         noise_freq = fftshift(fft(noise))
         return noise_freq
-
+from time import time
 
 @profile
 def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf, Dop, dAdzmm, gam_no_aeff):
@@ -794,17 +795,14 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf, Dop, dAdzmm, gam_n
     Safety = 0.95
     u1 = u[:, :]
     dz = int_fwm.dz * 1
-
     exitt = False
     while not(exitt):
         # trick to do the first iteration
         delta = 2*int_fwm.maxerr
         while delta > int_fwm.maxerr:
             u1new = ifft(np.exp(Dop*dz/2)*fft(u1))
-
             A, delta = RK45CK(dAdzmm, u1new, dz, M1, M2, Q, sim_wind.tsh,
                               sim_wind.dt, hf, sim_wind.w_tiled, gam_no_aeff)
-
             if (delta > int_fwm.maxerr):
                 # calculate the step (shorter) to redo
                 dz *= Safety*(int_fwm.maxerr/delta)**0.25
@@ -814,8 +812,6 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf, Dop, dAdzmm, gam_n
         u1 = ifft(np.exp(Dop*dz/2)*fft(A))
         # update the propagated distance
         dztot += dz
-        # print(dztot)
-        # update the number of steps taken
         try:
             dz = np.min(
                 [Safety*dz*(int_fwm.maxerr/delta)**0.2,

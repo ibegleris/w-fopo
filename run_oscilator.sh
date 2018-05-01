@@ -6,6 +6,14 @@ source activate intel
 echo 'starting...'
 rm -r output*
 rm -r *__*
+cd src/cython_files
+#rm -rf build *so *c *html
+
+python setup.py build_ext --inplace
+cython -a cython_integrand.pyx
+cd ../..
+
+
 echo $1 $2 $3
 if [ "$3" == "mpi" ]
 then
