@@ -2,7 +2,7 @@ import numpy as np
 from scipy.constants import pi
 from numpy.fft import fftshift
 from scipy.fftpack import fft, ifft
-
+#fft, ifft = np.fft.fft, np.fft.ifft
 from six.moves import builtins
 
 
@@ -141,7 +141,8 @@ def dAdzmm_ron_s0(u0, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff):
     return N
 
 
-@jit(nogil = True)
+#@jit(nogil = True)
+@profile
 def dAdzmm_ron_s1(u0, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff):
     """
     calculates the nonlinear operator for a given field u0

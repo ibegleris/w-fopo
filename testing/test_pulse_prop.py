@@ -101,9 +101,11 @@ def pulse_propagations(ram, ss, nm, N_sol=1):
     u[:, :] = ((P0_p1)**0.5 / np.cosh(sim_wind.t/T0)) * \
         np.exp(-1j*(sim_wind.woffset)*sim_wind.t)
     U[:, :] = fftshift(sim_wind.dt*fft(u[:, :]))
+    
+    gam_no_aeff = -1j*int_fwm.n2*2*pi/sim_wind.lamda
 
     u, U = pulse_propagation(u, U, int_fwm, M1, M2, Q_large[0],
-                             sim_wind, hf, Dop, dAdzmm)
+                             sim_wind, hf, Dop, dAdzmm, gam_no_aeff)
     U_start = np.abs(U[ :, :])**2
 
     u[:, :] = u[:, :] * \

@@ -16,7 +16,7 @@ from time import time, sleep
 def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
              master_index, P0_p1, P0_s, f_p, f_s, p_pos, s_pos,
              splicers_vec, WDM_vec, M1, M2, Q_large, hf, Dop_large, dAdzmm, D_pic,
-             pulse_pos_dict_or, plots, mode_names, ex, Dtheta):
+             pulse_pos_dict_or, plots, mode_names, ex, Dtheta, fopa):
 
     u = np.empty(
         [int_fwm.nm, len(sim_wind.t)], dtype='complex128')
@@ -52,7 +52,9 @@ def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
         (U[:, :], noise_new), sim_wind)[0]
 
     max_rounds = arguments_determine(-1)
-
+    if fopa:
+        print('Fibre amplifier!')
+        max_rounds = 0
     ro = -1
 
     t_total = 0
@@ -131,7 +133,7 @@ def calc_P_out(U, U_original_pump, fv, t):
 @unpack_args
 def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losses,
               lamda_c, WDMS_pars, lamp, lams, num_cores, maxerr, ss, ram, plots,
-              N, nt, nplot, master_index, nm, mode_names, pertb_vec):
+              N, nt, nplot, master_index, nm, mode_names, pertb_vec, fopa):
     a_vec, dnerr  = pertb_vec
     ex = Plotter_saver(plots, True)  # construct exporter
     "------------------propagation paramaters------------------"
@@ -210,19 +212,19 @@ def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losse
                      [lami, lamp],
                      [lami, lams])
 
-    WDM_vec = [WDM(i[0], i[1], sim_wind.fv, c, nm)
+    WDM_vec = [WDM(i[0], i[1], sim_wind.fv, c, fopa,nm)
                for i in WDMS_pars]  # WDM up downs in wavelengths [m]
 
     "--------------------------------------------------------"
 
     "----------------------Formulate splicers--------------------"
-    splicers_vec = [Splicer(loss=i) for i in spl_losses]
+    splicers_vec = [Splicer(fopa = fopa,loss=i) for i in spl_losses]
     "------------------------------------------------------------"
 
     f_p, f_s = 1e-3*c/lamp, 1e-3*c/lams
 
     oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index, master_index, P_p, P_s, f_p, f_s, p_pos, s_pos, splicers_vec,
-             WDM_vec, M1, M2, Q_large, hf, Dop_large, dAdzmm, D_pic, pulse_pos_dict_or, plots, mode_names, ex, Dtheta)
+             WDM_vec, M1, M2, Q_large, hf, Dop_large, dAdzmm, D_pic, pulse_pos_dict_or, plots, mode_names, ex, Dtheta, fopa)
     return None
 
 
@@ -234,9 +236,10 @@ def main():
     maxerr = 1e-13
     ss = 1                                  # includes self steepening term
     ram = 'on'                              # Raman contribution 'on' if yes and 'off' if no
+    fopa = True                             # If FOPA true or if FOPO then false
     # Do you want plots, be carefull it makes the code very slow!
     plots = False
-    N = 10                                   # 2**N grid points
+    N = 12                                   # 2**N grid points
     nt = 2**N                               # number of grid points
     nplot = 2                               # number of plots within fibre min is 2
     # Number of modes (include degenerate polarisation)
@@ -250,12 +253,12 @@ def main():
         method = 'single'
     "--------------------------------------------------------------------------"
     stable_dic = {'num_cores': num_cores, 'maxerr': maxerr, 'ss': ss, 'ram': ram, 'plots': plots,
-                  'N': N, 'nt': nt, 'nplot': nplot, 'nm': nm, 'mode_names': mode_names}
+                  'N': N, 'nt': nt, 'nplot': nplot, 'nm': nm, 'mode_names': mode_names, 'fopa':fopa}
     "------------------------Can be variable parameters------------------------"
     n2 = 2.5e-20                            # Nonlinear index [m/W]
     gama = 10e-3                            # Overwirtes n2 and Aeff w/m        
     alphadB = np.array([0,0])              # loss within fibre[dB/m]
-    z = 18                                  # Length of the fibre
+    z = 18                                 # Length of the fibre
     P_p = [6]
     P_s = 0
     TFWHM_p = 0                             # full with half max of pump
@@ -268,9 +271,9 @@ def main():
     a_err = 0.01
     dnerr_med = 0#0.0002
     cutting = 1
-    Num_a = 5
+    Num_a = 4
     a_vec = np.random.uniform(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
-    a_vec = np.linspace(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
+    #a_vec = np.linspace(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
     dnerr = np.linspace(-dnerr_med, dnerr_med, len(a_vec))
 
     pertb_vec = [[a_vec,dnerr]] # pertubation vector for dn and a_vec
