@@ -2,7 +2,6 @@ import numpy as np
 from scipy.constants import pi
 from numpy.fft import fftshift
 from scipy.fftpack import fft, ifft
-#fft, ifft = np.fft.fft, np.fft.ifft
 from six.moves import builtins
 from cython_files.cython_integrand import *
 import sys
@@ -24,6 +23,7 @@ except AttributeError:
     def profile(func):
         return func
 from time import time
+import pickle
 
 @profile
 def RK45CK(dAdzmm, u1, dz, M1, M2,Q, tsh, dt, hf, w_tiled, gam_no_aeff):
@@ -39,6 +39,7 @@ def RK45CK(dAdzmm, u1, dz, M1, M2,Q, tsh, dt, hf, w_tiled, gam_no_aeff):
     delta is the norm of the maximum estimated error between a 5th
     order and a 4th order integration
     """
+
     A1 = dz*dAdzmm(u1,u1.conj(), M1, M2, Q, tsh, dt, hf, w_tiled, gam_no_aeff)
     u2 = A2_temp(u1, A1)
 
@@ -65,7 +66,7 @@ def RK45CK(dAdzmm, u1, dz, M1, M2,Q, tsh, dt, hf, w_tiled, gam_no_aeff):
     return A, delta
 
 trgt = 'cpu'
-#trgt = 'parallel'
+trgt = 'parallel'
 #trgt = 'cuda'
 
 @jit(nopython=True,nogil = True)
@@ -103,7 +104,7 @@ def A6_temp(u1, A1, A2, A3, A4, A5):
 
 
 
-@jit(nogil = True)
+#@jit(nogil = True)
 def dAdzmm_roff_s0(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff):
     """
     calculates the nonlinear operator for a given field u0
@@ -117,7 +118,7 @@ def dAdzmm_roff_s0(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff):
 
 
 
-@jit(nogil = True)
+#@jit(nogil = True)
 def dAdzmm_roff_s1(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff):
     """
     calculates the nonlinear operator for a given field u0
@@ -129,7 +130,7 @@ def dAdzmm_roff_s1(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff):
     return N
 
 
-@jit(nogil = True)
+#@jit(nogil = True)
 def dAdzmm_ron_s0(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled, gam_no_aeff):
     """
     calculates the nonlinear operator for a given field u0
@@ -142,7 +143,7 @@ def dAdzmm_ron_s0(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled, gam_no_aeff):
     return N
 
 
-@jit(nogil = True)
+#@jit(nogil = True)
 def dAdzmm_ron_s1(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff):
     """
     calculates the nonlinear operator for a given field u0
@@ -161,15 +162,15 @@ def multi(a,b):
     return a * b
 
 
-@guvectorize(['void(complex128[:,:],complex128[:,:], int64[:,:], float64[:,:])'],\
+@guvectorize(['void(complex128[:,::1],complex128[:,::1], int64[:,::1], float64[:,::1])'],\
                  '(n,m),(n,m),(o,l)->(l,m)',target = trgt)
 def uabs(u0,u0_conj,M2,M3):
     for ii in range(M2.shape[1]):
         M3[ii,:] = (u0[M2[0,ii],:]*u0_conj[M2[1,ii],:]).real
 
 
-@guvectorize(['void(int64[:,:], complex128[:,:], complex128[:,:],\
-            float64[:,:], complex128[:,:], complex128[:,:])'],\
+@guvectorize(['void(int64[:,::1], complex128[:,::1], complex128[:,::1],\
+            float64[:,::1], complex128[:,::1], complex128[:,::1])'],\
             '(w,a),(i,a),(m,n),(l,n),(l,n)->(m,n)',target = trgt)
 def nonlin_ram(M1, Q, u0, M3, M4, N):
     N[:,:] = 0
@@ -179,8 +180,8 @@ def nonlin_ram(M1, Q, u0, M3, M4, N):
                                0.54*Q[0,ii]*M4[M1[4,ii],:])
 
 
-@guvectorize(['void(int64[:,:], complex128[:,:], complex128[:,:],\
-            float64[:,:], complex128[:,:])'],\
+@guvectorize(['void(int64[:,::1], complex128[:,::1], complex128[:,::1],\
+            float64[:,::1], complex128[:,::1])'],\
             '(w,a),(i,a),(m,n),(l,n)->(m,n)',target = trgt)
 def nonlin_kerr(M1, Q, u0, M3, N):
     N[:,:] = 0

@@ -212,7 +212,7 @@ def test_full_trans_in_cavity_1():
     int_fwm.propagation_parameters(N, 18, 1, 1, 1)
 
     lam_p1 = 1048.17107345
-    fv, where = fv_creator(850, lam_p1, int_fwm)
+    fv, where = fv_creator(lam_p1,1,0, 50, int_fwm)
     lv = 1e-3*c/fv
     sim_wind = sim_window(fv, lam_p1, lam_p1, int_fwm, 0)
     noise_obj = Noise(int_fwm, sim_wind)
@@ -250,7 +250,7 @@ def test_full_trans_in_cavity_2():
     int_fwm.propagation_parameters(N, 18, 1, 1, 1)
 
     lam_p1 = 1048.17107345
-    fv, where = fv_creator(850, lam_p1, int_fwm)
+    fv, where = fv_creator(lam_p1,1,0, 50, int_fwm)
     lv = 1e-3*c/fv
     sim_wind = sim_window(fv, lam_p1, lam_p1, int_fwm, 0)
     noise_obj = Noise(int_fwm, sim_wind)

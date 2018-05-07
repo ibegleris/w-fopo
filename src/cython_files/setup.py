@@ -18,7 +18,7 @@ setup(
   ext_modules=[
     Extension('cython_integrand',
               sources=['cython_integrand.pyx'],
-              extra_compile_args=['-O3', '-fmove-loop-invariants'],
+              extra_compile_args=['-O3'],
               language='c')
     ],
   cmdclass = {'build_ext': build_ext},

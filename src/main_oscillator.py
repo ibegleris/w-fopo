@@ -29,10 +29,10 @@ def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
     u[:, :] = noise_new
 
     woff1 = (p_pos+(int_fwm.nt)//2)*2*pi*sim_wind.df
-    u[:, :] += (P0_p1)**0.5 * np.exp(1j*(woff1)*sim_wind.t)
+    u[0, :] += (P0_p1)**0.5 * np.exp(1j*(woff1)*sim_wind.t)
 
     woff2 = -(s_pos - (int_fwm.nt-1)//2)*2*pi*sim_wind.df
-    u[:, :] += (0*P0_s)**0.5 * np.exp(-1j*(woff2) *
+    u[:, :] += (P0_s)**0.5 * np.exp(-1j*(woff2) *
                                            sim_wind.t)  # *np.exp(-sim_wind.t**2/T0_s)
 
     U[:, :] = fftshift(fft(u[:, :]))
@@ -133,7 +133,7 @@ def calc_P_out(U, U_original_pump, fv, t):
 @unpack_args
 def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losses,
               lamda_c, WDMS_pars, lamp, lams, num_cores, maxerr, ss, ram, plots,
-              N, nt, nplot, master_index, nm, mode_names, pertb_vec, fopa):
+              N, nt, nplot, master_index, nm, mode_names, pertb_vec, fopa, Deltaf):
     a_vec, dnerr  = pertb_vec
     ex = Plotter_saver(plots, True)  # construct exporter
     "------------------propagation paramaters------------------"
@@ -149,7 +149,7 @@ def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losse
     "-----------------------------f-----------------------------"
     Dtheta = birfeg_variation(Num_a)
     "---------------------Grid&window-----------------------"
-    fv, where = fv_creator(lamp, lams, int_fwm, prot_casc=0)
+    fv, where = fv_creator(lamp,lams,P_s, Deltaf, int_fwm)
     p_pos, s_pos = where
     sim_wind = sim_window(fv, lamda, lamda_c, int_fwm, fv_idler_int)
     
@@ -159,8 +159,13 @@ def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losse
     "---------------------Aeff-Qmatrixes-----------------------"
     #M1, M2, Q = Q_matrixes(int_fwm.nm, int_fwm.n2, lamda, gama)
     M1, M2, betas, Q_large = fibre_parameter_loader(fv, a_vec, dnerr,
-                                                    index, master_index, filename='step_index_2m'
+                                                    index, master_index,
+                                                    filename='step_index_2m'
                                                     )
+    print(Q_large)
+    #print(betas.shape)
+    #print(betas)
+    #sys.exit()
     "----------------------------------------------------------"
 
     "---------------------Loss-in-fibres-----------------------"
@@ -191,7 +196,7 @@ def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losse
     D_pic = [plt.imread(i) for i in keys]
 
 
-    integrand = Integrand(ram, ss, cython = True, timing = False)
+    integrand = Integrand(ram, ss, cython = True, timing = True)
     dAdzmm = integrand.dAdzmm
     raman = raman_object(int_fwm.ram, int_fwm.how)
     raman.raman_load(sim_wind.t, sim_wind.dt, M2)
@@ -230,13 +235,13 @@ def main():
     # Number of computing cores for sweep
     num_cores = arguments_determine(1)
     # maximum tolerable error per step in integration
-    maxerr = 1e-13
+    maxerr = 1e-10
     ss = 1                                  # includes self steepening term
     ram = 'on'                              # Raman contribution 'on' if yes and 'off' if no
     fopa = True                             # If FOPA true or if FOPO then false
     # Do you want plots, be carefull it makes the code very slow!
     plots = False
-    N = 12                                   # 2**N grid points
+    N = 17                                   # 2**N grid points
     nt = 2**N                               # number of grid points
     nplot = 2                               # number of plots within fibre min is 2
     # Number of modes (include degenerate polarisation)
@@ -255,8 +260,8 @@ def main():
     n2 = 2.5e-20                            # Nonlinear index [m/W]
     gama = 10e-3                            # Overwirtes n2 and Aeff w/m        
     alphadB = np.array([0,0])              # loss within fibre[dB/m]
-    z = 18                                 # Length of the fibre
-    P_p = [6]
+    z = 100                                 # Length of the fibre
+    P_p = [5]
     P_s = 0
     TFWHM_p = 0                             # full with half max of pump
     TFWHM_s = 0                             # full with half max of signal
@@ -264,15 +269,15 @@ def main():
         0, 0, 1.4]]                 # loss of each type of splices [dB]
     spl_losses = [0, 0, 1.4]
 
-    a_med = 2.2e-6
+    a_med = 2.19e-6
     a_err = 0.01
     dnerr_med = 0#0.0002
     cutting = 1
-    Num_a = 4
+    Num_a = 1
     #a_vec = np.random.uniform(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
     a_vec = np.linspace(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
     dnerr = np.linspace(-dnerr_med, dnerr_med, len(a_vec))
-
+    a_vec = np.array([2.17e-6])
     pertb_vec = [[a_vec,dnerr]] # pertubation vector for dn and a_vec
     pertb_vec += [[a_vec[:-(cutting+i)],dnerr[:-(cutting+i)]]  for i in range(len(a_vec)-1)]
 
@@ -283,14 +288,15 @@ def main():
 
     lamp = [1046, 1048, 1050]
     lams = [1241.09, 1199.32, 1149.35]
+    Deltaf = 32
     lamp = lamp[1]
-
-    lams = lams[1]
+    lamp = 1550
+    lams = 1300
     var_dic = {'n2': n2, 'gama': gama, 'alphadB': alphadB, 'z': z, 'P_p': P_p,
                'P_s': P_s, 'TFWHM_p': TFWHM_p, 'TFWHM_s': TFWHM_s,
                'spl_losses': spl_losses,
                'lamda_c': lamda_c, 'WDMS_pars': WDMS_pars,
-               'lamp': lamp, 'lams': lams, 'pertb_vec':pertb_vec}
+               'lamp': lamp, 'lams': lams, 'pertb_vec':pertb_vec, 'Deltaf':Deltaf}
 
     "--------------------------------------------------------------------------"
     outside_var_key = 'P_p'

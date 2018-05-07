@@ -20,6 +20,7 @@ from scipy.fftpack import fft, ifft
 phasor = np.vectorize(cmath.polar)
 import warnings
 from functools import wraps
+from step_index import Sidebands
 # Pass through the @profile decorator if line profiler (kernprof) is not in use
 # Thanks Paul!!
 try:
@@ -846,68 +847,38 @@ def dbm_nm(U, sim_wind, int_fwm):
     return U_out
 
 
-def fv_creator(lam_p1, lams, int_fwm, prot_casc=0):
+def fv_creator(lam_p1,lams,P_s, Deltaf, int_fwm):
     """
-    Creates the freequency grid of the simmualtion and returns it.
-    The conceprt is that the pump freq is the center. (N/4 - prot_casc) steps till the 
-    signal and then (N/4 + prot_casc/2). After wards the rest is filled on the other side of the
-    pump wavelength. 
-
-    lam_p1 :: pump wavelength
-    lams :: signal wavelength
-    int_fwm :: data class with the number of points in
-    prot_casc :: a safety to keep the periodic boundary condition away from the first cascade.
-                    You can change it to let in more cascades but beware that you are taking 
-                    points away from the original pump-signal. 
+    Creates the freequency grid of the simmualtion and returns it.. 
     """
     #prot_casc = 1024
-    N = int_fwm.nt
     fp = 1e-3*c / lam_p1
     fs = 1e-3*c / lams
+    fv1 = np.linspace(fp - Deltaf, fp, int_fwm.nt//2)
+    df = fv1[1] - fv1[0]
+    fv2 = [fp+df]
+    for i in range(1,int_fwm.nt//2):
+        fv2.append(fv2[i -1]+df)
+    fv2 = np.array(fv2)
+    fv = np.concatenate((fv1,fv2))
 
-    f_med = np.linspace(fs, fp, N//8)
-    df = f_med[1] - f_med[0]
 
-    f_left = [f_med[0] - df]
-    print(df)
-    for i in range(1, 3*N//8):
-        #f_left.insert(0,f_left[i-1] - df)
-        f_left.append(f_left[i-1] - df)
-        # print(f_left[i-1])
-    f_left.sort()
-    f_right = [f_med[-1] + df]
-    for i in range(1, N//2):
-        f_right.append(f_right[i-1] + df)
-    """
-    sig_pump_shave = N//16
-    f_med = np.linspace(fs,fp,sig_pump_shave - prot_casc)
-    d = f_med[1] - f_med[0]
-    diff = N//4 - sig_pump_shave
-
-    f_2 =  [f_med[0],]
-    for i in range(1,N//4 +1 +diff//2+ prot_casc//2):
-        f_2.append(f_2[i-1]- d)
-    f_2 = f_2[1:]
-    f_2.sort()
-    f_1 = [f_med[-1],]
-    for i in range(1,N//2 +1 +diff//2+ prot_casc//2):
-        f_1.append(f_1[i-1] +d)
-    f_1 = f_1[1:]
-    f_1.sort()
-    f_med.sort()
-    """
-
-    fv = np.concatenate((f_left, f_med, f_right))
-    # fv.sort()
-    s_pos = np.where(fv == fs)[0][0]
+    
+    
     p_pos = np.where(fv == fp)[0][0]
-    where = [p_pos, s_pos]
-    # plt.plot(fv)
-    # plt.plot(f_left)
-    # plt.savefig('deleteme.png')
+    if P_s != 0:
+        try:
+            s_pos = np.where(fv == fs)[0][0]
+            where = [p_pos, 0]   
+        except IndexError:
+            print('Warning! seed not in frequency grid.')
+            print('Frequency grid from {} to {} and signal at {}'\
+            .format(fv.min(), fv.max(), fs))
+    else:
+        where = [p_pos, 0]    
+   
+    print(df)
     check_ft_grid(fv, df)
-
-    # sys.exit()
     return fv, where
 
 

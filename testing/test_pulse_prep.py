@@ -66,13 +66,14 @@ def test_fv_creator():
     int_fwm = int_fwm1()
     lam_p1 = 1000
     lam_s = 1200
-    fv, where = fv_creator(lam_p1, lam_s, int_fwm)
+    #fv, where = fv_creator(lam_p1, lam_s, int_fwm)
+    fv, where = fv_creator(lam_p1,lam_s,0, 50, int_fwm)
     mins = np.min(1e-3*c/fv)
     f1 = 1e-3*c/lam_p1
     fs = 1e-3*c/lam_s
-    diff = abs(f1 - fs)
+
     assert(all(i < max(fv) and i > min(fv)
-               for i in (f1, fs, fs + diff, f1 - diff, f1 - 2*diff)))
+               for i in (f1, fs)))
 
 
 def test_noise():

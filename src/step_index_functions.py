@@ -84,6 +84,13 @@ class Fibre(object):
         if not(plot):
             #print(self.core)
             #print(self.clad)
+            try:
+                assert((self.core > self.clad).all())
+            except AssertionError:
+                print(self.core.shape)
+                plt.plot(self.core, label = 'core')
+                plt.plot(self.clad, label = 'clad')
+                plt.show()
             assert((self.core > self.clad).all())
         return self.core, self.clad
 

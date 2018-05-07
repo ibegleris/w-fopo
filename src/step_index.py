@@ -65,10 +65,11 @@ def fibre_creator(a_vec, f_vec, dnerr, per=['ge', 'sio2'], filename='step_index_
     # print(filepath)
     return beta_large, Q_large, M, beta2_large, ncore, nclad, Export_dict
 
-from scipy.optimize import newton
+#from scipy.optimize import newton
+
 class Sidebands(object):
 
-    def __init__(self, Q_large, a_vec, o_vec,beta_large, P=6, n2=2.5e-20):
+    def __init__(self, Q_large, a_vec, o_vec,beta_large, P=0, n2=2.5e-20):
         self.o_vec = o_vec
         #print(o_vec.min(),o_vec.max())
         omega_m = (o_vec[0] + o_vec[-1])/2
@@ -101,21 +102,19 @@ class Sidebands(object):
                             args=(omegap,i), full_output=True)
 
             Omega_side[i] = Rr[0]
-        """
-        omega_sides = np.linspace(0, 200)
-        y = []
-        for i in range(len(self.a_vec)):
-            for o in omega_sides:
-                y.append(self.dbeta(o, omegap,i))
-            plt.plot(omega_sides, y, label = 'a = '+str(self.a_vec[i]))
-        plt.ylim([-1,1])
-        plt.legend()
-        plt.show()
-        """
         return Omega_side
 
     def get_sidebands(self, lamdap_vec):
         omegap_vec = 1e-12*c*(2*pi/(lamdap_vec*1e-9))
+        try:
+            temp = len(self.a_vec)
+        except TypeError:
+            self.a_vec = np.array([self.a_vec])
+
+        try:
+            temp = len(omegap_vec)
+        except TypeError:
+            omegap_vec = np.array([omegap_vec])
         omega_side_vec = np.zeros([len(self.a_vec),len(omegap_vec)])
         omega_sig = np.zeros([len(self.a_vec),len(omegap_vec)])
         omega_idler = np.zeros([len(self.a_vec),len(omegap_vec)])
@@ -133,12 +132,20 @@ class Sidebands(object):
         return self.lamp_vec, self.lams_vec, self.lami_vec
     
     def plot_sidebands(self):
-        fig = plt.figure(figsize = (10,5))
+        fig, ax1 = plt.subplots(figsize = (10,5))
+        ax2 = ax1.twinx()
         for i in range(len(self.a_vec)):
-            axs = plt.plot(self.lamp_vec[i,:], self.lams_vec[i,:], label = 'r: '+str(1e6*self.a_vec[i])+r' $\mu m$')
+            axs = ax1.plot(self.lamp_vec[i,:], self.lams_vec[i,:], color = 'w', label = 'r: '+str(1e6*self.a_vec[i])+r' $\mu m$')
             colour = axs[0]._color
-            plt.plot(self.lamp_vec[i,:], self.lami_vec[i,:], color = colour,label = 'r: '+str(1e6*self.a_vec[i])+r' $\mu m$')
-        plt.legend()
+            ax1.plot(self.lamp_vec[i,:], self.lami_vec[i,:], color = colour,label = 'r: '+str(1e6*self.a_vec[i])+r' $\mu m$')
+            
+            axs = ax2.plot(self.lamp_vec[i,:], 1e-3*c/self.lams_vec[i,:], label = 'r: '+str(1e6*self.a_vec[i])+r' $\mu m$')
+            colour = axs[0]._color
+            ax2.plot(self.lamp_vec[i,:], 1e-3*c/self.lami_vec[i,:], color = colour,label = 'r: '+str(1e6*self.a_vec[i])+r' $\mu m$')
+        ax1.set_ylabel(r'$\lambda_{pr} (\mu m)$')
+        ax2.set_ylabel(r'$f_{pr} (Thz)$')
+        ax1.set_xlabel(r'$\lambda_{pu} (\mu m)$')
+        ax1.legend()
         plt.show()
 
         
@@ -153,7 +160,7 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
     print('Frequency step: ', np.max(
         [f_vec[i+1] - f_vec[i] for i in range(len(f_vec)-1)]), 'Thz')
     #a_vec = np.linspace(2.2e-6, 2.2e-6, 1)
-    a_vec = np.linspace(low_a, high_a, 3)
+    a_vec = np.array([low_a,a_med, high_a])
     per = ['ge', 'sio2']
     err_med = 0.02*0.01
     err = err_med*np.random.randn(len(a_vec))
@@ -184,7 +191,7 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
     plt.axhline(0, color='black')
     plt.legend()
     plt.show()
-    sys.exit()
+    #sys.exit()
     print(np.asanyarray(betas).shape)
 
     fig3 = plt.figure(figsize=(15, 7.5))
@@ -251,7 +258,7 @@ if __name__ == '__main__':
     import matplotlib as mpl
     font = {'size': 18}
     mpl.rc('font', **font)
-    a_med = 2.20e-6
+    a_med = 2.19e-6
     a_err_p = 0.01
     l_span = 1300e-9
     l_p = 1550e-9
