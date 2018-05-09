@@ -1,22 +1,17 @@
+#cython: boundscheck=False, wraparound=False, initializedcheck=False, nonecheck=False, cdivision=True
 import numpy as np
 cimport numpy as np
 cimport cython
 
 
-
-
-
-
 ctypedef double complex complex128_t
 ctypedef double double_t
 
-@cython.cdivision(True)
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cpdef complex128_t[:,::1] dAdzmm_ron_s1_cython(const complex128_t[:,::1] u0 ,const complex128_t[:,::1] u0_conj ,
-                    np.ndarray[long, ndim = 2] M1, np.ndarray[long, ndim = 2] M2, const complex128_t[:,::1] Q,
-                    const double_t tsh, double_t dt, const complex128_t[:,::1] hf,
-                    const double_t[:,::1] w_tiled, const complex128_t gam_no_aeff):
+
+cpdef complex128_t[:,::1] dAdzmm_ron_s1_cython(complex128_t[:,::1] u0 ,complex128_t[:,::1] u0_conj ,
+                    np.ndarray[long, ndim = 2] M1, np.ndarray[long, ndim = 2] M2, complex128_t[:,::1] Q,
+                    double_t tsh, double_t dt, complex128_t[:,::1] hf,
+                    double_t[:,::1] w_tiled, complex128_t gam_no_aeff):
     cdef int shape1 = u0.shape[0]
     cdef int shape2 = u0.shape[1]
     cdef int shapeM2 = M2.shape[1]
@@ -28,8 +23,6 @@ cpdef complex128_t[:,::1] dAdzmm_ron_s1_cython(const complex128_t[:,::1] u0 ,con
     cdef complex128_t[:,::1] N = np.zeros([shape1,shape2], dtype='complex_')
     
 
-
-    
     for i in range(shapeM2):
         for j in range(shape2):
             M3[i,j] = u0[M2[0,i],j]*u0_conj[M2[1,i],j]
@@ -58,13 +51,10 @@ cpdef complex128_t[:,::1] dAdzmm_ron_s1_cython(const complex128_t[:,::1] u0 ,con
     return N
 
 
-@cython.cdivision(True)
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cpdef complex128_t[:,::1] dAdzmm_ron_s0_cython(const complex128_t[:,::1] u0,const complex128_t[:,::1] u0_conj ,
-                    np.ndarray[long, ndim = 2] M1, np.ndarray[long, ndim = 2] M2, const complex128_t[:,::1] Q,
-                    const double_t tsh, double_t dt, const complex128_t[:,::1] hf,
-                    const double_t[:,::1] w_tiled, const complex128_t gam_no_aeff):
+cpdef complex128_t[:,::1] dAdzmm_ron_s0_cython(complex128_t[:,::1] u0,const complex128_t[:,::1] u0_conj ,
+                    np.ndarray[long, ndim = 2] M1, np.ndarray[long, ndim = 2] M2, complex128_t[:,::1] Q,
+                    double_t tsh, double_t dt, complex128_t[:,::1] hf,
+                    double_t[:,::1] w_tiled, complex128_t gam_no_aeff):
     cdef int shape1 = u0.shape[0]
     cdef int shape2 = u0.shape[1]
     cdef int shapeM2 = M2.shape[1]
@@ -74,8 +64,6 @@ cpdef complex128_t[:,::1] dAdzmm_ron_s0_cython(const complex128_t[:,::1] u0,cons
     cdef complex128_t[:,::1] M4 = np.empty([shapeM2,shape2], dtype='complex_')
     cdef complex128_t[:,::1] N = np.zeros([shape1,shape2], dtype='complex_')
     
-
-
     
     for i in range(shapeM2):
         for j in range(shape2):
@@ -98,13 +86,12 @@ cpdef complex128_t[:,::1] dAdzmm_ron_s0_cython(const complex128_t[:,::1] u0,cons
         for j in range(shape2):
             N[i,j] = gam_no_aeff * N[i,j]
     return N
-@cython.cdivision(True)
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cpdef complex128_t[:,::1] dAdzmm_roff_s0_cython(const complex128_t[:,::1] u0,const complex128_t[:,::1] u0_conj ,
-                    np.ndarray[long, ndim = 2] M1, np.ndarray[long, ndim = 2] M2, const complex128_t[:,::1] Q,
-                    const double_t tsh, double_t dt, const complex128_t[:,::1] hf,
-                    const double_t[:,::1] w_tiled, const complex128_t gam_no_aeff):
+
+
+cpdef complex128_t[:,::1] dAdzmm_roff_s0_cython(complex128_t[:,::1] u0,complex128_t[:,::1] u0_conj ,
+                    np.ndarray[long, ndim = 2] M1, np.ndarray[long, ndim = 2] M2, complex128_t[:,::1] Q,
+                    double_t tsh, double_t dt, complex128_t[:,::1] hf,
+                    double_t[:,::1] w_tiled, complex128_t gam_no_aeff):
     cdef int shape1 = u0.shape[0]
     cdef int shape2 = u0.shape[1]
     cdef int shapeM2 = M2.shape[1]
@@ -133,9 +120,7 @@ cpdef complex128_t[:,::1] dAdzmm_roff_s0_cython(const complex128_t[:,::1] u0,con
             N[i,j] = gam_no_aeff * N[i,j]
     return N
 
-@cython.cdivision(True)
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
+
 cpdef complex128_t[:,::1] dAdzmm_roff_s1_cython(const complex128_t[:,::1] u0,const complex128_t[:,::1] u0_conj ,
                     np.ndarray[long, ndim = 2] M1, np.ndarray[long, ndim = 2] M2, const complex128_t[:,::1] Q,
                     const double_t tsh, double_t dt, const complex128_t[:,::1] hf,
@@ -151,8 +136,6 @@ cpdef complex128_t[:,::1] dAdzmm_roff_s1_cython(const complex128_t[:,::1] u0,con
     cdef complex128_t[:,::1] N = np.zeros([shape1,shape2], dtype='complex_')
     
 
-
-    
     for i in range(shapeM2):
         for j in range(shape2):
             M3[i,j] = u0[M2[0,i],j]*u0_conj[M2[1,i],j]
