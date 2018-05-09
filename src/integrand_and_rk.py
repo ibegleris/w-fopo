@@ -66,7 +66,7 @@ def RK45CK(dAdzmm, u1, dz, M1, M2,Q, tsh, dt, hf, w_tiled, gam_no_aeff):
     return A, delta
 
 trgt = 'cpu'
-trgt = 'parallel'
+#trgt = 'parallel'
 #trgt = 'cuda'
 
 @jit(nopython=True,nogil = True)

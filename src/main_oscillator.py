@@ -162,10 +162,7 @@ def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losse
                                                     index, master_index,
                                                     filename='step_index_2m'
                                                     )
-    print(Q_large)
-    #print(betas.shape)
-    #print(betas)
-    #sys.exit()
+
     "----------------------------------------------------------"
 
     "---------------------Loss-in-fibres-----------------------"

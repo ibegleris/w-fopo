@@ -8,9 +8,10 @@ rm -r output*
 rm -r *__*
 cd src/cython_files
 #rm -rf build *so *c *html
-
-python setup.py build_ext --inplace
 cython -a cython_integrand.pyx
+python setup.py build_ext --inplace
+#LDSHARED="icc -shared" CC=icc python3.6 setup.py build_ext --inplace
+
 cd ../..
 
 
