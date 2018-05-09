@@ -23,7 +23,7 @@ cpdef complex128_t[:,::1] dAdzmm_ron_s1_cython(const complex128_t[:,::1] u0 ,con
     cdef int shapeM1 = M1.shape[1]
 
     cdef int i, j
-    cdef double_t[:,::1] M3 = np.empty([shapeM2,shape2], dtype='double')
+    cdef complex128_t[:,::1] M3 = np.empty([shapeM2,shape2], dtype='complex_')
     cdef complex128_t[:,::1] M4 = np.empty([shapeM2,shape2], dtype='complex_')
     cdef complex128_t[:,::1] N = np.zeros([shape1,shape2], dtype='complex_')
     
@@ -32,7 +32,7 @@ cpdef complex128_t[:,::1] dAdzmm_ron_s1_cython(const complex128_t[:,::1] u0 ,con
     
     for i in range(shapeM2):
         for j in range(shape2):
-            M3[i,j] = (u0[M2[0,i],j]*u0_conj[M2[1,i],j]).real
+            M3[i,j] = u0[M2[0,i],j]*u0_conj[M2[1,i],j]
 
     M4 = np.fft.fft(M3)
     for i in range(shapeM2):
@@ -70,13 +70,16 @@ cpdef complex128_t[:,::1] dAdzmm_ron_s0_cython(const complex128_t[:,::1] u0,cons
     cdef int shapeM2 = M2.shape[1]
     cdef int shapeM1 = M1.shape[1]
     cdef int i, j
-    cdef double_t[:,::1] M3 = np.empty([shapeM2,shape2], dtype='double')
+    cdef complex128_t[:,::1] M3 = np.empty([shapeM2,shape2], dtype='complex_')
     cdef complex128_t[:,::1] M4 = np.empty([shapeM2,shape2], dtype='complex_')
     cdef complex128_t[:,::1] N = np.zeros([shape1,shape2], dtype='complex_')
     
+
+
+    
     for i in range(shapeM2):
         for j in range(shape2):
-            M3[i,j] = (u0[M2[0,i],j]*u0_conj[M2[1,i],j]).real
+            M3[i,j] = u0[M2[0,i],j]*u0_conj[M2[1,i],j]
     
     M4 = np.fft.fft(M3)
     for i in range(shapeM2):
@@ -107,12 +110,16 @@ cpdef complex128_t[:,::1] dAdzmm_roff_s0_cython(const complex128_t[:,::1] u0,con
     cdef int shapeM2 = M2.shape[1]
     cdef int shapeM1 = M1.shape[1]
     cdef int i, j
-    cdef double_t[:,::1] M3 = np.empty([shapeM2,shape2], dtype='double')
+    cdef complex128_t[:,::1] M3 = np.empty([shapeM2,shape2], dtype='complex_')
+    cdef complex128_t[:,::1] M4 = np.empty([shapeM2,shape2], dtype='complex_')
     cdef complex128_t[:,::1] N = np.zeros([shape1,shape2], dtype='complex_')
+    
+
+
     
     for i in range(shapeM2):
         for j in range(shape2):
-            M3[i,j] = (u0[M2[0,i],j]*u0_conj[M2[1,i],j]).real
+            M3[i,j] = u0[M2[0,i],j]*u0_conj[M2[1,i],j]
     
 
     for i in range(shapeM1):
@@ -139,14 +146,16 @@ cpdef complex128_t[:,::1] dAdzmm_roff_s1_cython(const complex128_t[:,::1] u0,con
     cdef int shapeM1 = M1.shape[1]
     cdef int i, j
     
-    cdef double_t[:,::1] M3 = np.empty([shapeM2,shape2], dtype='double')
+    cdef complex128_t[:,::1] M3 = np.empty([shapeM2,shape2], dtype='complex_')
+    cdef complex128_t[:,::1] M4 = np.empty([shapeM2,shape2], dtype='complex_')
     cdef complex128_t[:,::1] N = np.zeros([shape1,shape2], dtype='complex_')
-    cdef complex128_t[:,::1] M5 = np.empty([shape1,shape2], dtype='complex_')
     
 
+
+    
     for i in range(shapeM2):
         for j in range(shape2):
-            M3[i,j] = (u0[M2[0,i],j]*u0_conj[M2[1,i],j]).real
+            M3[i,j] = u0[M2[0,i],j]*u0_conj[M2[1,i],j]
     
 
     for i in range(shapeM1):

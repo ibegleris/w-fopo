@@ -162,15 +162,15 @@ def multi(a,b):
     return a * b
 
 
-@guvectorize(['void(complex128[:,::1],complex128[:,::1], int64[:,::1], float64[:,::1])'],\
+@guvectorize(['void(complex128[:,::1],complex128[:,::1], int64[:,::1], complex128[:,::1])'],\
                  '(n,m),(n,m),(o,l)->(l,m)',target = trgt)
 def uabs(u0,u0_conj,M2,M3):
     for ii in range(M2.shape[1]):
-        M3[ii,:] = (u0[M2[0,ii],:]*u0_conj[M2[1,ii],:]).real
+        M3[ii,:] = u0[M2[0,ii],:]*u0_conj[M2[1,ii],:]
 
 
 @guvectorize(['void(int64[:,::1], complex128[:,::1], complex128[:,::1],\
-            float64[:,::1], complex128[:,::1], complex128[:,::1])'],\
+            complex128[:,::1], complex128[:,::1], complex128[:,::1])'],\
             '(w,a),(i,a),(m,n),(l,n),(l,n)->(m,n)',target = trgt)
 def nonlin_ram(M1, Q, u0, M3, M4, N):
     N[:,:] = 0
@@ -181,7 +181,7 @@ def nonlin_ram(M1, Q, u0, M3, M4, N):
 
 
 @guvectorize(['void(int64[:,::1], complex128[:,::1], complex128[:,::1],\
-            float64[:,::1], complex128[:,::1])'],\
+            complex128[:,::1], complex128[:,::1])'],\
             '(w,a),(i,a),(m,n),(l,n)->(m,n)',target = trgt)
 def nonlin_kerr(M1, Q, u0, M3, N):
     N[:,:] = 0
