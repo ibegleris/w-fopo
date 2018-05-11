@@ -113,7 +113,6 @@ def dAdzmm_roff_s0(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff):
     M3 = uabs(u0,u0_conj,M2)
     N = nonlin_kerr(M1, Q, u0, M3)
     N *= gam_no_aeff
-
     return N
 
 
@@ -130,7 +129,6 @@ def dAdzmm_roff_s1(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff):
     return N
 
 
-#@jit(nogil = True)
 def dAdzmm_ron_s0(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled, gam_no_aeff):
     """
     calculates the nonlinear operator for a given field u0
@@ -143,7 +141,7 @@ def dAdzmm_ron_s0(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled, gam_no_aeff):
     return N
 
 
-#@jit(nogil = True)
+
 def dAdzmm_ron_s1(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff):
     """
     calculates the nonlinear operator for a given field u0
@@ -237,7 +235,7 @@ class Integrand(object):
             t = time()
             N2 = dAdzmm_roff_s0(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff)
             dt2.append(time() - t)
-            #assert_allclose(N1, N2)
+            assert_allclose(N1, N2)
             
             '------ ram, no ss--------'
             t = time()
@@ -247,7 +245,7 @@ class Integrand(object):
             t = time()
             N2 = dAdzmm_ron_s0(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff)
             dt4.append(time() - t)
-            #assert_allclose(N1, N2)
+            assert_allclose(N1, N2)
 
 
             '------ no ram, ss--------'
@@ -258,7 +256,7 @@ class Integrand(object):
             t = time()
             N2 = dAdzmm_roff_s1(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff)
             dt6.append(time() - t)
-            #assert_allclose(N1, N2)
+            assert_allclose(N1, N2)
 
             '------ ram, ss--------'
             t = time()
@@ -268,7 +266,7 @@ class Integrand(object):
             t = time()
             N2 = dAdzmm_ron_s1(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff)
             dt8.append(time() - t)
-            #assert_allclose(N1, N2)
+            assert_allclose(N1, N2)
         
         print('cython_ram(off)_s0: {} +/- {}'.format(np.average(dt1),np.std(dt1)))
         print('python_ram(off)_s0: {} +/- {}'.format(np.average(dt2),np.std(dt2)))

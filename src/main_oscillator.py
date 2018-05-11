@@ -231,7 +231,7 @@ def main():
     fopa = True                             # If FOPA true or if FOPO then false
     
     plots = True                           # Do you want plots, be carefull it makes the code very slow!
-    N = 10                                  # 2**N grid points
+    N = 12                                  # 2**N grid points
     nt = 2**N                               # number of grid points
     nplot = 2                               # number of plots within fibre min is 2
     # Number of modes (include degenerate polarisation)
@@ -250,8 +250,8 @@ def main():
     n2 = 2.5e-20                            # Nonlinear index [m/W]
     gama = 10e-3                            # Overwirtes n2 and Aeff w/m        
     alphadB = np.array([0,0])              # loss within fibre[dB/m]
-    z = 100                                 # Length of the fibre
-    P_p = [5]
+    z = 200                                 # Length of the fibre
+    P_p = [10]
     P_s = 0
     TFWHM_p = 0                             # full with half max of pump
     TFWHM_s = 0                             # full with half max of signal
