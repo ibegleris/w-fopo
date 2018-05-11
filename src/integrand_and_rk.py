@@ -62,7 +62,6 @@ def RK45CK(dAdzmm, u1, dz, M1, M2,Q, tsh, dt, hf, w_tiled, gam_no_aeff):
     Afourth =  Afourth_temp(u1, A1, A3, A4,A5, A6) # Fourth order accuracy
 
     delta = np.linalg.norm(A - Afourth,2, axis = 1).max()
-
     return A, delta
 
 trgt = 'cpu'

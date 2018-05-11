@@ -266,11 +266,15 @@ def main():
     Num_a = 10
     #a_vec = np.random.uniform(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
     a_vec = np.linspace(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
+    a_vec = np.array([2.17e-6])
+    
+    
     dnerr = np.linspace(-dnerr_med, dnerr_med, len(a_vec))
     Dtheta = np.linspace(0, 2*pi, len(a_vec))
-    #a_vec = np.array([2.17e-6])
     pertb_vec = [[a_vec,dnerr,Dtheta]] # pertubation vector for dn and a_vec
-    pertb_vec += [[j[:-(cutting+i)] for j in (a_vec, dnerr, Dtheta)]  for i in range(int(Num_a/cutting) - 1)]
+    if cutting < len(a_vec):
+        pertb_vec += [[j[:-(cutting+i)] for j in (a_vec, dnerr, Dtheta)]\
+                       for i in range(int(len(a_vec)/cutting) - 1)]
 
 
 
