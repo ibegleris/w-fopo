@@ -254,3 +254,12 @@ class Test_pulse_prop(object):
         assert np.all(x == E[0] for x in E)
 
 
+def test_bire_pass():
+    Da = np.random.uniform(0, 2*pi, 100)
+    b = birfeg_variation(Da)
+    u = np.random.randn(2, 2**14) + 1j * np.random.randn(2, 2**14)
+    u *= 10
+    for i in range(100):
+        ut = b.bire_pass(u,i)
+        assert_allclose(np.abs(u)**2, np.abs(ut)**2)
+        u = 1 * ut

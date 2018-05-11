@@ -33,9 +33,9 @@ def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
 
     woff2 = -(s_pos - (int_fwm.nt-1)//2)*2*pi*sim_wind.df
     u[:, :] += (P0_s)**0.5 * np.exp(-1j*(woff2) *
-                                           sim_wind.t)  # *np.exp(-sim_wind.t**2/T0_s)
+                                           sim_wind.t)
 
-    U[:, :] = fftshift(fft(u[:, :]))
+    U[:, :] = fftshift(fft(u[:, :]), axes = -1)
 
     sim_wind.w_tiled = np.tile(sim_wind.w + sim_wind.woffset, (int_fwm.nm, 1))
     master_index = str(master_index)
@@ -101,9 +101,6 @@ def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
             (U_original_pump, U[:, :]), sim_wind)[0]
 
         ################################The outbound stuff#####################
-
-        #U_out = np.reshape(out2, (1,)+U.shape[1:])
-        #u_out = np.reshape(out1, (1,)+u.shape[1:])
         ex.exporter(index, int_fwm, sim_wind, out1, out2, P0_p1,
                     P0_s, f_p, f_s, -
                     1, ro,  mode_names, master_index, str(ro)+'4',
@@ -119,7 +116,6 @@ def calc_P_out(U, U_original_pump, fv, t):
     plom = fp_id+10
     fv_id = np.where(U[plom:] == np.max(U[plom:]))[0][0]
     fv_id += plom-1
-    # fv_id = fp_id
     start, end = fv[fv_id] - freq_band, fv[fv_id] + freq_band
     i = np.where(
         np.abs(fv - start) == np.min(np.abs(fv - start)))[0][0]
@@ -134,12 +130,11 @@ def calc_P_out(U, U_original_pump, fv, t):
 def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losses,
               lamda_c, WDMS_pars, lamp, lams, num_cores, maxerr, ss, ram, plots,
               N, nt, nplot, master_index, nm, mode_names, pertb_vec, fopa, Deltaf):
-    a_vec, dnerr  = pertb_vec
+    a_vec, dnerr, Dtheta  = pertb_vec
     ex = Plotter_saver(plots, True)  # construct exporter
     "------------------propagation paramaters------------------"
     dzstep = z/nplot                        # distance per step
     dz_less = 2
-    # dz = dzstep/dz_less        # starting guess value of the step
     Num_a = len(a_vec)
     int_fwm = sim_parameters(n2, nm, alphadB)
     int_fwm.general_options(maxerr, raman_object, ss, ram)
@@ -147,7 +142,7 @@ def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losse
     lamda = lamp*1e-9  # central wavelength of the grid[m]
     fv_idler_int = 10  # safety for the idler to be spotted used only for idler power
     "-----------------------------f-----------------------------"
-    Dtheta = birfeg_variation(Num_a)
+    Dtheta = birfeg_variation(Dtheta)
     "---------------------Grid&window-----------------------"
     fv, where = fv_creator(lamp,lams,P_s, Deltaf, int_fwm)
     p_pos, s_pos = where
@@ -157,21 +152,19 @@ def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losse
     "----------------------------------------------------------"
 
     "---------------------Aeff-Qmatrixes-----------------------"
-    #M1, M2, Q = Q_matrixes(int_fwm.nm, int_fwm.n2, lamda, gama)
     M1, M2, betas, Q_large = fibre_parameter_loader(fv, a_vec, dnerr,
                                                     index, master_index,
                                                     filename='step_index_2m'
                                                     )
-
     "----------------------------------------------------------"
 
     "---------------------Loss-in-fibres-----------------------"
     slice_from_edge = (sim_wind.fv[-1] - sim_wind.fv[0])/100
     loss = Loss(int_fwm, sim_wind, amax=None)
-    # loss.plot(sim_wind.fv)
+
     
     int_fwm.alpha = loss.atten_func_full(fv)
-    #print(int_fwm.alpha)
+
     "----------------------------------------------------------"
 
     "--------------------Dispersion----------------------------"
@@ -193,7 +186,7 @@ def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losse
     D_pic = [plt.imread(i) for i in keys]
 
 
-    integrand = Integrand(ram, ss, cython = True, timing = True)
+    integrand = Integrand(ram, ss, cython = True, timing = False)
     dAdzmm = integrand.dAdzmm
     raman = raman_object(int_fwm.ram, int_fwm.how)
     raman.raman_load(sim_wind.t, sim_wind.dt, M2)
@@ -236,9 +229,9 @@ def main():
     ss = 1                                  # includes self steepening term
     ram = 'on'                              # Raman contribution 'on' if yes and 'off' if no
     fopa = True                             # If FOPA true or if FOPO then false
-    # Do you want plots, be carefull it makes the code very slow!
-    plots = False
-    N = 17                                   # 2**N grid points
+    
+    plots = True                           # Do you want plots, be carefull it makes the code very slow!
+    N = 10                                  # 2**N grid points
     nt = 2**N                               # number of grid points
     nplot = 2                               # number of plots within fibre min is 2
     # Number of modes (include degenerate polarisation)
@@ -268,15 +261,19 @@ def main():
 
     a_med = 2.19e-6
     a_err = 0.01
-    dnerr_med = 0#0.0002
-    cutting = 1
-    Num_a = 1
+    dnerr_med = 0.0002
+    cutting = 2
+    Num_a = 10
     #a_vec = np.random.uniform(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
     a_vec = np.linspace(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
     dnerr = np.linspace(-dnerr_med, dnerr_med, len(a_vec))
-    a_vec = np.array([2.17e-6])
-    pertb_vec = [[a_vec,dnerr]] # pertubation vector for dn and a_vec
-    pertb_vec += [[a_vec[:-(cutting+i)],dnerr[:-(cutting+i)]]  for i in range(len(a_vec)-1)]
+    Dtheta = np.linspace(0, 2*pi, len(a_vec))
+    #a_vec = np.array([2.17e-6])
+    pertb_vec = [[a_vec,dnerr,Dtheta]] # pertubation vector for dn and a_vec
+    pertb_vec += [[j[:-(cutting+i)] for j in (a_vec, dnerr, Dtheta)]  for i in range(int(Num_a/cutting) - 1)]
+
+
+
 
     lamda_c = 1051.85e-9
     WDMS_pars = ([1050., 1199.32],
@@ -293,7 +290,8 @@ def main():
                'P_s': P_s, 'TFWHM_p': TFWHM_p, 'TFWHM_s': TFWHM_s,
                'spl_losses': spl_losses,
                'lamda_c': lamda_c, 'WDMS_pars': WDMS_pars,
-               'lamp': lamp, 'lams': lams, 'pertb_vec':pertb_vec, 'Deltaf':Deltaf}
+               'lamp': lamp, 'lams': lams,
+               'pertb_vec':pertb_vec, 'Deltaf':Deltaf}
 
     "--------------------------------------------------------------------------"
     outside_var_key = 'P_p'

@@ -33,8 +33,8 @@ class Test_splicer_1m():
     U_in = (U1, U2)
     U1 = U1
     U2 = U2
-    u_in1 = ifft(ifftshift(U1))
-    u_in2 = ifft(ifftshift(U2))
+    u_in1 = ifft(ifftshift(U1, axes = -1))
+    u_in2 = ifft(ifftshift(U2, axes = -1))
     u_in_tot = np.abs(u_in1)**2 + np.abs(u_in2)**2
     U_in_tot = np.abs(U1)**2 + np.abs(U2)**2
     a, b = splicer.pass_through(U_in, sim_wind)
@@ -78,8 +78,8 @@ class Test_splicer_2m():
     U_in = (U1, U2)
     U1 = U1
     U2 = U2
-    u_in1 = ifft(ifftshift(U1))
-    u_in2 = ifft(ifftshift(U2))
+    u_in1 = ifft(ifftshift(U1, axes = -1))
+    u_in2 = ifft(ifftshift(U2, axes = -1))
     u_in_tot = np.abs(u_in1)**2 + np.abs(u_in2)**2
     U_in_tot = np.abs(U1)**2 + np.abs(U2)**2
     a, b = splicer.pass_through(U_in, sim_wind)
@@ -125,8 +125,8 @@ class Test_WDM_1m():
     U_in = (U1, U2)
     U_in_tot = np.abs(U1)**2 + np.abs(U2)**2
 
-    u_in1 = ifft(fftshift(U1))
-    u_in2 = ifft(fftshift(U2))
+    u_in1 = ifft(fftshift(U1, axes = -1))
+    u_in2 = ifft(fftshift(U2, axes = -1))
     u_in_tot = simps(np.abs(u_in1)**2, sim_wind.t) + \
         simps(np.abs(u_in2)**2, sim_wind.t)
 
@@ -179,8 +179,8 @@ class Test_WDM_2m():
     U_in = (U1, U2)
     U_in_tot = np.abs(U1)**2 + np.abs(U2)**2
 
-    u_in1 = ifft(fftshift(U1))
-    u_in2 = ifft(fftshift(U2))
+    u_in1 = ifft(fftshift(U1, axes = -1))
+    u_in2 = ifft(fftshift(U2, axes = -1))
     u_in_tot = simps(np.abs(u_in1)**2, sim_wind.t) + \
         simps(np.abs(u_in2)**2, sim_wind.t)
 

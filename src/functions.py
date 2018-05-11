@@ -21,6 +21,7 @@ phasor = np.vectorize(cmath.polar)
 import warnings
 from functools import wraps
 from step_index import Sidebands
+from time import time
 # Pass through the @profile decorator if line profiler (kernprof) is not in use
 # Thanks Paul!!
 try:
@@ -39,7 +40,6 @@ def arguments_determine(j):
     """
     A = []
     a = np.copy(sys.argv)
-    # a.reverse()
     for i in a[::-1]:
         try:
             A.append(int(i))
@@ -151,7 +151,7 @@ def dispersion_operator(betas, int_fwm, sim_wind):
     Dop = np.zeros((betas.shape[0], int_fwm.nm, w.shape[0]), dtype=np.complex)
 
     for i in range(Dop.shape[0]):
-        Dop[i, :, :] -= fftshift(int_fwm.alpha/2)
+        Dop[i, :, :] -= fftshift(int_fwm.alpha/2, axes=-1)
 
     for i in range(int_fwm.nm-1, -1, -1):
         betap[i, :, 0] = betap[i, :, 0] - betap[0, :, 0]
@@ -201,13 +201,11 @@ def find_large_block_data_full(already_done, layer_old, filepath, filename, D_no
     Searches the large block file to see if the data is already cached
     Returns a bool. 
     """
-    # print(filepath+filename+'.hdf5')
     with h5py.File(filepath+filename+'.hdf5', 'r') as f:
         for layer_old in f.keys():
             D = [f.get(layer_old + '/' + str(i)
                        ).value for i in ('a_vec', 'fv', 'dnerr')]
             try:
-                #print(D_now, [D[i] for i in range(3)])
                 already_done = np.array(
                     [np.allclose(D_now[i], D[i]) for i in range(3)]).all()
             except ValueError:
@@ -323,7 +321,6 @@ def compare_single_data(fv_old, fv, a_vec, dnerr, a_vec_old,
                     Q_large[i] = Q_large_old[j, :, :]
                     betas[i] = betas_old[j, :]
                     found[i] = True
-                # print(a_vec_old[j],dnerr_old[j])
     except ValueError:
         pass
     return found, Q_large, betas
@@ -454,8 +451,9 @@ class sim_parameters(object):
         self.z = np.linspace(0, z, Num_a+1)
         self.Dz_vec = np.array([self.z[i + 1] - self.z[i]
                                 for i in range(len(self.z)-1)])
-        self.dzstep_vec = self.Dz_vec  # /self.nplot
-        self.dz = self.dzstep_vec[0]/dz_less
+
+        self.dzstep_vec = self.Dz_vec/2
+        self.dz = self.dzstep_vec[0]
         return None
 
     def woble_propagate(self, i):
@@ -468,66 +466,25 @@ class sim_window(object):
     def __init__(self, fv, lamda, lamda_c, int_fwm, fv_idler_int):
         self.fv = fv
         self.lamda = lamda
-
         self.fmed = 0.5*(fv[-1] + fv[0])*1e12  # [Hz]
         self.deltaf = np.max(self.fv) - np.min(self.fv)  # [THz]
         self.df = self.deltaf/int_fwm.nt  # [THz]
         self.T = 1/self.df  # Time window (period)[ps]
-
         self.woffset = 2*pi*(self.fmed - c/lamda)*1e-12  # [rad/ps]
-
-        #self.woffset2 = 2*pi*(self.fmed - c/lamda_c)*1e-12
-
         self.w0 = 2*pi*self.fmed  # central angular frequency [rad/s]
-
         self.tsh = 1/self.w0*1e12  # shock time [ps]
         self.dt = self.T/int_fwm.nt  # timestep (dt)     [ps]
-        # time vector      [ps]
         self.t = (range(int_fwm.nt)-np.ones(int_fwm.nt)*int_fwm.nt/2)*self.dt
         # angular frequency vector [rad/ps]
         self.w = 2*pi * np.append(
             range(0, int(int_fwm.nt/2)),
             range(int(-int_fwm.nt/2), 0, 1))/self.T
-        #self.w = fftshift(2*pi *(self.fv - 1e-12*self.fmed))
-        # plt.plot(self.w)
-        # plt.savefig('w.png')
-        # sys.exit()
-        # frequency vector[THz] (shifted for plotting)
-        # wavelength vector [nm]
+
         self.lv = 1e-3*c/self.fv
-        # space vector [m]
-        #self.zv = int_fwm.dzstep*np.asarray(range(0, int_fwm.nplot+1))
+
         self.fv_idler_int = fv_idler_int
         self.fv_idler_tuple = (
             self.fmed*1e-12 - fv_idler_int, self.fmed*1e-12 + fv_idler_int)
-
-        # for i in (self.fv,self.t, fftshift(self.w)):
-        #   check_ft_grid(i, np.abs(i[1] - i[0]))
-
-
-def idler_limits(sim_wind, U_original_pump, U, noise_obj):
-
-    size = len(U[:, 0])
-    pump_pos = np.argsort(U_original_pump)[-1]
-    out_int = np.argsort(U[(pump_pos + 1):, 0])[-1]
-
-    out_int += pump_pos
-
-    lhs_int = np.max(
-        np.where(U[pump_pos+1:out_int-1, 0] <= noise_obj.pquant_f)[0])
-
-    rhs_int = np.min(np.where(U[out_int+1:, 0] <= noise_obj.pquant_f)[0])
-
-    lhs_int += pump_pos
-    rhs_int += out_int
-    lhs_int = out_int - 20
-    rhs_int = out_int + 20
-    # if lhs_int > out_int:
-    #    lhs_int = out_int - 10
-
-    fv_id = (lhs_int, rhs_int)
-    #print(1e-3*c/sim_wind.fv[lhs_int] - 1e-3*c/sim_wind.fv[out_int])
-    return fv_id
 
 
 class Loss(object):
@@ -645,14 +602,14 @@ class WDM(object):
         U_out = self.U_calc(U_in)
         u_out = ()
         for i, UU in enumerate(U_out):
-            u_out += (ifft(fftshift(UU)),)
-            #u_out += (UU,)
+            u_out += (ifft(fftshift(UU, axes=-1)),)
         return ((u_out[0], U_out[0]), (u_out[1], U_out[1]))
 
     def il_port1(self, fv_sp=None):
         """
-        For visualisation of the wdm loss of port 1. If no input is given then it is plotted
-        in the freequency vector that the function is defined by. You can however 
+        For visualisation of the wdm loss of port 1.
+        If no input is given then it is plottedin the freequency 
+        vector that the function is defined by. You can however 
         give an input in wavelength.
         """
         if fv_sp is None:
@@ -677,12 +634,10 @@ class WDM(object):
                  (self.l2) + ' nm port')
         plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.13), ncol=2)
         plt.xlabel(r'$\lambda (n m)$')
-        # plt.xlim()
         plt.ylabel('Power Ratio')
         if xlim:
             plt.xlim(xlim)
         if filename:
-            #os.system('mkdir output/WDMs_loss')
             plt.savefig(filename+'.png')
         else:
             plt.show()
@@ -699,7 +654,6 @@ class WDM(object):
         plt.xlabel(r'$\lambda (\mu m)$')
         plt.ylabel(r'$Insertion loss (dB)$')
         plt.ylim(-60, 0)
-        #plt.xlim((900, 1250))
         if filename:
 
             plt.savefig('output/WDMs&loss/WDM_dB_high_' +
@@ -748,7 +702,8 @@ class Splicer(WDM):
 
     def U_calc(self, U_in):
         """
-        Operates like a beam splitter that reduces the optical power by the loss given (in dB).
+        Operates like a beam splitter that 
+        reduces the optical power by the loss given (in dB).
         """
         U_out1 = U_in[0] * self.c1 + 1j * U_in[1] * self.c2
         U_out2 = 1j * U_in[0] * self.c2 + U_in[1] * self.c1
@@ -758,7 +713,7 @@ class Splicer(WDM):
 def norm_const(u, sim_wind):
     t = sim_wind.t
     fv = sim_wind.fv
-    U_temp = fftshift(fft(u))
+    U_temp = fftshift(fft(u), axes=-1)
     first_int = simps(np.abs(U_temp)**2, fv)
     second_int = simps(np.abs(u)**2, t)
     return (first_int/second_int)**0.5
@@ -769,7 +724,7 @@ class Noise(object):
     def __init__(self, int_fwm, sim_wind):
         self.pquant = np.sum(
             1.054e-34*(sim_wind.w*1e12 + sim_wind.w0)/(sim_wind.T*1e-12))
-        # print(self.pquant**0.5)
+
         self.pquant = (self.pquant/2)**0.5
         self.pquant_f = np.mean(
             np.abs(self.noise_func_freq(int_fwm, sim_wind))**2)
@@ -783,9 +738,9 @@ class Noise(object):
 
     def noise_func_freq(self, int_fwm, sim_wind):
         noise = self.noise_func(int_fwm)
-        noise_freq = fftshift(fft(noise))
+        noise_freq = fftshift(fft(noise), axes=-1)
         return noise_freq
-from time import time
+
 
 @profile
 def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf, Dop, dAdzmm, gam_no_aeff):
@@ -804,12 +759,12 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf, Dop, dAdzmm, gam_n
             u1new = ifft(np.exp(Dop*dz/2)*fft(u1))
             A, delta = RK45CK(dAdzmm, u1new, dz, M1, M2, Q, sim_wind.tsh,
                               sim_wind.dt, hf, sim_wind.w_tiled, gam_no_aeff)
+
             if (delta > int_fwm.maxerr):
                 # calculate the step (shorter) to redo
                 dz *= Safety*(int_fwm.maxerr/delta)**0.25
         #####################################Successful step###############
         # propagate the remaining half step
-
         u1 = ifft(np.exp(Dop*dz/2)*fft(A))
         # update the propagated distance
         dztot += dz
@@ -826,10 +781,9 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf, Dop, dAdzmm, gam_n
         elif ((dztot + dz) >= int_fwm.dzstep):
             dz = int_fwm.dzstep - dztot
         ###################################################################
-    u[:, :] = u1
-    U[:, :] = fftshift(fft(u[:, :]))
+    u = u1
+    U = fftshift(fft(u), axes=-1)
     int_fwm.dz = dz*1
-
     return u, U
 
 
@@ -847,36 +801,31 @@ def dbm_nm(U, sim_wind, int_fwm):
     return U_out
 
 
-def fv_creator(lam_p1,lams,P_s, Deltaf, int_fwm):
+def fv_creator(lam_p1, lams, P_s, Deltaf, int_fwm):
     """
     Creates the freequency grid of the simmualtion and returns it.. 
     """
-    #prot_casc = 1024
     fp = 1e-3*c / lam_p1
     fs = 1e-3*c / lams
     fv1 = np.linspace(fp - Deltaf, fp, int_fwm.nt//2)
     df = fv1[1] - fv1[0]
     fv2 = [fp+df]
-    for i in range(1,int_fwm.nt//2):
-        fv2.append(fv2[i -1]+df)
+    for i in range(1, int_fwm.nt//2):
+        fv2.append(fv2[i - 1]+df)
     fv2 = np.array(fv2)
-    fv = np.concatenate((fv1,fv2))
-
-
-    
-    
+    fv = np.concatenate((fv1, fv2))
     p_pos = np.where(fv == fp)[0][0]
     if P_s != 0:
         try:
             s_pos = np.where(fv == fs)[0][0]
-            where = [p_pos, 0]   
+            where = [p_pos, 0]
         except IndexError:
             print('Warning! seed not in frequency grid.')
-            print('Frequency grid from {} to {} and signal at {}'\
-            .format(fv.min(), fv.max(), fs))
+            print('Frequency grid from {} to {} and signal at {}'
+                  .format(fv.min(), fv.max(), fs))
     else:
-        where = [p_pos, 0]    
-   
+        where = [p_pos, 0]
+
     print(df)
     check_ft_grid(fv, df)
     return fv, where
@@ -889,7 +838,6 @@ def energy_conservation(entot):
         plt.grid()
         plt.xlabel("nplots(snapshots)", fontsize=18)
         plt.ylabel("Total energy", fontsize=18)
-        # plt.show()
         plt.close()
         sys.exit("energy is not conserved")
     return 0
@@ -956,23 +904,22 @@ def power_idler(spec, fv, sim_wind, fv_id):
 
 class birfeg_variation(object):
 
-    def __init__(self, N):
-        self.Da = np.random.uniform(0, 2*pi, N)
-        self._P_mat()
+    def __init__(self, Da):
+        self._P_mat(Da)
         return None
 
-    def _P_mat(self):
-        self.P = np.array([[np.cos(self.Da), 1j*np.sin(self.Da)],
-                           [1j*np.sin(self.Da), np.cos(self.Da)]])
+    def _P_mat(self, Da):
+        self.P = np.array([[np.cos(Da), 1j * np.sin(Da)],
+                           [1j * np.sin(Da), np.cos(Da)]])
         return None
 
     def bire_pass(self, u, i):
-        u1_end, u2_end = u[0, :], u[1, :]
+        u1_temp, u2_temp = u[0, :]*1, u[1, :]*1
         try:
-            u[0, :] = self.P[0, 0][i] * u1_end + \
-                self.P[0, 1][i] * u2_end
-            u[1, :] = self.P[1, 0][i] * u1_end + \
-                self.P[1, 1][i] * u2_end
+            u[0, :] = self.P[0, 0][i] * u1_temp + \
+                self.P[0, 1][i] * u2_temp
+            u[1, :] = self.P[1, 0][i] * u1_temp + \
+                self.P[1, 1][i] * u2_temp
         except IndexError:
             pass
         return u

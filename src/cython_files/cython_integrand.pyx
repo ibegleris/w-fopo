@@ -1,9 +1,6 @@
 #cython: boundscheck=False, wraparound=False, initializedcheck=False, nonecheck=False, cdivision=True
 cimport numpy as np
 import numpy as np
-from libc.stdlib cimport malloc, free
-
-
 
 
 
@@ -45,7 +42,7 @@ cpdef complex128_t[:,::1] dAdzmm_ron_s1_cython(complex128_t[:,::1] u0 ,complex12
         for j in range(shape2):
             M4ptr[i * shape2 + j] = M4ptr[i * shape2 + j] * hfptr[i * shape2 + j]
     
-    M4 = np.fft.fftshift(np.fft.ifft(M4))
+    M4 = np.fft.fftshift(np.fft.ifft(M4), axes= -1)
 
     M4ptr = &M4[0,0]
     cdef complex128_t* Nptr = &N[0,0]
@@ -58,8 +55,6 @@ cpdef complex128_t[:,::1] dAdzmm_ron_s1_cython(complex128_t[:,::1] u0 ,complex12
                             *(0.82*(2*Qptr[i] + Qptr[shapeM1 + i]) \
                                 *M3ptr[M1ptr[4 * shapeM1 + i]*shape2 + j] + \
                                 dt * 0.54*Qptr[i] * M4ptr[M1ptr[4 * shapeM1 + i] * shape2 + j])
-
-
 
     cdef complex128_t[:,::1] M5 = np.fft.fft(N)
         
@@ -103,7 +98,7 @@ cpdef complex128_t[:,::1] dAdzmm_ron_s0_cython(complex128_t[:,::1] u0,const comp
         for j in range(shape2):
             M4[i,j] = M4[i,j] * hf[i,j]
     
-    M4 = dt*np.fft.fftshift(np.fft.ifft(M4))
+    M4 = np.fft.fftshift(np.fft.ifft(M4), axes = -1)
 
     for i in range(shapeM1):
         for j in range(shape2):
