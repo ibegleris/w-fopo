@@ -224,7 +224,7 @@ class Integrand(object):
         dt1, dt2, dt3, dt4, dt5, dt6, dt7, dt8 = [], [], [], [],\
                                                 [], [], [], []
 
-        NN = 100
+        NN = 1
         for i in range(NN):
             '------No ram, no ss--------'
             t = time()

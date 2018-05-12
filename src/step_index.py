@@ -259,8 +259,8 @@ if __name__ == '__main__':
     font = {'size': 18}
     mpl.rc('font', **font)
     a_med = 2.19e-6
-    a_err_p = 0.01
+    a_err_p = 0.005
     l_span = 1300e-9
-    l_p = 1550e-9
+    l_p = 1555e-9
     N_points = 128
     main(a_med, a_err_p, l_p, l_span, N_points)

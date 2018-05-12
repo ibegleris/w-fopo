@@ -225,13 +225,13 @@ def main():
     # Number of computing cores for sweep
     num_cores = arguments_determine(1)
     # maximum tolerable error per step in integration
-    maxerr = 1e-10
+    maxerr = 1e-8
     ss = 1                                  # includes self steepening term
     ram = 'on'                              # Raman contribution 'on' if yes and 'off' if no
     fopa = True                             # If FOPA true or if FOPO then false
     
     plots = True                           # Do you want plots, be carefull it makes the code very slow!
-    N = 12                                  # 2**N grid points
+    N = 10                                  # 2**N grid points
     nt = 2**N                               # number of grid points
     nplot = 2                               # number of plots within fibre min is 2
     # Number of modes (include degenerate polarisation)
@@ -250,7 +250,7 @@ def main():
     n2 = 2.5e-20                            # Nonlinear index [m/W]
     gama = 10e-3                            # Overwirtes n2 and Aeff w/m        
     alphadB = np.array([0,0])              # loss within fibre[dB/m]
-    z = 200                                 # Length of the fibre
+    z = 1000                                 # Length of the fibre
     P_p = [10]
     P_s = 0
     TFWHM_p = 0                             # full with half max of pump
@@ -262,16 +262,20 @@ def main():
     a_med = 2.19e-6
     a_err = 0.01
     dnerr_med = 0.0002
-    cutting = 2
-    Num_a = 10
-    #a_vec = np.random.uniform(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
-    a_vec = np.linspace(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
-    a_vec = np.array([2.17e-6])
+    cutting = 100
+    Num_a = 1000
+    a_vec = np.random.uniform(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
+    dnerr = np.random.uniform(-dnerr_med, dnerr_med, len(a_vec))
+    Dtheta = np.random.uniform(0, 2*pi, len(a_vec))
+    #a_vec = np.linspace(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
+    #a_vec = np.array([2.17e-6])
     
     
-    dnerr = np.linspace(-dnerr_med, dnerr_med, len(a_vec))
-    Dtheta = np.linspace(0, 2*pi, len(a_vec))
+    #dnerr = np.linspace(-dnerr_med, dnerr_med, len(a_vec))
+    #Dtheta = np.linspace(0, 2*pi, len(a_vec))
     pertb_vec = [[a_vec,dnerr,Dtheta]] # pertubation vector for dn and a_vec
+    
+
     if cutting < len(a_vec):
         pertb_vec += [[j[:-(cutting+i)] for j in (a_vec, dnerr, Dtheta)]\
                        for i in range(int(len(a_vec)/cutting) - 1)]
@@ -283,11 +287,8 @@ def main():
     WDMS_pars = ([1050., 1199.32],
                  [930.996,  1199.32])  # WDM up downs in wavelengths [m]
 
-
-    lamp = [1046, 1048, 1050]
-    lams = [1241.09, 1199.32, 1149.35]
     Deltaf = 32
-    lamp = lamp[1]
+    
     lamp = 1550
     lams = 1300
     var_dic = {'n2': n2, 'gama': gama, 'alphadB': alphadB, 'z': z, 'P_p': P_p,
