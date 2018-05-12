@@ -450,7 +450,7 @@ class sim_parameters(object):
         self.Dz_vec = np.array([self.z_vec[i + 1] - self.z_vec[i]
                                 for i in range(len(self.z_vec)-1)])
         self.dzstep_vec = self.Dz_vec
-        self.dz = self.dzstep_vec[0]/2
+        self.dz = np.min([self.dzstep_vec[0]/2, 1])
         return None
 
     def woble_propagate(self, i):
@@ -764,7 +764,9 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf, Dop, dAdzmm, gam_n
         # propagate the remaining half step
         u1 = ifft(np.exp(Dop*dz/2)*fft(A))
         # update the propagated distance
+
         dztot += dz
+
         if delta == 0:
             dz = Safety*int_fwm.dzstep
         else:
@@ -775,7 +777,7 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf, Dop, dAdzmm, gam_n
             except RuntimeWarning:
                 dz = Safety*int_fwm.dzstep
         ###################################################################
-        #print(dztot, int_fwm.dzstep)
+
         if dztot == (int_fwm.dzstep):
             exitt = True
         elif ((dztot + dz) >= int_fwm.dzstep):

@@ -224,7 +224,7 @@ class Integrand(object):
         dt1, dt2, dt3, dt4, dt5, dt6, dt7, dt8 = [], [], [], [],\
                                                 [], [], [], []
 
-        NN = 1
+        NN = 100
         for i in range(NN):
             '------No ram, no ss--------'
             t = time()
@@ -256,7 +256,7 @@ class Integrand(object):
             N2 = dAdzmm_roff_s1(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff)
             dt6.append(time() - t)
             assert_allclose(N1, N2)
-
+            
             '------ ram, ss--------'
             t = time()
             N1 = dAdzmm_ron_s1_cython(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff)
@@ -266,7 +266,7 @@ class Integrand(object):
             N2 = dAdzmm_ron_s1(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff)
             dt8.append(time() - t)
             assert_allclose(N1, N2)
-        
+            
         print('cython_ram(off)_s0: {} +/- {}'.format(np.average(dt1),np.std(dt1)))
         print('python_ram(off)_s0: {} +/- {}'.format(np.average(dt2),np.std(dt2)))
         print('Cython is {} times faster'.format(np.average(dt2)/np.average(dt1)))
