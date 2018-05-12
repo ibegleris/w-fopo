@@ -72,11 +72,14 @@ def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
         ex.exporter(index, int_fwm, sim_wind, u, U, P0_p1,
                     P0_s, f_p, f_s, 0, ro,  mode_names, master_index,
                     str(ro)+'1', pulse_pos_dict[3], D_pic[5], plots)
-        for index_woble,(Q,Dop) in enumerate(zip(Q_large, Dop_large)):
+
+        for index_woble in range(len(int_fwm.Dz_vec)):
+            Q , Dop = Q_large[index_woble], Dop_large[index_woble]
             int_fwm.woble_propagate(index_woble)                   
             u, U = pulse_propagation(u, U, int_fwm, M1, M2, Q,
                                      sim_wind, hf, Dop, dAdzmm,gam_no_aeff)
             u = Dtheta.bire_pass(u,index_woble)
+
         ex.exporter(index, int_fwm, sim_wind, u, U, P0_p1,
                     P0_s, f_p, f_s, -1, ro, mode_names, master_index,
                     str(ro)+'2', pulse_pos_dict[0], D_pic[2], plots)
@@ -127,18 +130,17 @@ def calc_P_out(U, U_original_pump, fv, t):
 
 
 @unpack_args
-def formulate(index, n2, gama, alphadB, z, P_p, P_s, TFWHM_p, TFWHM_s, spl_losses,
+def formulate(index, n2, gama, alphadB, P_p, P_s, TFWHM_p, TFWHM_s, spl_losses,
               lamda_c, WDMS_pars, lamp, lams, num_cores, maxerr, ss, ram, plots,
               N, nt, nplot, master_index, nm, mode_names, pertb_vec, fopa, Deltaf):
-    a_vec, dnerr, Dtheta  = pertb_vec
+    a_vec,dnerr,Dtheta, z_vec  = pertb_vec
     ex = Plotter_saver(plots, True)  # construct exporter
     "------------------propagation paramaters------------------"
-    dzstep = z/nplot                        # distance per step
     dz_less = 2
     Num_a = len(a_vec)
     int_fwm = sim_parameters(n2, nm, alphadB)
     int_fwm.general_options(maxerr, raman_object, ss, ram)
-    int_fwm.propagation_parameters(N, z, nplot, dz_less,Num_a)
+    int_fwm.propagation_parameters(N, z_vec, nplot, dz_less,Num_a)
     lamda = lamp*1e-9  # central wavelength of the grid[m]
     fv_idler_int = 10  # safety for the idler to be spotted used only for idler power
     "-----------------------------f-----------------------------"
@@ -261,23 +263,25 @@ def main():
 
     a_med = 2.19e-6
     a_err = 0.01
-    dnerr_med = 0.0002
-    cutting = 100
-    Num_a = 1000
+    dnerr_med = 0#0.0002
+    cutting = 1
+    Num_a = 10
     a_vec = np.random.uniform(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
     dnerr = np.random.uniform(-dnerr_med, dnerr_med, len(a_vec))
     Dtheta = np.random.uniform(0, 2*pi, len(a_vec))
-    #a_vec = np.linspace(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
-    #a_vec = np.array([2.17e-6])
     
-    
-    #dnerr = np.linspace(-dnerr_med, dnerr_med, len(a_vec))
-    #Dtheta = np.linspace(0, 2*pi, len(a_vec))
-    pertb_vec = [[a_vec,dnerr,Dtheta]] # pertubation vector for dn and a_vec
+
+    a_vec = np.linspace(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
+    a_vec = np.array([2.16e-6,2.17e-6,2.18e-6,2.18e-6,2.18e-6,
+                    2.18e-6,2.18e-6,2.18e-6,2.18e-6,2.18e-6])
+    dnerr = np.linspace(-dnerr_med, dnerr_med, len(a_vec))
+    Dtheta = np.linspace(0, 2*pi, len(a_vec))
+    z_vec = np.linspace(0, z, len(a_vec)+1)
+    pertb_vec = [[a_vec,dnerr,Dtheta, z_vec]] # pertubation vector for dn and a_vec
     
 
     if cutting < len(a_vec):
-        pertb_vec += [[j[:-(cutting+i)] for j in (a_vec, dnerr, Dtheta)]\
+        pertb_vec += [[j[:-(cutting+i)] for j in (a_vec, dnerr, Dtheta, z_vec)]\
                        for i in range(int(len(a_vec)/cutting) - 1)]
 
 
@@ -291,7 +295,7 @@ def main():
     
     lamp = 1550
     lams = 1300
-    var_dic = {'n2': n2, 'gama': gama, 'alphadB': alphadB, 'z': z, 'P_p': P_p,
+    var_dic = {'n2': n2, 'gama': gama, 'alphadB': alphadB, 'P_p': P_p,
                'P_s': P_s, 'TFWHM_p': TFWHM_p, 'TFWHM_s': TFWHM_s,
                'spl_losses': spl_losses,
                'lamda_c': lamda_c, 'WDMS_pars': WDMS_pars,

@@ -72,7 +72,7 @@ cpdef complex128_t[:,::1] dAdzmm_ron_s1_cython(complex128_t[:,::1] u0 ,complex12
     for i in range(shape1):
         for j in range(shape2):
             Nptr[i * shape2 + j] = gam_no_aeff * ( Nptr[i * shape2 + j]  + tsh * M5ptr[i * shape2 + j])
-    return N
+    return np.asarray(N)
 
 
 cpdef complex128_t[:,::1] dAdzmm_ron_s0_cython(complex128_t[:,::1] u0,const complex128_t[:,::1] u0_conj ,
@@ -109,8 +109,7 @@ cpdef complex128_t[:,::1] dAdzmm_ron_s0_cython(complex128_t[:,::1] u0,const comp
     for i in range(shape1):
         for j in range(shape2):
             N[i,j] = gam_no_aeff * N[i,j]
-    return N
-
+    return np.asarray(N)
 
 cpdef complex128_t[:,::1] dAdzmm_roff_s0_cython(complex128_t[:,::1] u0,complex128_t[:,::1] u0_conj ,
                     np.ndarray[long, ndim = 2] M1, np.ndarray[long, ndim = 2] M2, complex128_t[:,::1] Q,
@@ -140,7 +139,7 @@ cpdef complex128_t[:,::1] dAdzmm_roff_s0_cython(complex128_t[:,::1] u0,complex12
     for i in range(shape1):
         for j in range(shape2):
             N[i,j] = gam_no_aeff * N[i,j]
-    return N
+    return np.asarray(N)
 
 
 cpdef complex128_t[:,::1] dAdzmm_roff_s1_cython(const complex128_t[:,::1] u0,const complex128_t[:,::1] u0_conj ,
@@ -180,4 +179,4 @@ cpdef complex128_t[:,::1] dAdzmm_roff_s1_cython(const complex128_t[:,::1] u0,con
     for i in range(shape1):
         for j in range(shape2):
             N[i,j] = gam_no_aeff * ( N[i,j]  + tsh * M5[i,j])
-    return N
+    return np.asarray(N)

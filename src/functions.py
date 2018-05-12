@@ -18,7 +18,6 @@ import cmath
 from time import time
 from scipy.fftpack import fft, ifft
 phasor = np.vectorize(cmath.polar)
-import warnings
 from functools import wraps
 from step_index import Sidebands
 from time import time
@@ -442,18 +441,16 @@ class sim_parameters(object):
         self.how = how
         return None
 
-    def propagation_parameters(self, N, z, nplot, dz_less, Num_a):
+    def propagation_parameters(self, N, z_vec, nplot, dz_less, Num_a):
         self.N = N
         self.nt = 2**self.N
         self.nplot = nplot
-
-        self.tot_z = z
-        self.z = np.linspace(0, z, Num_a+1)
-        self.Dz_vec = np.array([self.z[i + 1] - self.z[i]
-                                for i in range(len(self.z)-1)])
-
-        self.dzstep_vec = self.Dz_vec/2
-        self.dz = self.dzstep_vec[0]
+        self.tot_z = np.max(z_vec)
+        self.z_vec = z_vec
+        self.Dz_vec = np.array([self.z_vec[i + 1] - self.z_vec[i]
+                                for i in range(len(self.z_vec)-1)])
+        self.dzstep_vec = self.Dz_vec
+        self.dz = self.dzstep_vec[0]/2
         return None
 
     def woble_propagate(self, i):
@@ -757,9 +754,9 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf, Dop, dAdzmm, gam_n
         delta = 2*int_fwm.maxerr
         while delta > int_fwm.maxerr:
             u1new = ifft(np.exp(Dop*dz/2)*fft(u1))
+            #print('dz {}'.format(dz))
             A, delta = RK45CK(dAdzmm, u1new, dz, M1, M2, Q, sim_wind.tsh,
                               sim_wind.dt, hf, sim_wind.w_tiled, gam_no_aeff)
-
             if (delta > int_fwm.maxerr):
                 # calculate the step (shorter) to redo
                 dz *= Safety*(int_fwm.maxerr/delta)**0.25
@@ -768,14 +765,17 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf, Dop, dAdzmm, gam_n
         u1 = ifft(np.exp(Dop*dz/2)*fft(A))
         # update the propagated distance
         dztot += dz
-        try:
-            dz = np.min(
-                [Safety*dz*(int_fwm.maxerr/delta)**0.2,
-                 Safety*int_fwm.dzstep])
-        except RuntimeWarning:
+        if delta == 0:
             dz = Safety*int_fwm.dzstep
+        else:
+            try:
+                dz = np.min(
+                    [Safety*dz*(int_fwm.maxerr/delta)**0.2,
+                     Safety*int_fwm.dzstep])
+            except RuntimeWarning:
+                dz = Safety*int_fwm.dzstep
         ###################################################################
-
+        #print(dztot, int_fwm.dzstep)
         if dztot == (int_fwm.dzstep):
             exitt = True
         elif ((dztot + dz) >= int_fwm.dzstep):
