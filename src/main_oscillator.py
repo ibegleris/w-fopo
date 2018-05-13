@@ -188,7 +188,7 @@ def formulate(index, n2, gama, alphadB, P_p, P_s, TFWHM_p, TFWHM_s, spl_losses,
     D_pic = [plt.imread(i) for i in keys]
 
 
-    integrand = Integrand(ram, ss, cython = True, timing = True)
+    integrand = Integrand(ram, ss, cython = True, timing = False)
     dAdzmm = integrand.dAdzmm
     raman = raman_object(int_fwm.ram, int_fwm.how)
     raman.raman_load(sim_wind.t, sim_wind.dt, M2)
@@ -230,8 +230,10 @@ def main():
     maxerr = 1e-10
     ss = 1                                  # includes self steepening term
     ram = 'on'                              # Raman contribution 'on' if yes and 'off' if no
-    fopa = True                             # If FOPA true or if FOPO then false
-    
+    if arguments_determine(-1) == 0:
+        fopa = True                         # If FOPA true or if FOPO then false
+    else:
+        fopa = False
     plots = True                            # Do you want plots, be carefull it makes the code very slow!
     N = 10                                  # 2**N grid points
     nt = 2**N                               # number of grid points
@@ -264,8 +266,8 @@ def main():
     a_med = 2.19e-6
     a_err = 0.01
     dnerr_med = 0#0.0002
-    cutting = 1
-    Num_a = 10
+    cutting = 10
+    Num_a = 100
     a_vec = np.random.uniform(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
     dnerr = np.random.uniform(-dnerr_med, dnerr_med, len(a_vec))
     Dtheta = np.random.uniform(0, 2*pi, len(a_vec))
@@ -274,9 +276,9 @@ def main():
     #a_vec = np.linspace(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
     #a_vec = np.array([2.16e-6,2.17e-6,2.18e-6,2.18e-6,2.18e-6,
     #                2.18e-6,2.18e-6,2.18e-6,2.18e-6,2.18e-6])
-    a_vec = np.array([2.16e-6])
-    dnerr = np.linspace(-dnerr_med, dnerr_med, len(a_vec))
-    Dtheta = np.linspace(0, 2*pi, len(a_vec))
+    #a_vec = np.array([2.16e-6])
+    #dnerr = np.linspace(-dnerr_med, dnerr_med, len(a_vec))
+    #Dtheta = np.linspace(0, 2*pi, len(a_vec))
     
 
     z_vec = np.linspace(0, z, len(a_vec)+1)

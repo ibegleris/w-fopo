@@ -137,7 +137,6 @@ cpdef np.ndarray[complex128_t, ndim = 2] dAdzmm_roff_s1_cython(const complex128_
     cdef int shapeM1 = M1.shape[1]
     cdef int i, j
     cdef complex128_t[:, ::1] M3 = np.empty([shapeM2, shape2], dtype='complex_')
-    cdef complex128_t[:, ::1] M4 = np.empty([shapeM2, shape2], dtype='complex_')
     cdef complex128_t[:, ::1] N = np.zeros([shape1, shape2], dtype='complex_')
 
     for i in range(shapeM2):

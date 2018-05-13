@@ -460,7 +460,7 @@ for pos in ('4','2'):
                 filepath = which+'/output'+str(i)+'/data/',filepath2 = 'output_final/'+str(ii)+'/pos'+str(pos)+'/')
 
             fmin,fmax,rounds  = 310,330,2000#np.min(CE.fv),np.max(CE.fv),None
-            fmin,fmax,rounds = 150,450, None
+            fmin,fmax,rounds = 160,240, None
             #fmin,fmax,rounds = np.min(CE.fv),np.max(CE.fv), None
             #if animators:
             #    os.system('rm -rf animators'+str(i)+'; mkdir animators'+str(i))
@@ -472,8 +472,8 @@ for pos in ('4','2'):
             #        P_out_round_anim(CE,iii,filesave = 'animators'+str(i)+'/power/'+str(iii))
             #        gc.collect()
             #    giff_it_up(i,spots,30)
-
-            contor_plot(CE,fmin,fmax,rounds,folder = 'output_final/'+str(ii)+'/pos'+pos+'/spectra/',filename= str(ii)+'_'+str(i))
+            if CE.U_large_norm.shape[0]>1:
+                contor_plot(CE,fmin,fmax,rounds,folder = 'output_final/'+str(ii)+'/pos'+pos+'/spectra/',filename= str(ii)+'_'+str(i))
             #contor_plot_time(CE, rounds = None,filename = 'output_final/'+str(ii)+'/pos'+pos+'/'+'time_'+str(ii)+'_'+str(i))
             CE.P_out_round(CE.P_out_vec,filepath =  'output_final/'+str(ii)+'/pos'+pos+'/powers/', filesave =str(ii)+'_'+str(i))
             CE.P_out_round(CE.P_out_vec_casc,filepath =  'output_final/'+str(ii)+'/pos'+pos+'/casc_powers/',filesave = str(ii)+'_'+str(i))
