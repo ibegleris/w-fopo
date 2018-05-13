@@ -19,7 +19,7 @@ class Test_splicer_1m():
     lamda = (lv[-1] + lv[0])/2
     int_fwm = sim_parameters(2.5e-20, 1, 0)
     int_fwm.general_options(1e-13, 'off', 1, 1)
-    int_fwm.propagation_parameters(N, 18, 2, 1, 1)
+    int_fwm.propagation_parameters(N, [0,18], 2, 1, 1)
     sim_wind = \
         sim_window(fv, lamda,
                    lamda, int_fwm, N)
@@ -64,7 +64,7 @@ class Test_splicer_2m():
     lamda = (lv[-1] + lv[0])/2
     int_fwm = sim_parameters(2.5e-20, 1, 0)
     int_fwm.general_options(1e-13, 'off', 1, 1)
-    int_fwm.propagation_parameters(N, 18, 2, 1, 1)
+    int_fwm.propagation_parameters(N, [0,18], 2, 1, 1)
     sim_wind = \
         sim_window(fv, lamda,
                    lamda, int_fwm, N)
@@ -111,7 +111,7 @@ class Test_WDM_1m():
     lamda = (lv[-1] + lv[0])/2
     int_fwm = sim_parameters(2.5e-20, 1, 0)
     int_fwm.general_options(1e-13, 'off', 1, 1)
-    int_fwm.propagation_parameters(N, 18, 2, 1, 1)
+    int_fwm.propagation_parameters(N, [0,18], 2, 1, 1)
     sim_wind = \
         sim_window(fv, lamda,
                    lamda, int_fwm, N)
@@ -166,7 +166,7 @@ class Test_WDM_2m():
     lamda = (lv[-1] + lv[0])/2
     int_fwm = sim_parameters(2.5e-20, 2, 0)
     int_fwm.general_options(1e-13, 'off', 2, 2)
-    int_fwm.propagation_parameters(N, 18, 2, 2, 1)
+    int_fwm.propagation_parameters(N, [0,18], 2, 2, 1)
     sim_wind = \
         sim_window(fv, lamda,
                    lamda, int_fwm, N)
@@ -209,7 +209,7 @@ def test_full_trans_in_cavity_1():
     from scipy.constants import c, pi
     int_fwm = sim_parameters(2.5e-20, 1, 0)
     int_fwm.general_options(1e-6, raman_object, 0, 0)
-    int_fwm.propagation_parameters(N, 18, 1, 1, 1)
+    int_fwm.propagation_parameters(N, [0,18], 1, 1, 1)
 
     lam_p1 = 1048.17107345
     fv, where = fv_creator(lam_p1,1,0, 50, int_fwm)
@@ -247,7 +247,7 @@ def test_full_trans_in_cavity_2():
     from scipy.constants import c, pi
     int_fwm = sim_parameters(2.5e-20, 1, 0)
     int_fwm.general_options(1e-6, raman_object, 0, 0)
-    int_fwm.propagation_parameters(N, 18, 1, 1, 1)
+    int_fwm.propagation_parameters(N, [0,18], 1, 1, 1)
 
     lam_p1 = 1048.17107345
     fv, where = fv_creator(lam_p1,1,0, 50, int_fwm)

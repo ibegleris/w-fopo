@@ -37,12 +37,12 @@ def pulse_propagations(ram, ss, nm, N_sol=1, cython = True, u = None):
     maxerr = 1e-13                # maximum tolerable error per step
     "----------------------------Simulation parameters-------------------------"
     N = 10
-    z = 70                     # total distance [m]
+    z = np.array([0,70])                     # total distance [m]
     nplot = 10                  # number of plots
     nt = 2**N                     # number of grid points
-    dzstep = z/nplot            # distance per step
+    #dzstep = z/nplot            # distance per step
     dz_less = 1
-    dz = dzstep/dz_less         # starting guess value of the step
+    dz = 1         # starting guess value of the step
 
     lam_p1 = 1550
     lamda_c = 1550e-9
@@ -109,7 +109,7 @@ def pulse_propagations(ram, ss, nm, N_sol=1, cython = True, u = None):
     U_start = np.abs(U[ :, :])**2
 
     u[:, :] = u[:, :] * \
-        np.exp(1j*z/2)*np.exp(-1j*(sim_wind.woffset)*sim_wind.t)
+        np.exp(1j*z[-1]/2)*np.exp(-1j*(sim_wind.woffset)*sim_wind.t)
     """
     fig1 = plt.figure()
     plt.plot(sim_wind.fv,np.abs(U[1,:])**2)

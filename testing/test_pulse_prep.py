@@ -11,7 +11,7 @@ class Test_loss:
         alphadB = np.array([1, 1])
         int_fwm = sim_parameters(2.5e-20, 2, alphadB)
         int_fwm.general_options(1e-13, 1, 1, 1)
-        int_fwm.propagation_parameters(10, 18, 1, 100,10)
+        int_fwm.propagation_parameters(10, [0,18], 1, 100,10)
         sim_wind = sim_window(fv, 1,1, int_fwm, 1)
 
         loss = Loss(int_fwm, sim_wind, amax=alphadB)
@@ -26,7 +26,7 @@ class Test_loss:
         alphadB = np.array([1, 2])
         int_fwm = sim_parameters(2.5e-20, 2, alphadB)
         int_fwm.general_options(1e-13, 1, 1, 1)
-        int_fwm.propagation_parameters(10, 18, 1, 100,10)
+        int_fwm.propagation_parameters(10, [0,18], 1, 100,10)
         sim_wind = sim_window(fv, 1,1, int_fwm, 1)
 
         loss = Loss(int_fwm, sim_wind, amax=2*alphadB)
@@ -42,7 +42,7 @@ class Test_loss:
         alphadB = np.array([1, 2])
         int_fwm = sim_parameters(2.5e-20, 2, alphadB)
         int_fwm.general_options(1e-13, 1, 1, 1)
-        int_fwm.propagation_parameters(10, 18, 1, 100,10)
+        int_fwm.propagation_parameters(10, [0,18], 1, 100,10)
         sim_wind = sim_window(fv, 1,1,int_fwm, 1)
 
         loss = Loss(int_fwm, sim_wind, amax=2*alphadB)
@@ -198,7 +198,7 @@ class Test_dispersion_raman(Raman):
     l_vec = np.linspace(1600e-9, 1500e-9, 64)
     int_fwm = sim_parameters(2.5e-20, 2, 0)
     int_fwm.general_options(1e-13, 0, 1, 1)
-    int_fwm.propagation_parameters(6, 18, 2, 1, 1)
+    int_fwm.propagation_parameters(6, [0,18], 2, 1, 1)
     sim_wind = \
         sim_window(1e-12*c/l_vec, (l_vec[0]+l_vec[-1])*0.5,
                    (l_vec[0]+l_vec[-1])*0.5, int_fwm, 10)
