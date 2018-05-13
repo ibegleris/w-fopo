@@ -69,7 +69,7 @@ def fibre_creator(a_vec, f_vec, dnerr, per=['ge', 'sio2'], filename='step_index_
 
 class Sidebands(object):
 
-    def __init__(self, Q_large, a_vec, o_vec,beta_large, P=0, n2=2.5e-20):
+    def __init__(self, Q_large, a_vec, o_vec,beta_large, P=10, n2=2.5e-20):
         self.o_vec = o_vec
         #print(o_vec.min(),o_vec.max())
         omega_m = (o_vec[0] + o_vec[-1])/2
@@ -259,7 +259,7 @@ if __name__ == '__main__':
     font = {'size': 18}
     mpl.rc('font', **font)
     a_med = 2.19e-6
-    a_err_p = 0.005
+    a_err_p = 0.01
     l_span = 1300e-9
     l_p = 1555e-9
     N_points = 128
