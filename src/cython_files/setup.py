@@ -27,11 +27,11 @@ from __future__ import division, print_function, absolute_import
 import sys
 from os.path import join, exists, abspath, dirname
 from os import getcwd
-
+import numpy
 def configuration(parent_package='',top_path=None):
     from numpy.distutils.misc_util import Configuration
     from numpy.distutils.system_info import get_info
-    config = Configuration('spliced_fft', parent_package, top_path)
+    config = Configuration('', parent_package, top_path)
 
     pdir = dirname(__file__)
     wdir = join(pdir, 'src')
@@ -40,7 +40,7 @@ def configuration(parent_package='',top_path=None):
 
     try:
         from Cython.Build import cythonize
-        sources = [join(pdir, '_pydfti.pyx')]
+        sources = [join(pdir, 'cython_integrand.pyx')]
         have_cython = True
     except ImportError as e:
         have_cython = False
@@ -50,7 +50,7 @@ def configuration(parent_package='',top_path=None):
                              'Cython is required to build the initial .c file.')
 
     config.add_extension(
-        '_pydfti',
+        'cython_integrand',
         sources = [
             join(wdir, 'mklfft.c.src'),
             join(wdir, 'multi_iter.c'),
@@ -59,15 +59,13 @@ def configuration(parent_package='',top_path=None):
             join(wdir, 'mklfft.h'),
             join(wdir, 'multi_iter.h')
         ],
-        include_dirs = [wdir],
+        include_dirs = [wdir,numpy.get_include()],
         libraries = libs,
         extra_compile_args = [
-            '-O3',
+            '-DNDEBUG','-O3',
             # '-g', '-O0', '-Wall', '-Wextra',
         ]
     )
-
-    config.add_data_dir('tests')
 
     if have_cython:
         config.ext_modules = cythonize(config.ext_modules, include_path=[pdir, wdir])

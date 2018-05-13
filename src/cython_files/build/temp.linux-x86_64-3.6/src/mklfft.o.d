@@ -116,4 +116,4 @@ build/temp.linux-x86_64-3.6/src/mklfft.o: src/mklfft.c \
  /opt/intel/compilers_and_libraries_2018.2.199/linux/mkl/include/mkl_dnn.h \
  /opt/intel/compilers_and_libraries_2018.2.199/linux/mkl/include/mkl_dnn_types.h \
  /opt/intel/compilers_and_libraries_2018.2.199/linux/mkl/include/mkl_compact.h
-commandline: -Isrc -I/home/john/miniconda3/envs/intel/lib/python3.6/site-packages/numpy/core/include -I/home/john/miniconda3/envs/intel/include/python3.6m -c-DNDEBUG -O3-Isrc -I/home/john/miniconda3/envs/intel/lib/python3.6/site-packages/numpy/core/include -I/home/john/miniconda3/envs/intel/include/python3.6m
+commandline: -Isrc -I/home/john/miniconda3/envs/intel/lib/python3.6/site-packages/numpy/core/include -I/home/john/miniconda3/envs/intel/lib/python3.6/site-packages/numpy/core/include -I/home/john/miniconda3/envs/intel/include/python3.6m -c-DNDEBUG -O3-Isrc -I/home/john/miniconda3/envs/intel/lib/python3.6/site-packages/numpy/core/include -I/home/john/miniconda3/envs/intel/lib/python3.6/site-packages/numpy/core/include -I/home/john/miniconda3/envs/intel/include/python3.6m
