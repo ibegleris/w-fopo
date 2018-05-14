@@ -27,8 +27,8 @@ cpdef np.ndarray[complex128_t, ndim= 2] dAdzmm_ron_s1_cython(complex128_t[:, ::1
     for i in range(shapeM2):
         for j in range(shape2):
             M4[i, j] = M4[i, j] * hf[i, j]
-
-    M4 = np.fft.fftshift(ifft(M4), axes=-1)
+    M4 = ifft(M4)
+    M4 = fftshift(M4)
 
     cdef complex128_t[::1] Q_comp = np.empty(shapeM1, dtype='complex_')
     dt = dt*0.54
@@ -77,7 +77,8 @@ cpdef np.ndarray[complex128_t, ndim = 2] dAdzmm_ron_s0_cython(complex128_t[:, ::
         for j in range(shape2):
             M4[i, j] = M4[i, j] * hf[i, j]
 
-    M4 = np.fft.fftshift(ifft(M4), axes=-1)
+    M4 = ifft(M4)
+    M4 = fftshift(M4)
 
     cdef complex128_t[::1] Q_comp = np.empty(shapeM1, dtype='complex_')
     dt = dt*0.54
@@ -164,6 +165,29 @@ cpdef np.ndarray[complex128_t, ndim = 2] dAdzmm_roff_s1_cython(const complex128_
         for j in range(shape2):
             N[i, j] = gam_no_aeff * (N[i, j] + tsh * M5[i, j])
     return np.asarray(N)
+
+cdef complex128_t[:, ::1] fftshift(complex128_t[:, ::1] A):
+    """
+    FFTshift of memoryview written in Cython for Cython. Only
+    works for even number of elements in the -1 axis. 
+    """
+
+    cdef int shape1  = A.shape[0]
+    cdef int shape2  = A.shape[1]
+    cdef int halfshape = shape2/2
+    cdef int i,j,k
+    cdef complex128_t[:, ::1] B = np.empty([shape1,shape2], dtype = 'complex_')
+    
+
+    for i in range(shape1):
+        k = 0
+        for j in range(halfshape, shape2):
+            B[i,k] = A[i,j]
+            k = k +1
+        for j in range(halfshape):
+            B[i,k] = A[i,j]
+            k = k +1
+    return B
 
 ########################Intel-MKL part##############################
 # Copyright (c) 2017, Intel Corporation

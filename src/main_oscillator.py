@@ -276,9 +276,9 @@ def main():
     #a_vec = np.linspace(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
     #a_vec = np.array([2.16e-6,2.17e-6,2.18e-6,2.18e-6,2.18e-6,
     #                2.18e-6,2.18e-6,2.18e-6,2.18e-6,2.18e-6])
-    #a_vec = np.array([2.16e-6])
-    #dnerr = np.linspace(-dnerr_med, dnerr_med, len(a_vec))
-    #Dtheta = np.linspace(0, 2*pi, len(a_vec))
+    a_vec = np.array([2.16e-6])
+    dnerr = np.linspace(-dnerr_med, dnerr_med, len(a_vec))
+    Dtheta = np.linspace(0, 2*pi, len(a_vec))
     
 
     z_vec = np.linspace(0, z, len(a_vec)+1)
