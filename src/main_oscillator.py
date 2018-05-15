@@ -25,14 +25,16 @@ def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
 
     T0_p = TFWHM_p/2/(np.log(2))**0.5
     T0_s = TFWHM_s/2/(np.log(2))**0.5
-    noise_new = noise_obj.noise_func(int_fwm)
-    u[:, :] = noise_new
+
+    
+    noise_new_or = noise_obj.noise_func_freq(int_fwm, sim_wind)
+    u[:, :] = noise_obj.noise
 
     woff1 = (p_pos+(int_fwm.nt)//2)*2*pi*sim_wind.df
     u[0, :] += (P0_p1)**0.5 * np.exp(1j*(woff1)*sim_wind.t)
 
-    woff2 = -(s_pos - (int_fwm.nt-1)//2)*2*pi*sim_wind.df
-    u[:, :] += (P0_s)**0.5 * np.exp(-1j*(woff2) *
+    woff2 = (s_pos+(int_fwm.nt)//2)*2*pi*sim_wind.df
+    u[0, :] += (P0_s)**0.5 * np.exp(1j*(woff2) *
                                            sim_wind.t)
 
     U[:, :] = fftshift(fft(u[:, :]), axes = -1)
@@ -42,6 +44,8 @@ def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
 
     ex.exporter(index, int_fwm, sim_wind, u, U, P0_p1,
                 P0_s, f_p, f_s, 0, 0,  mode_names, master_index, '00', 'original pump', D_pic[0], plots)
+
+    ram_noise_kill = Splicer(loss = 0)
 
     U_original_pump = np.copy(U[:, :])
 
@@ -58,10 +62,11 @@ def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
     ro = -1
 
     t_total = 0
-    converged = False
     gam_no_aeff = -1j*int_fwm.n2*2*pi/sim_wind.lamda
-
-    while ro < max_rounds and not(converged):
+    noise_new = noise_new_or*1
+    #ram_noise_kill.c1 = 1
+    #ram_noise_kill.c2 = -1
+    while ro < max_rounds:
 
         ro += 1
 
@@ -77,7 +82,7 @@ def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
             Q , Dop = Q_large[index_woble], Dop_large[index_woble]
             int_fwm.woble_propagate(index_woble)                   
             u, U = pulse_propagation(u, U, int_fwm, M1, M2, Q,
-                                     sim_wind, hf, Dop, dAdzmm,gam_no_aeff)
+                                     sim_wind, hf, Dop, dAdzmm,gam_no_aeff, ram_noise_kill, noise_new)
             u = Dtheta.bire_pass(u,index_woble)
 
         ex.exporter(index, int_fwm, sim_wind, u, U, P0_p1,
@@ -146,8 +151,10 @@ def formulate(index, n2, gama, alphadB, P_p, P_s, TFWHM_p, TFWHM_s, spl_losses,
     "-----------------------------f-----------------------------"
     Dtheta = birfeg_variation(Dtheta)
     "---------------------Grid&window-----------------------"
+    print(lamp, lams,P_s)
     fv, where = fv_creator(lamp,lams,P_s, Deltaf, int_fwm)
     p_pos, s_pos = where
+    print(p_pos, s_pos)
     sim_wind = sim_window(fv, lamda, lamda_c, int_fwm, fv_idler_int)
     
 
@@ -158,6 +165,7 @@ def formulate(index, n2, gama, alphadB, P_p, P_s, TFWHM_p, TFWHM_s, spl_losses,
                                                     index, master_index,
                                                     filename='step_index_2m'
                                                     )
+
     "----------------------------------------------------------"
 
     "---------------------Loss-in-fibres-----------------------"
@@ -227,7 +235,7 @@ def main():
     # Number of computing cores for sweep
     num_cores = arguments_determine(1)
     # maximum tolerable error per step in integration
-    maxerr = 1e-10
+    maxerr = 1e-13
     ss = 1                                  # includes self steepening term
     ram = 'on'                              # Raman contribution 'on' if yes and 'off' if no
     if arguments_determine(-1) == 0:
@@ -254,9 +262,9 @@ def main():
     n2 = 2.5e-20                            # Nonlinear index [m/W]
     gama = 10e-3                            # Overwirtes n2 and Aeff w/m        
     alphadB = np.array([0,0])              # loss within fibre[dB/m]
-    z = 1000                                 # Length of the fibre
+    z = 1                                 # Length of the fibre
     P_p = [10]
-    P_s = 0
+    P_s = 100e-3
     TFWHM_p = 0                             # full with half max of pump
     TFWHM_s = 0                             # full with half max of signal
     spl_losses = [[0, 0, 1.], [0, 0, 1.2], [0, 0, 1.3], [
@@ -265,9 +273,9 @@ def main():
 
     a_med = 2.19e-6
     a_err = 0.01
-    dnerr_med = 0#0.0002
-    cutting = 10
-    Num_a = 100
+    dnerr_med = 0.000
+    cutting = 1
+    Num_a = 5
     a_vec = np.random.uniform(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
     dnerr = np.random.uniform(-dnerr_med, dnerr_med, len(a_vec))
     Dtheta = np.random.uniform(0, 2*pi, len(a_vec))
@@ -276,9 +284,9 @@ def main():
     #a_vec = np.linspace(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
     #a_vec = np.array([2.16e-6,2.17e-6,2.18e-6,2.18e-6,2.18e-6,
     #                2.18e-6,2.18e-6,2.18e-6,2.18e-6,2.18e-6])
-    a_vec = np.array([2.16e-6])
-    dnerr = np.linspace(-dnerr_med, dnerr_med, len(a_vec))
-    Dtheta = np.linspace(0, 2*pi, len(a_vec))
+    a_vec = np.array([2.19e-6])
+    dnerr = np.array([0])
+    Dtheta = np.array([0])
     
 
     z_vec = np.linspace(0, z, len(a_vec)+1)
@@ -293,13 +301,13 @@ def main():
 
 
     lamda_c = 1051.85e-9
-    WDMS_pars = ([1050., 1199.32],
-                 [930.996,  1199.32])  # WDM up downs in wavelengths [m]
+    WDMS_pars = ([1050., 1392.85],
+                 [1747.585,  1392.85])  # WDM up downs in wavelengths [m]
 
     Deltaf = 32
     
     lamp = 1550
-    lams = 1300
+    lams = 1392.85
     var_dic = {'n2': n2, 'gama': gama, 'alphadB': alphadB, 'P_p': P_p,
                'P_s': P_s, 'TFWHM_p': TFWHM_p, 'TFWHM_s': TFWHM_s,
                'spl_losses': spl_losses,

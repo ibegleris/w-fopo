@@ -8,7 +8,6 @@ from scipy.constants import pi, c
 from scipy.io import loadmat
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.integrate import simps
-from scipy.fftpack import ifftshift
 from math import factorial
 from integrand_and_rk import *
 from data_plotters_animators import *
@@ -17,10 +16,10 @@ from step_index_functions import save_variables_step
 import cmath
 from time import time
 from scipy.fftpack import fft, ifft
+from scipy.fftpack import ifftshift
 phasor = np.vectorize(cmath.polar)
 from functools import wraps
 from step_index import Sidebands
-from time import time
 # Pass through the @profile decorator if line profiler (kernprof) is not in use
 # Thanks Paul!!
 try:
@@ -707,6 +706,14 @@ class Splicer(WDM):
         return U_out1, U_out2
 
 
+class Maintain_noise_floor(object):
+
+    def pass_through(u, noisef):
+        U = fftshift(fft(u), axis = -1)
+        U  = U +  U - noise_f
+        u = ifft(fftshift(U, axis = -1))
+        return u 
+
 def norm_const(u, sim_wind):
     t = sim_wind.t
     fv = sim_wind.fv
@@ -734,13 +741,14 @@ class Noise(object):
         return noise
 
     def noise_func_freq(self, int_fwm, sim_wind):
-        noise = self.noise_func(int_fwm)
-        noise_freq = fftshift(fft(noise), axes=-1)
+        self.noise = self.noise_func(int_fwm)
+        noise_freq = fftshift(fft(self.noise), axes=-1)
         return noise_freq
 
 
 @profile
-def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf, Dop, dAdzmm, gam_no_aeff):
+def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf,
+                     Dop, dAdzmm, gam_no_aeff, ram_noise_kill, noise_new_or):
     """Pulse propagation part of the code. We use the split-step fourier method
        with a modified step using the RK45 algorithm. 
     """
@@ -760,12 +768,14 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf, Dop, dAdzmm, gam_n
             if (delta > int_fwm.maxerr):
                 # calculate the step (shorter) to redo
                 dz *= Safety*(int_fwm.maxerr/delta)**0.25
-        #####################################Successful step###############
+        ###############Successful step###############
         # propagate the remaining half step
         u1 = ifft(np.exp(Dop*dz/2)*fft(A))
-        # update the propagated distance
-
         dztot += dz
+        # update the propagated distance
+        #u1 = ram_noise_kill.pass_through(
+        #    (fftshift(fft(u1), axes=-1), noise_new_or), sim_wind)[0][0]
+        
 
         if delta == 0:
             dz = Safety*int_fwm.dzstep
@@ -817,18 +827,15 @@ def fv_creator(lam_p1, lams, P_s, Deltaf, int_fwm):
     fv2 = np.array(fv2)
     fv = np.concatenate((fv1, fv2))
     p_pos = np.where(fv == fp)[0][0]
+    where = [p_pos]
     if P_s != 0:
-        try:
-            s_pos = np.where(fv == fs)[0][0]
-            where = [p_pos, 0]
-        except IndexError:
-            print('Warning! seed not in frequency grid.')
-            print('Frequency grid from {} to {} and signal at {}'
-                  .format(fv.min(), fv.max(), fs))
-    else:
-        where = [p_pos, 0]
 
-    print(df)
+        s_pos = np.argmin(np.abs(fv - fs))
+
+        where.append(s_pos)
+
+    else:
+        where.append(0)
     check_ft_grid(fv, df)
     return fv, where
 

@@ -130,8 +130,15 @@ class Sidebands(object):
         self.lams_vec = 1e9 * 2 * pi * c / (1e12 * omega_sig)
         self.lami_vec = 1e9 * 2 * pi * c / (1e12 * omega_idler)
         return self.lamp_vec, self.lams_vec, self.lami_vec
-    
+    def find_abs_pump(self,lp = 1550):
+        i = len(self.a_vec) // 2
+        pos = np.argmin(np.abs(self.lamp_vec[i,:] - lp))#[0]
+        self.lp_tel = self.lamp_vec[i,pos]
+        self.li_tel = self.lami_vec[i,pos]
+        self.ls_tel = self.lams_vec[i,pos]
+        return None
     def plot_sidebands(self):
+        self.find_abs_pump()
         fig, ax1 = plt.subplots(figsize = (10,5))
         ax2 = ax1.twinx()
         for i in range(len(self.a_vec)):
@@ -145,6 +152,13 @@ class Sidebands(object):
         ax1.set_ylabel(r'$\lambda_{pr} (\mu m)$')
         ax2.set_ylabel(r'$f_{pr} (Thz)$')
         ax1.set_xlabel(r'$\lambda_{pu} (\mu m)$')
+        tit = 'lp: {0:.3f} um ({1:.3f} Thz), li: {2:.3f} um ({3:.3f} Thz), ls: {4:.3f} um ({5:.3f} Thz)'\
+                    .format(self.lp_tel, 1e-3 *c /self.lp_tel, self.li_tel, 1e-3 *c /self.li_tel,\
+                    self.ls_tel, 1e-3 *c /self.ls_tel)
+        print((self.lp_tel, 1e-3 *c /self.lp_tel, self.li_tel, 1e-3 *c /self.li_tel,\
+                    self.ls_tel, 1e-3 *c /self.ls_tel))
+        print(tit)
+        plt.title(tit, fontsize = 10)
         ax1.legend()
         plt.show()
 
@@ -261,6 +275,6 @@ if __name__ == '__main__':
     a_med = 2.19e-6
     a_err_p = 0.01
     l_span = 1300e-9
-    l_p = 1555e-9
+    l_p = 1550e-9
     N_points = 128
     main(a_med, a_err_p, l_p, l_span, N_points)

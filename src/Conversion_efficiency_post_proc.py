@@ -477,7 +477,7 @@ for pos in ('4','2'):
             #contor_plot_time(CE, rounds = None,filename = 'output_final/'+str(ii)+'/pos'+pos+'/'+'time_'+str(ii)+'_'+str(i))
             CE.P_out_round(CE.P_out_vec,filepath =  'output_final/'+str(ii)+'/pos'+pos+'/powers/', filesave =str(ii)+'_'+str(i))
             CE.P_out_round(CE.P_out_vec_casc,filepath =  'output_final/'+str(ii)+'/pos'+pos+'/casc_powers/',filesave = str(ii)+'_'+str(i))
-            CE.final_1D_spec(filename = 'output_final/'+str(ii)+'/pos'+pos+'/final_specs/'+'spectrum_fopo_final'+str(ii),wavelengths = wavelengths)
+            CE.final_1D_spec(filename = 'output_final/'+str(ii)+'/pos'+pos+'/final_specs/'+'spectrum_fopo_final'+str(i),wavelengths = wavelengths)
             del CE
             gc.collect()
         for x_key,y_key,std in (('P_p', 'P_out',True), ('P_p', 'CE',True), ('P_p', 'rin',False)):
