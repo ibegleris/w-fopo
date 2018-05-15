@@ -45,7 +45,6 @@ def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
     ex.exporter(index, int_fwm, sim_wind, u, U, P0_p1,
                 P0_s, f_p, f_s, 0, 0,  mode_names, master_index, '00', 'original pump', D_pic[0], plots)
 
-    ram_noise_kill = Splicer(loss = 0)
 
     U_original_pump = np.copy(U[:, :])
 
@@ -64,8 +63,7 @@ def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
     t_total = 0
     gam_no_aeff = -1j*int_fwm.n2*2*pi/sim_wind.lamda
     noise_new = noise_new_or*1
-    #ram_noise_kill.c1 = 1
-    #ram_noise_kill.c2 = -1
+
     while ro < max_rounds:
 
         ro += 1
@@ -82,7 +80,7 @@ def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
             Q , Dop = Q_large[index_woble], Dop_large[index_woble]
             int_fwm.woble_propagate(index_woble)                   
             u, U = pulse_propagation(u, U, int_fwm, M1, M2, Q,
-                                     sim_wind, hf, Dop, dAdzmm,gam_no_aeff, ram_noise_kill, noise_new)
+                                     sim_wind, hf, Dop, dAdzmm,gam_no_aeff)
             u = Dtheta.bire_pass(u,index_woble)
 
         ex.exporter(index, int_fwm, sim_wind, u, U, P0_p1,
@@ -262,9 +260,9 @@ def main():
     n2 = 2.5e-20                            # Nonlinear index [m/W]
     gama = 10e-3                            # Overwirtes n2 and Aeff w/m        
     alphadB = np.array([0,0])              # loss within fibre[dB/m]
-    z = 1                                 # Length of the fibre
+    z = 1000                                 # Length of the fibre
     P_p = [10]
-    P_s = 100e-3
+    P_s = 0#100e-3
     TFWHM_p = 0                             # full with half max of pump
     TFWHM_s = 0                             # full with half max of signal
     spl_losses = [[0, 0, 1.], [0, 0, 1.2], [0, 0, 1.3], [
@@ -272,10 +270,10 @@ def main():
     spl_losses = [0, 0, 1.4]
 
     a_med = 2.19e-6
-    a_err = 0.01
-    dnerr_med = 0.000
-    cutting = 1
-    Num_a = 5
+    a_err = 0.008 #[125um +- 1um ]
+    dnerr_med = 0.002
+    cutting = 100
+    Num_a = 100
     a_vec = np.random.uniform(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
     dnerr = np.random.uniform(-dnerr_med, dnerr_med, len(a_vec))
     Dtheta = np.random.uniform(0, 2*pi, len(a_vec))
@@ -284,10 +282,13 @@ def main():
     #a_vec = np.linspace(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
     #a_vec = np.array([2.16e-6,2.17e-6,2.18e-6,2.18e-6,2.18e-6,
     #                2.18e-6,2.18e-6,2.18e-6,2.18e-6,2.18e-6])
-    a_vec = np.array([2.19e-6])
+    a_vec = np.array([2.19e-06])
     dnerr = np.array([0])
     Dtheta = np.array([0])
-    
+    #New a =  2.1681e-06
+    #New a =  2.19e-06
+    #New a =  2.2119e-06
+
 
     z_vec = np.linspace(0, z, len(a_vec)+1)
     pertb_vec = [[a_vec,dnerr,Dtheta, z_vec]] # pertubation vector for dn and a_vec

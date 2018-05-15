@@ -748,7 +748,7 @@ class Noise(object):
 
 @profile
 def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf,
-                     Dop, dAdzmm, gam_no_aeff, ram_noise_kill, noise_new_or):
+                     Dop, dAdzmm, gam_no_aeff):
     """Pulse propagation part of the code. We use the split-step fourier method
        with a modified step using the RK45 algorithm. 
     """
@@ -773,8 +773,7 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf,
         u1 = ifft(np.exp(Dop*dz/2)*fft(A))
         dztot += dz
         # update the propagated distance
-        #u1 = ram_noise_kill.pass_through(
-        #    (fftshift(fft(u1), axes=-1), noise_new_or), sim_wind)[0][0]
+
         
 
         if delta == 0:
