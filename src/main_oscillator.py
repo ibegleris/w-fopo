@@ -271,9 +271,9 @@ def main():
 
     a_med = 2.19e-6
     a_err = 0.008 #[125um +- 1um ]
-    dnerr_med = 0.002
+    dnerr_med = 0.0002
     cutting = 100
-    Num_a = 100
+    Num_a = 1000
     a_vec = np.random.uniform(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
     dnerr = np.random.uniform(-dnerr_med, dnerr_med, len(a_vec))
     Dtheta = np.random.uniform(0, 2*pi, len(a_vec))
@@ -282,9 +282,11 @@ def main():
     #a_vec = np.linspace(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
     #a_vec = np.array([2.16e-6,2.17e-6,2.18e-6,2.18e-6,2.18e-6,
     #                2.18e-6,2.18e-6,2.18e-6,2.18e-6,2.18e-6])
+    a_vec = np.array([2.18e-06,2.19e-06,2.20e-06])
     a_vec = np.array([2.19e-06])
-    dnerr = np.array([0])
-    Dtheta = np.array([0])
+    
+    dnerr = np.zeros_like(a_vec)
+    Dtheta = np.random.uniform(0, 2*pi, len(a_vec))
     #New a =  2.1681e-06
     #New a =  2.19e-06
     #New a =  2.2119e-06
@@ -295,9 +297,8 @@ def main():
     
 
     if cutting < len(a_vec):
-        pertb_vec += [[j[:-(cutting+i)] for j in (a_vec, dnerr, Dtheta, z_vec)]\
-                       for i in range(int(len(a_vec)/cutting) - 1)]
-
+        pertb_vec += [[j[:-(cutting*i)] for j in (a_vec, dnerr, Dtheta, z_vec)]\
+                       for i in range(1,int(len(a_vec)/cutting))]
 
 
 

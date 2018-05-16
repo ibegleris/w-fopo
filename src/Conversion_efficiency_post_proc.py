@@ -38,12 +38,12 @@ class Conversion_efficiency(object):
         self.n = 1.444
         self.last = last
         self.safety = safety
-        self.variables = ('P_p', 'P_s', 'f_p', 'f_s','l_p','l_s,' 'P_out', 'P_bef','CE', 'CE_std', 'P_out_std','rin')
+        self.variables = ('P_p', 'P_s', 'f_p', 'f_s','l_p','l_s,' 'P_out', 'P_bef','CE', 'CE_std', 'P_out_std','rin', 'L')
         self.spec, self.fv, self.t, self.P0_p, self.P0_s,self.f_p,\
         self.f_s, self.P_bef,self.ro,self.U_large,tt,self.L =\
                                         self.load_spectrum('0',filename, filepath)
         self.pos_of_pump()
-
+        self.f_i = self.f_p - (self.f_s - self.f_p) 
         self.P_max = np.array([np.max(i) for i in self.spec])
    
         self.spec, self.fv, self.t, self.P0_p, self.P0_s,self.f_p,\
@@ -62,18 +62,17 @@ class Conversion_efficiency(object):
         self.P_in = self.P0_p + self.P0_s
         self.pos_of_signal()
         self.pos_of_idler()
-        self.pos_of_cascades()
-        if possition == '2' or possition == '1':
-            fv_id = self.fs_id
-            fv_id_c = self.fv_id_c[0]
-        else:
-            fv_id = self.fi_id
-            fv_id_c = self.fv_id_c[1]
+
+        #if possition == '2' or possition == '1':
+        #fv_id = self.fs_id
+
+        #else:
+        fv_id = self.fi_id
+
         self.lam_wanted = 1e-3*c/self.fv[fv_id]
         self.lamp = 1e-3*c/self.f_p
         self.l_s = 1e-3*c/self.f_s
-        print(np.shape(self.spec))
-        #sys.exit()
+      
         self.U_large_norm = np.empty_like(U_large)
 
         self.n = selmier(1e-3*self.lam_wanted)
@@ -85,28 +84,26 @@ class Conversion_efficiency(object):
                     w2dbm(np.abs(self.U_large[:,i,:])**2) - P_max
 
         P_out_vec = []
-        P_out_vec_casc = []
+
         start, end = self.fv[fv_id] - freq_band, self.fv[fv_id] + freq_band
 
-        start_c, end_c = self.fv[fv_id_c] - freq_band, self.fv[fv_id_c] + freq_band
+        #start_c, end_c = self.fv[fv_id_c] - freq_band, self.fv[fv_id_c] + freq_band
         
         start_i = [np.argmin(np.abs(self.fv - i)) for i in start]
         end_i = [np.argmin(np.abs(self.fv - i)) for i in end]
-        start_c_i = [np.argmin(np.abs(self.fv - i)) for i in start_c]
-        end_c_i = [np.argmin(np.abs(self.fv - i)) for i in end_c]
+       
 
         Uabs_large = np.abs(U_large)**2
         for i in Uabs_large:
             self.spec = i
             P_out_vec.append(self.calc_P_out(start_i,end_i))
-            P_out_vec_casc.append(self.calc_P_out(start_c_i,end_c_i))
 
-        self.P_out_vec_casc = np.asanyarray(P_out_vec_casc)
         self.P_out_vec = np.asanyarray(P_out_vec)
 
 
         #for l, la in enumerate(last):
         D_now = {}
+        D_now['L'] = self.L
         D_now['P_out'] = np.mean(self.P_out_vec[-last::,:], axis = 0)
         D_now['CE'] = 100*D_now['P_out']/ (self.P0_p + self.P0_s)
         D_now['P_out_std'] = np.std(self.P_out_vec[-last::,:], axis = 0)
@@ -137,36 +134,21 @@ class Conversion_efficiency(object):
         return None
 
     def pos_of_pump(self):
-        Uabs = np.abs(self.U_large[0,:,:])**2
-        self.fp_id = np.array([np.argmax(Uabs[i,:])\
-                         for i in range(Uabs.shape[0])])
+        self.fp_id = [np.argmin(np.abs(self.fv - self.f_p)) for i in range(2)]
         return None
     
     def pos_of_idler(self):
-        plom =  self.fp_id + self.safety
-        self.fi_id = np.array([np.argmax(self.U_av[i,plom[i]:])\
-                         for i in range(self.U_av.shape[0])])
-        self.fi_id += plom -1#np.array([i +  for i in fi_id])
+        self.fi_id = [np.argmin(np.abs(self.fv - self.f_i)) for i in range(2)]
+
         return None   
     
     def pos_of_signal(self):
-        self.U_av = np.average(np.abs(self.U_large[self.last:,:,:])**2,axis = 0)
-        plom =  self.fp_id - self.safety
-        self.fs_id = np.array([np.argmax(self.U_av[i,:plom[i]])\
-                         for i in range(self.U_av.shape[0])])
+
+        self.fs_id = [np.argmin(np.abs(self.fv - self.f_s)) for i in range(2)]
         return None   
     
 
-    def pos_of_cascades(self):
-        plom = self.fs_id -self.safety
-        self.fv_id_c = []
-        self.fv_id_c.append([np.argmax(self.U_av[i,:plom[i]])\
-                         for i in range(self.U_av.shape[0])])
-        plom = self.fi_id + self.safety
-        self.fv_id_c.append([np.argmax(self.U_av[i,plom[i]:])\
-                     for i in range(self.U_av.shape[0])])
-        return None
-    
+
     
     def load_spectrum(self, possition,filename='data_large', filepath=''):
         with h5py.File(filepath+filename+'.hdf5','r') as f: 
@@ -476,11 +458,10 @@ for pos in ('4','2'):
                 contor_plot(CE,fmin,fmax,rounds,folder = 'output_final/'+str(ii)+'/pos'+pos+'/spectra/',filename= str(ii)+'_'+str(i))
             #contor_plot_time(CE, rounds = None,filename = 'output_final/'+str(ii)+'/pos'+pos+'/'+'time_'+str(ii)+'_'+str(i))
             CE.P_out_round(CE.P_out_vec,filepath =  'output_final/'+str(ii)+'/pos'+pos+'/powers/', filesave =str(ii)+'_'+str(i))
-            CE.P_out_round(CE.P_out_vec_casc,filepath =  'output_final/'+str(ii)+'/pos'+pos+'/casc_powers/',filesave = str(ii)+'_'+str(i))
             CE.final_1D_spec(filename = 'output_final/'+str(ii)+'/pos'+pos+'/final_specs/'+'spectrum_fopo_final'+str(i),wavelengths = wavelengths)
             del CE
             gc.collect()
-        for x_key,y_key,std in (('P_p', 'P_out',True), ('P_p', 'CE',True), ('P_p', 'rin',False)):
+        for x_key,y_key,std in (('L', 'P_out',True), ('L', 'CE',True), ('L', 'rin',False)):
             plot_CE(x_key,y_key,std = std,filename = 'CE',\
                 filepath='output_final/'+str(ii)+'/pos'+pos+'/', filesave = 'output_final/'+str(ii)+'/pos'+pos+'/many/'+y_key+str(ii))
         
