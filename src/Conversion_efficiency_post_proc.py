@@ -102,13 +102,15 @@ class Conversion_efficiency(object):
 
 
         #for l, la in enumerate(last):
+        print('l', self.P_out_vec)
+        print('CE', 100*np.mean(self.P_out_vec[-last::,:], axis = 0)/ (self.P0_p + self.P0_s))
         D_now = {}
         D_now['L'] = self.L
         D_now['P_out'] = np.mean(self.P_out_vec[-last::,:], axis = 0)
         D_now['CE'] = 100*D_now['P_out']/ (self.P0_p + self.P0_s)
         D_now['P_out_std'] = np.std(self.P_out_vec[-last::,:], axis = 0)
         D_now['CE_std'] = np.std(self.P_out_vec[-last::,:] / (self.P0_p + self.P0_s), axis = 0)
-
+        print(D_now['CE_std'])
         D_now['rin'] = 10*np.log10(self.time_trip*D_now['P_out_std']**2 / D_now['P_out']**2)
         D_now['P_p'], D_now['P_s'], D_now['f_p'], D_now['f_s'],\
             D_now['l_p'], D_now['l_s'], D_now['P_bef'] =\

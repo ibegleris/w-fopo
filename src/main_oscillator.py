@@ -241,10 +241,11 @@ def main():
     else:
         fopa = False
     plots = True                            # Do you want plots, be carefull it makes the code very slow!
-    N = 10                                  # 2**N grid points
+    N = 12                                  # 2**N grid points
     nt = 2**N                               # number of grid points
     nplot = 2                               # number of plots within fibre min is 2
     # Number of modes (include degenerate polarisation)
+    
     nm = 2
     mode_names = ['LP01a', 'LP01b']         # Names of modes for plotting
     if 'mpi' in sys.argv:
@@ -262,35 +263,30 @@ def main():
     alphadB = np.array([0,0])              # loss within fibre[dB/m]
     z = 1000                                 # Length of the fibre
     P_p = [10]
-    P_s = 0#100e-3
+    P_s = 100e-3
     TFWHM_p = 0                             # full with half max of pump
     TFWHM_s = 0                             # full with half max of signal
     spl_losses = [[0, 0, 1.], [0, 0, 1.2], [0, 0, 1.3], [
         0, 0, 1.4]]                 # loss of each type of splices [dB]
     spl_losses = [0, 0, 1.4]
-
+    loada_vec = True
     a_med = 2.19e-6
     a_err = 0.008 #[125um +- 1um ]
     dnerr_med = 0.0002
     cutting = 100
     Num_a = 1000
-    a_vec = np.random.uniform(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
-    dnerr = np.random.uniform(-dnerr_med, dnerr_med, len(a_vec))
-    Dtheta = np.random.uniform(0, 2*pi, len(a_vec))
-    
-
-    #a_vec = np.linspace(a_med - a_err * a_med, a_med + a_err * a_med, Num_a)
-    #a_vec = np.array([2.16e-6,2.17e-6,2.18e-6,2.18e-6,2.18e-6,
-    #                2.18e-6,2.18e-6,2.18e-6,2.18e-6,2.18e-6])
-    a_vec = np.array([2.18e-06,2.19e-06,2.20e-06])
-    a_vec = np.array([2.19e-06])
-    
-    dnerr = np.zeros_like(a_vec)
-    Dtheta = np.random.uniform(0, 2*pi, len(a_vec))
-    #New a =  2.1681e-06
-    #New a =  2.19e-06
-    #New a =  2.2119e-06
-
+    if loada_vec and os.path.isfile('loading_data/a_vec.hdf5'):   
+        D = read_variables('a_vec', '0', filepath='loading_data/')
+        a_vec = D['a_vec']
+        dnerr = D['dnerr']
+        Dtheta = D['Dtheta']
+    else:
+        a_vec = np.random.normal(a_med,a_err * a_med, Num_a )
+        dnerr = np.random.normal(0, dnerr_med, len(a_vec))
+        Dtheta = np.random.normal(0, pi, len(a_vec))
+        D = {'a_vec':a_vec, 'dnerr':dnerr, 'Dtheta':Dtheta}
+        os.system('rm loading_data/a_vec.hdf5')
+        save_variables('a_vec', '0', filepath='loading_data/', **D)
 
     z_vec = np.linspace(0, z, len(a_vec)+1)
     pertb_vec = [[a_vec,dnerr,Dtheta, z_vec]] # pertubation vector for dn and a_vec
