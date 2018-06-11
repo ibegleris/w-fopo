@@ -380,42 +380,42 @@ class Integrand(object):
         for i in range(NN):
             '------No ram, no ss--------'
             t = time()
-            N1 = dAdzmm_roff_s0_cython(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff)
+            N1 = dAdzmm_roff_s0_cython_nm2(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff)
             dt1.append(time() - t)
 
             t = time()
-            N2 = dAdzmm_roff_s0(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff)
+            N2 = dAdzmm_roff_s0_nm2(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff)
             dt2.append(time() - t)
             assert_allclose(N1, N2)
             
             '------ ram, no ss--------'
             t = time()
-            N1 = dAdzmm_ron_s0_cython(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff)
+            N1 = dAdzmm_ron_s0_cython_nm2(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff)
             dt3.append(time() - t)
 
             t = time()
-            N2 = dAdzmm_ron_s0(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff)
+            N2 = dAdzmm_ron_s0_nm2(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff)
             dt4.append(time() - t)
             assert_allclose(N1, N2)
 
 
             '------ no ram, ss--------'
             t = time()
-            N1 = dAdzmm_roff_s1_cython(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff)
+            N1 = dAdzmm_roff_s1_cython_nm2(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff)
             dt5.append(time() - t)
 
             t = time()
-            N2 = dAdzmm_roff_s1(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff)
+            N2 = dAdzmm_roff_s1_nm2(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff)
             dt6.append(time() - t)
             assert_allclose(N1, N2)
             
             '------ ram, ss--------'
             t = time()
-            N1 = dAdzmm_ron_s1_cython(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff)
+            N1 = dAdzmm_ron_s1_cython_nm2(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff)
             dt7.append(time() - t)
 
             t = time()
-            N2 = dAdzmm_ron_s1(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff)
+            N2 = dAdzmm_ron_s1_nm2(u0,u0_conj, M1, M2, Q, tsh, dt, hf, w_tiled,gam_no_aeff)
             dt8.append(time() - t)
             assert_allclose(N1, N2)
             
