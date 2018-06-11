@@ -4,7 +4,7 @@ from scipy.interpolate import interp1d
 from scipy.optimize import brenth
 
 @profile
-def fibre_creator(a_vec, f_vec, dnerr, per=['ge', 'sio2'], filename='step_index_2m', filepath='loading_data/step_data/', N_points=512):
+def fibre_creator(a_vec, f_vec, dnerr, per=['ge', 'sio2'], filename='step_index_2m', filepath='loading_data/step_data/', N_points=512, nm=2):
     """
     Creates a step index fibre for a given radius vector a_vec over a f_vec freequency window
     given. It then calculates the overlaps (Q matrixes from P Horaks paper) and exports both
@@ -57,12 +57,11 @@ def fibre_creator(a_vec, f_vec, dnerr, per=['ge', 'sio2'], filename='step_index_
     beta_large = np.asanyarray(beta_large)
     M = Modes(o_vec, o, betas_central,
               u_vec, w_vec, a_vec, N_points, per, dnerr)
-
     M1, M2, Q_large = M.Q_matrixes()
     Export_dict = {'M1': M1, 'M2': M2,
                    'Q_large': Q_large, 'betas': betas_large,
                    'a_vec': a_vec, 'fv': f_vec, 'dnerr': dnerr}
-    # print(filepath)
+
     return beta_large, Q_large, M, beta2_large, ncore, nclad, Export_dict
 
 #from scipy.optimize import newton
@@ -163,7 +162,7 @@ class Sidebands(object):
         plt.show()
 
         
-def main(a_med, a_err_p, l_p, l_span, N_points):
+def main(a_med, a_err_p, l_p, l_span, N_points, nm = 2):
 
     low_a = a_med - a_err_p * a_med
     high_a = a_med + a_err_p * a_med
@@ -179,7 +178,7 @@ def main(a_med, a_err_p, l_p, l_span, N_points):
     err_med = 0.02*0.01
     err = err_med*np.random.randn(len(a_vec))
     betas, Q_large, M, beta2, ncore, nclad =\
-        fibre_creator(a_vec, f_vec, err, per=per, N_points=N_points)[:-1]
+        fibre_creator(a_vec, f_vec, err,per,N_points, nm)[:-1]
 
     side = Sidebands(Q_large, a_vec, 2*pi*f_vec,betas)
     pumps = np.linspace(1500,1560,50)
@@ -277,4 +276,4 @@ if __name__ == '__main__':
     l_span = 1300e-9
     l_p = 1550e-9
     N_points = 128
-    main(a_med, a_err_p, l_p, l_span, N_points)
+    main(a_med, a_err_p, l_p, l_span, N_points, 1)

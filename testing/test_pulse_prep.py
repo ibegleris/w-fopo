@@ -15,7 +15,7 @@ class Test_loss:
         sim_wind = sim_window(fv, 1,1, int_fwm, 1)
 
         loss = Loss(int_fwm, sim_wind, amax=alphadB)
-        alpha_func = loss.atten_func_full(sim_wind.fv)
+        alpha_func = loss.atten_func_full(sim_wind.fv,int_fwm )
         ex = np.zeros_like(alpha_func)
         for i, a in enumerate(alpha_func):
             ex[i, :] = np.ones_like(a)*alphadB[i]/4.343
@@ -30,7 +30,7 @@ class Test_loss:
         sim_wind = sim_window(fv, 1,1, int_fwm, 1)
 
         loss = Loss(int_fwm, sim_wind, amax=2*alphadB)
-        alpha_func = loss.atten_func_full(sim_wind.fv)
+        alpha_func = loss.atten_func_full(sim_wind.fv,int_fwm )
         maxim = np.max(alpha_func)
         assert maxim == 2*np.max(alphadB)/4.343
 
@@ -46,7 +46,7 @@ class Test_loss:
         sim_wind = sim_window(fv, 1,1,int_fwm, 1)
 
         loss = Loss(int_fwm, sim_wind, amax=2*alphadB)
-        alpha_func = loss.atten_func_full(sim_wind.fv)
+        alpha_func = loss.atten_func_full(sim_wind.fv,int_fwm )
         minim = np.min(alpha_func)
         assert minim == np.min(alphadB)/4.343
 
@@ -126,7 +126,7 @@ class Raman():
 
     def test_raman_off(self):
         ram = raman_object('off')
-        ram.raman_load(np.random.rand(10), np.random.rand(1)[0], None)
+        ram.raman_load(np.random.rand(10), np.random.rand(1)[0], None,2)
         assert ram.hf == None
 
 
@@ -140,7 +140,7 @@ class Raman():
         hf_exact = D['hf']
         hf_exact = np.asanyarray([hf_exact[i][0]
                                   for i in range(hf_exact.shape[0])])
-        hf = ram.raman_load(t, dt, self.M2)
+        hf = ram.raman_load(t, dt, self.M2,2)
 
         #hf_exact = np.reshape(hf_exact, hf.shape)
         hf_exact = np.tile(hf_exact, (len(self.M2[1, :]), 1))
@@ -157,7 +157,7 @@ class Raman():
         hf_exact = D['hf']
         hf_exact = np.asanyarray([hf_exact[i][0]
                                   for i in range(hf_exact.shape[0])])
-        hf = ram.raman_load(t, dt, self.M2)
+        hf = ram.raman_load(t, dt, self.M2,2)
 
         assert_allclose(hf, hf_exact)
 
@@ -171,7 +171,7 @@ class Raman():
         hf_exact = D['hf']
         hf_exact = np.asanyarray([hf_exact[i][0]
                                   for i in range(hf_exact.shape[0])])
-        hf = ram.raman_load(t, dt, self.M2)
+        hf = ram.raman_load(t, dt, self.M2,2)
 
         hf_exact = np.tile(hf_exact, (len(self.M2[1, :]), 1))
         assert_allclose(hf, hf_exact)
@@ -186,7 +186,7 @@ class Raman():
         hf_exact = D['hf']
         hf_exact = np.asanyarray([hf_exact[i][0]
                                   for i in range(hf_exact.shape[0])])
-        hf = ram.raman_load(t, dt, self.M2)
+        hf = ram.raman_load(t, dt, self.M2,2)
         assert_allclose(hf, hf_exact)
 
 
@@ -203,7 +203,7 @@ class Test_dispersion_raman(Raman):
         sim_window(1e-12*c/l_vec, (l_vec[0]+l_vec[-1])*0.5,
                    (l_vec[0]+l_vec[-1])*0.5, int_fwm, 10)
     loss = Loss(int_fwm, sim_wind, amax=10)
-    alpha_func = loss.atten_func_full(sim_wind.fv)
+    alpha_func = loss.atten_func_full(sim_wind.fv, int_fwm)
     int_fwm.alphadB = alpha_func
     int_fwm.alpha = int_fwm.alphadB
     betas_disp = dispersion_operator(Raman.betas, int_fwm, sim_wind)

@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import brenth, root, brentq, bisect
 from scipy.constants import c, pi
-from scipy.special import jv, kv,jvp,kvp
+from scipy.special import jv, kv, jvp, kvp
 from scipy.interpolate import interp1d
 from scipy.integrate import simps
 import sys
@@ -24,14 +24,19 @@ except AttributeError:
         return func
 
 #@jit
+
+
 def jv_(n, z):
     return 0.5 * (jv(n-1, z) - jv(n+1, z))
 
 #@jit
+
+
 def kv_(n, z):
     return -0.5 * (kv(n-1, z) + kv(n+1, z))
 
-def save_variables_step(filename,filepath='', **variables):
+
+def save_variables_step(filename, filepath='', **variables):
 
     file = os.path.join(filepath, filename+'.hdf5')
     if os.path.isfile(file):
@@ -40,7 +45,6 @@ def save_variables_step(filename,filepath='', **variables):
         for i in (variables):
             f.create_dataset(str(i), data=variables[i])
     return None
-
 
 
 class Fibre(object):
@@ -58,7 +62,7 @@ class Fibre(object):
                     'ge': [0.8663412, 9.896175**2]}
         return None
 
-    def indexes(self, l, r, per, err, plot = False):
+    def indexes(self, l, r, per, err, plot=False):
         per_core, per_clad = per
 
         self.A = [self._A_[str(per_core)], self._A_[str(per_clad)]]
@@ -68,28 +72,28 @@ class Fibre(object):
         core, clad = self.sellmeier(l)
         N_cores = len(r)
         try:
-        
+
             self.clad = np.repeat(clad[np.newaxis, :], N_cores, axis=0)
             np.random.seed(int(time.time()+10))
 
             self.core = np.zeros([N_cores, len(l)])
             for i in range(N_cores):
                 self.core[i, :] = \
-                        err[i]*(core - clad) + core
+                    err[i]*(core - clad) + core
         except IndexError:
-            #print('index')
+            # print('index')
             self.clad = clad
             self.core = np.random.rand(N_cores)*err*(core - clad) + core
             pass
         if not(plot):
-            #print(self.core)
-            #print(self.clad)
+            # print(self.core)
+            # print(self.clad)
             try:
                 assert((self.core > self.clad).all())
             except AssertionError:
                 print(self.core.shape)
-                plt.plot(self.core, label = 'core')
-                plt.plot(self.clad, label = 'clad')
+                plt.plot(self.core, label='core')
+                plt.plot(self.clad, label='clad')
                 plt.show()
             assert((self.core > self.clad).all())
         return self.core, self.clad
@@ -113,22 +117,22 @@ class Fibre(object):
 
     def plot_fibre_n(self, l, r, per, err):
         n = {}
-        for per in (('ge', 'ge'),('sio2','sio2')):
-            nn = self.indexes(l, r, per, err,plot = True)
+        for per in (('ge', 'ge'), ('sio2', 'sio2')):
+            nn = self.indexes(l, r, per, err, plot=True)
             n[str(per[0])] = nn[0]
         perc = (20, 30, 40, 50, 60)
         fig = plt.figure()
-        for p,nn in n.items():
-            #print(p,nn)
-            plt.plot(l*1e9, nn[-1,:], label=p)
+        for p, nn in n.items():
+            # print(p,nn)
+            plt.plot(l*1e9, nn[-1, :], label=p)
         plt.xlabel(r'$\lambda (nm)$')
         plt.ylabel(r'$n$')
         plt.legend()
-        #plt.show()
+        # plt.show()
         return None
 
-    def beta_dispersions(self,o_vec, i):
-        coefs = self.beta_extrapo(o_vec,i)
+    def beta_dispersions(self, o_vec, i):
+        coefs = self.beta_extrapo(o_vec, i)
         betas = np.empty_like(coefs)
         for i, c in enumerate(coefs[::-1]):
             betas[i] = c * factorial(i)
@@ -136,10 +140,9 @@ class Fibre(object):
 
 
 @vectorize('float64(float64,float64,float64,float64,float64,float64)')
-def res_faster(a,b,r,u,w,n):
+def res_faster(a, b, r, u, w, n):
     return (a + b) * (a + b*r**2) \
-           - n**2 * (1/u**2 + 1/w**2) * (1/u**2 + r**2 / w**2)
-
+        - n**2 * (1/u**2 + 1/w**2) * (1/u**2 + r**2 / w**2)
 
 
 class Eigenvalues(Fibre):
@@ -152,18 +155,20 @@ class Eigenvalues(Fibre):
     def __init__(self, l, r, ncore, nclad):
         self.core, self.clad = ncore, nclad
         self.V_func(l, r)
-        self.a_vec = r 
-        self.l_vec  = l
+        self.a_vec = r
+        self.l_vec = l
         self.k = 2 * pi * c / l
         self.ratio = self.clad/self.core
         return None
     #@profile
+
     def w_f(self, u, i, j):
         """
         Equation to get w eigenvalue with respect to guess u, and V. 
         """
         return (self.V[i, j]**2 - u**2)**0.5
     #@profile
+
     def eq(self, u_vec, i, j, n=1):
         """
         The eigenvalue equation of a single mdoe fibre,
@@ -173,14 +178,12 @@ class Eigenvalues(Fibre):
         #@vectorize('float64(float64,float64,float64)')
         w = self.w_f(u, i, j)
 
-        a = jv_(n, u)/(u*jv(n, u))   
+        a = jv_(n, u)/(u*jv(n, u))
         b = kv_(n, w)/(w*kv(n, w))
 
-        res =  res_faster(a,b,self.ratio[i, j],u,w,n)
+        res = res_faster(a, b, self.ratio[i, j], u, w, n)
 
         return res
-
-
 
     def neff(self, i, j, u, w):
         """
@@ -212,16 +215,16 @@ class Eigenvalues(Fibre):
         while found_all < 2:
             nm = len(s)
             u_vec = np.linspace(margin, self.V[i, j] - margin, N_points)
-            eq = self.eq(u_vec, i, j,n = 1)
+            eq = self.eq(u_vec, i, j, n=1)
             s = np.where(np.sign(eq[:-1]) != np.sign(eq[1:]))[0] + 1
             count += 1
             N_points = 2**count
             if nm == len(s):
-                found_all +=1
+                found_all += 1
         u_sol, w_sol = np.zeros(len(s)), np.zeros(len(s))
 
         for iss, ss in enumerate(s):
-            
+
             Rr = brenth(self.eq, u_vec[ss-1], u_vec[ss],
                         args=(i, j), full_output=True)
             u_sol[iss] = Rr[0]
@@ -233,7 +236,7 @@ class Eigenvalues(Fibre):
             indx_fun = np.argmax(neffs)
             #print(len(s), self.V[i,j], neffs[indx_fun])
             #print(u_sol[indx_fun],w_sol[indx_fun], self.V[i,j])
-            #if len(s) >1:
+            # if len(s) >1:
             #    #print(s)
             #    plt.plot(u_vec, eq)
 
@@ -245,7 +248,7 @@ class Eigenvalues(Fibre):
         else:
             print(
                 '----------------------------No solutions found for some inputs--------------------')
-            print(' V = ', self.V[i,j])
+            print(' V = ', self.V[i, j])
             print(' R = ', self.a_vec[i])
             print(' l = ', self.l_vec[j])
             print(
@@ -276,22 +279,23 @@ class Betas(Fibre):
         self.o_norm = self.o_vec - self.o
         return None
 
-    def beta_func(self, o_vec,i):
+    def beta_func(self, o_vec, i):
         """
         Calculates and returns the betas of the fibre 
         """
 
         return ((o_vec*1e12/c)**2*((self.core[i, :]/self.u[i, :])**2 +
-                           (self.clad[i, :]/self.w[i, :])**2)/(1/self.u[i, :]**2
-                                                               + 1/self.w[i, :]**2))**0.5
-        #return (((self.core[i, j]/u)**2 + (self.clad[i, j]/w)**2)
+                                   (self.clad[i, :]/self.w[i, :])**2)/(1/self.u[i, :]**2
+                                                                       + 1/self.w[i, :]**2))**0.5
+        # return (((self.core[i, j]/u)**2 + (self.clad[i, j]/w)**2)
         #        / (1/u**2 + 1/w**2))**0.5
-    def beta_extrapo(self,o_vec, i):
+
+    def beta_extrapo(self, o_vec, i):
         """
         Gets the polyonomial coefficiencts of beta(omega) with the 
         highest order possible. 
         """
-        betas = self.beta_func(o_vec,i)
+        betas = self.beta_func(o_vec, i)
         deg = 30
         fitted = False
         # warnings.warn(Warning())
@@ -309,7 +313,7 @@ class Betas(Fibre):
 class Modes(Fibre):
     """docstring for Modes"""
 
-    def __init__(self, o_vec, o_c, beta_c, u_vec, w_vec, a_vec, N_points, per, err):
+    def __init__(self, o_vec, o_c, beta_c, u_vec, w_vec, a_vec, N_points, per, err, nm=2):
         super().__init__()
         self.n = 1
         self.N_points = N_points
@@ -332,8 +336,8 @@ class Modes(Fibre):
 
     def set_coordinates(self, a):
         self.x, self.y = np.linspace(-2*a, 2*a, self.N_points),\
-                         np.linspace(-2*a, 2*a, self.N_points)
-        self.X, self.Y = np.meshgrid(self.x,self.y)
+            np.linspace(-2*a, 2*a, self.N_points)
+        self.X, self.Y = np.meshgrid(self.x, self.y)
         self.R = ((self.X)**2 + (self.Y)**2)**0.5
         self.T = np.arctan(self.Y/self.X)
         return None
@@ -347,7 +351,6 @@ class Modes(Fibre):
             (jv_(self.n, self.u)/(self.u*jv(self.n, self.u))
              + kv_(self.n, self.w)/(self.w*kv(self.n, self.w)))
         return None
-
 
     def E_r(self, r, theta):
         r0_ind = np.where(r <= self.a)
@@ -364,7 +367,6 @@ class Modes(Fibre):
 
         return temp*np.cos(self.n*theta), temp*np.cos(self.n*theta+pi/2)
 
-
     def E_theta(self, r, theta):
         r0_ind = np.where(r <= self.a)
         r1_ind = np.where(r > self.a)
@@ -379,7 +381,6 @@ class Modes(Fibre):
             * (0.5*(1 - self.s) * kv(self.n - 1, self.w * r1 / self.a)
                - 0.5*(1 + self.s)*kv(self.n+1, self.w * r1 / self.a))
         return temp*np.sin(self.n*theta), temp*np.sin(self.n*theta+pi/2)
-
 
     def E_zeta(self, r, theta):
         r0_ind = np.where(r <= self.a)
@@ -401,11 +402,12 @@ class Modes(Fibre):
         Ez = self.E_zeta(self.R, self.T)
 
         return (Ex[0], Ey[0], Ez[0]), (Ex[1], Ey[1], Ez[1])
+
     @profile
     def Q_matrixes(self):
         self.combination_matrix_assembler()
         Q_large = []
-        for i,aa in enumerate(self.a_vec):
+        for i, aa in enumerate(self.a_vec):
             self.set_coordinates(aa)
             self.pick_eigens(i)
             E = np.asanyarray(self.E_carte())
@@ -415,10 +417,10 @@ class Modes(Fibre):
                 d = self.product_4(com, E)
 
                 Q[0, j] = (1/3) * self.core[i]**2 * self.integrate(d[0]) / (N[com[0]]
-                                             * N[com[1]]*N[com[2]] * N[com[3]])
+                                                                            * N[com[1]]*N[com[2]] * N[com[3]])
                 Q[1, j] = (1/3) * self.core[i]**2 * self.integrate(d[1]) / (N[com[0]]
-                                             * N[com[1]]*N[com[2]] * N[com[3]])
-                #print(Q)
+                                                                            * N[com[1]]*N[com[2]] * N[com[3]])
+                # print(Q)
             if i is 0:
                 list_to_keep = []
                 for i in range(len(self.M1_top)):
@@ -455,10 +457,6 @@ class Modes(Fibre):
         d2 = np.einsum('ijk,ijk->jk', np.conj(E[com[0], :, :, :]), np.conj(E[com[3], :, :, :])) *\
             np.einsum('ijk,ijk->jk', E[com[2], :, :, :], E[com[1], :, :, :])
         return d1, d2
-
-    def denom_integral(self):
-
-        return None
 
     def Normalised_N(self, E, i):
         """

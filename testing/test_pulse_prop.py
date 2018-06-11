@@ -63,7 +63,7 @@ def pulse_propagations(ram, ss, nm, N_sol=1, cython = True, u = None):
     sim_wind = sim_window(fv, lamda, lamda_c, int_fwm, fv_idler_int=1)
 
     loss = Loss(int_fwm, sim_wind, amax=int_fwm.alphadB)
-    alpha_func = loss.atten_func_full(sim_wind.fv)
+    alpha_func = loss.atten_func_full(sim_wind.fv, int_fwm)
     int_fwm.alphadB = alpha_func
     int_fwm.alpha = int_fwm.alphadB
     dnerr = [0]
@@ -71,11 +71,18 @@ def pulse_propagations(ram, ss, nm, N_sol=1, cython = True, u = None):
     master_index = 0
     a_vec = [2.2e-6]
     Q_large,M1,M2 = get_Qs(nm, gama, fv, a_vec, dnerr, index, master_index, lamda, n2)
+    if nm ==1:
+        M1, M2, Q_large= np.array([1]), np.array([1]), Q_large[:,0,0]
     betas = betas[np.newaxis, :]
     # sys.exit()
     Dop = dispersion_operator(betas, int_fwm, sim_wind)
     print(Dop.shape)
-    integrand = Integrand(ram, ss, cython = cython, timing = False)
+    integrator = Integrator(int_fwm)
+    integrand = Integrand(int_fwm.nm,ram, ss, cython = False, timing = False)
+    dAdzmm = integrand.dAdzmm
+    RK = integrator.RK45mm 
+
+
     dAdzmm = integrand.dAdzmm
     pulse_pos_dict_or = ('after propagation', "pass WDM2",
                          "pass WDM1 on port2 (remove pump)",
@@ -84,7 +91,7 @@ def pulse_propagations(ram, ss, nm, N_sol=1, cython = True, u = None):
 
     #M1, M2, Q = Q_matrixes(1, n2, lamda, gama=gama)
     raman = raman_object(int_fwm.ram, int_fwm.how)
-    raman.raman_load(sim_wind.t, sim_wind.dt, M2)
+    raman.raman_load(sim_wind.t, sim_wind.dt, M2, nm)
 
     if raman.on == 'on':
         hf = raman.hf
@@ -105,7 +112,7 @@ def pulse_propagations(ram, ss, nm, N_sol=1, cython = True, u = None):
     gam_no_aeff = -1j*int_fwm.n2*2*pi/sim_wind.lamda
 
     u, U = pulse_propagation(u, U, int_fwm, M1, M2.astype(np.int64), Q_large[0].astype(np.complex128),
-                             sim_wind, hf, Dop[0], dAdzmm, gam_no_aeff)
+                             sim_wind, hf, Dop[0], dAdzmm, gam_no_aeff,RK)
     U_start = np.abs(U[ :, :])**2
 
     u[:, :] = u[:, :] * \
@@ -143,7 +150,9 @@ def pulse_propagations(ram, ss, nm, N_sol=1, cython = True, u = None):
     plt.show()
     """
     return u, U, maxerr
-class Test_cython(object):
+
+
+class Test_cython_nm2(object):
 
     def test_ramoff_s0_nm2(self):
         u_c, U_c, maxerr = pulse_propagations('off', 0, nm=2, cython = True)
@@ -170,6 +179,33 @@ class Test_cython(object):
         a,b = np.sum(np.abs(u_c)**2), np.sum(np.abs(u_p)**2)
         assert np.allclose(a,b)
 
+
+class Test_cython_nm1(object):
+
+    def test_ramoff_s0_nm2(self):
+        u_c, U_c, maxerr = pulse_propagations('off', 0, nm=1, cython = True)
+        u_p, U_p, maxerr = pulse_propagations('off', 0, nm=1, cython = False)
+        a,b = np.sum(np.abs(u_c)**2), np.sum(np.abs(u_p)**2)
+        assert np.allclose(a,b)
+
+ 
+    def test_ramon_s0_nm2(self):
+        u_c, U_c, maxerr = pulse_propagations('on', 0, nm=1, cython = True)
+        u_p, U_p, maxerr = pulse_propagations('on', 0, nm=1, cython = False)
+        a,b = np.sum(np.abs(u_c)**2), np.sum(np.abs(u_p)**2)
+        assert np.allclose(a,b)
+    
+    def test_ramoff_s1_nm2(self):
+        u_c, U_c, maxerr = pulse_propagations('off', 1, nm=1, cython = True)
+        u_p, U_p, maxerr = pulse_propagations('off', 1, nm=1, cython = False)
+        a,b = np.sum(np.abs(u_c)**2), np.sum(np.abs(u_p)**2)
+        assert np.allclose(a,b)
+    
+    def test_ramon_s1_nm2(self):
+        u_c, U_c, maxerr = pulse_propagations('on', 1, nm=1, cython = True)
+        u_p, U_p, maxerr = pulse_propagations('on', 1, nm=1, cython = False)
+        a,b = np.sum(np.abs(u_c)**2), np.sum(np.abs(u_p)**2)
+        assert np.allclose(a,b)
     
 
 
@@ -256,7 +292,7 @@ class Test_pulse_prop(object):
 
 def test_bire_pass():
     Da = np.random.uniform(0, 2*pi, 100)
-    b = birfeg_variation(Da)
+    b = birfeg_variation(Da,2)
     u = np.random.randn(2, 2**14) + 1j * np.random.randn(2, 2**14)
     u *= 10
     for i in range(100):

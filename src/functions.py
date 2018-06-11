@@ -106,7 +106,7 @@ class raman_object(object):
         self.how = b
         self.hf = None
 
-    def raman_load(self, t, dt, M2):
+    def raman_load(self, t, dt, M2, nm):
         if self.on == 'on':
             if self.how == 'analytic':
                 print(self.how)
@@ -128,7 +128,8 @@ class raman_object(object):
                 htmeas /= (dt*np.sum(htmeas))  # normalised
                 # Fourier transform of the measured nonlinear response
                 self.hf = fft(htmeas)
-                self.hf = np.tile(self.hf, (len(M2[1, :]), 1))
+                if nm ==2:
+                    self.hf = np.tile(self.hf, (len(M2[1, :]), 1))    
             else:
                 self.hf = None
 
@@ -147,7 +148,7 @@ def dispersion_operator(betas, int_fwm, sim_wind):
     betap = np.tile(betas, (int_fwm.nm, 1, 1))
 
     Dop = np.zeros((betas.shape[0], int_fwm.nm, w.shape[0]), dtype=np.complex)
-
+    print(Dop.shape)
     for i in range(Dop.shape[0]):
         Dop[i, :, :] -= fftshift(int_fwm.alpha/2, axes=-1)
 
@@ -513,7 +514,7 @@ class Loss(object):
             self.begin = self.flims_large[0] + self.apart
             self.end = self.flims_large[1] - self.apart
 
-    def atten_func_full(self, fv):
+    def atten_func_full(self, fv, int_fwm):
         aten = np.zeros([len(self.alpha), len(fv)])
 
         a_s = ((self.amax - self.alpha) / (self.flims_large[0] - self.begin),
@@ -530,6 +531,8 @@ class Loss(object):
                 aten[:, i] = 0
         for i in range(len(self.alpha)):
             aten[i, :] += self.alpha[i]
+        if int_fwm.nm == 1:
+            aten = aten[0,:]
         return aten
 
     def plot(self, fv):
@@ -709,10 +712,11 @@ class Splicer(WDM):
 class Maintain_noise_floor(object):
 
     def pass_through(u, noisef):
-        U = fftshift(fft(u), axis = -1)
-        U  = U +  U - noise_f
-        u = ifft(fftshift(U, axis = -1))
-        return u 
+        U = fftshift(fft(u), axis=-1)
+        U = U + U - noise_f
+        u = ifft(fftshift(U, axis=-1))
+        return u
+
 
 def norm_const(u, sim_wind):
     t = sim_wind.t
@@ -748,7 +752,7 @@ class Noise(object):
 
 @profile
 def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf,
-                     Dop, dAdzmm, gam_no_aeff):
+                      Dop, dAdzmm, gam_no_aeff, RK):
     """Pulse propagation part of the code. We use the split-step fourier method
        with a modified step using the RK45 algorithm. 
     """
@@ -763,7 +767,7 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf,
         while delta > int_fwm.maxerr:
             u1new = ifft(np.exp(Dop*dz/2)*fft(u1))
             #print('dz {}'.format(dz))
-            A, delta = RK45CK(dAdzmm, u1new, dz, M1, M2, Q, sim_wind.tsh,
+            A, delta = RK(dAdzmm, u1new, dz, M1, M2, Q, sim_wind.tsh,
                               sim_wind.dt, hf, sim_wind.w_tiled, gam_no_aeff)
             if (delta > int_fwm.maxerr):
                 # calculate the step (shorter) to redo
@@ -773,8 +777,6 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf,
         u1 = ifft(np.exp(Dop*dz/2)*fft(A))
         dztot += dz
         # update the propagated distance
-
-        
 
         if delta == 0:
             dz = Safety*int_fwm.dzstep
@@ -912,8 +914,12 @@ def power_idler(spec, fv, sim_wind, fv_id):
 
 class birfeg_variation(object):
 
-    def __init__(self, Da):
+    def __init__(self, Da, nm):
         self._P_mat(Da)
+        if nm == 1:
+            self.bire_pass = self.bire_pass_nm1
+        elif nm == 2:
+            self.bire_pass = self.bire_pass_nm2
         return None
 
     def _P_mat(self, Da):
@@ -921,7 +927,10 @@ class birfeg_variation(object):
                            [1j * np.sin(Da), np.cos(Da)]])
         return None
 
-    def bire_pass(self, u, i):
+    def bire_pass_nm1(self, u, i):
+        return u
+
+    def bire_pass_nm2(self, u, i):
         u1_temp, u2_temp = u[0, :]*1, u[1, :]*1
         try:
             u[0, :] = self.P[0, 0][i] * u1_temp + \

@@ -6,8 +6,134 @@ cimport numpy as np
 ctypedef double complex complex128_t
 cdef double fr = 0.18
 cdef double kr = 1 - fr
+#cdef extern from "complex.h":
+#    double cabs(double complex)
 
-cpdef complex128_t[:, ::1] dAdzmm_ron_s1_cython(complex128_t[:, ::1] u0, complex128_t[:, ::1] u0_conj,
+"---------------------------------------------------nm = 1--------------------------------------------------------------------"
+cpdef complex128_t[:,::1] dAdzmm_ron_s1_cython_nm1(complex128_t[:,::1] u0, complex128_t Q, double tsh,
+                                                    double dt, complex128_t[::1] hf, double[:,::1] w_tiled,
+                                                    complex128_t gam_no_aeff):
+
+    cdef long shape1 = u0.shape[1]
+    cdef long i
+
+    cdef complex128_t[:, ::1] M3 = np.empty([1,shape1], dtype='complex_')
+    cdef complex128_t[:, ::1] N = np.empty([1,shape1], dtype='complex_')
+   
+
+    for i in range(shape1):
+            M3[0,i] = u0[0,i].real**2 +  u0[0,i].imag**2
+
+    cdef complex128_t[:,::1] M4 = fft(M3)
+
+    for i in range(shape1):
+            M4[0,i] = M4[0,i] * hf[i]
+
+    M4 = ifft(M4)
+    M4 = fftshift(M4)
+
+    cdef complex Qk = kr * Q
+    cdef complex Qr = fr * Q * dt 
+    
+    for i in range(shape1):
+        N[0,i] = (Qk * M3[0,i] + Qr * M4[0,i])* u0[0,i] 
+
+    cdef complex128_t[:, ::1] M5 = fft(N)
+
+    for i in range(shape1):
+        M5[0,i] = w_tiled[0,i] * M5[0,i]
+
+    M5 = ifft(M5)
+
+    for i in range(shape1):
+        N[0,i] = gam_no_aeff * (N[0,i] + tsh * M5[0,i])
+    return N
+
+cpdef complex128_t[:,::1] dAdzmm_ron_s0_cython_nm1(complex128_t[:,::1] u0, complex128_t Q, double tsh,
+                                                    double dt, complex128_t[::1] hf, double[:,::1] w_tiled,
+                                                    complex128_t gam_no_aeff):
+
+    cdef long shape1 = u0.shape[1]
+    cdef long i
+
+    cdef complex128_t[:, ::1] M3 = np.empty([1,shape1], dtype='complex_')
+    cdef complex128_t[:, ::1] N = np.empty([1,shape1], dtype='complex_')
+   
+
+    for i in range(shape1):
+            M3[0,i] = u0[0,i].real**2 +  u0[0,i].imag**2
+
+    cdef complex128_t[:,::1] M4 = fft(M3)
+
+    for i in range(shape1):
+            M4[0,i] = M4[0,i] * hf[i]
+
+    M4 = ifft(M4)
+    M4 = fftshift(M4)
+
+    cdef complex Qk = gam_no_aeff *kr * Q
+    cdef complex Qr = gam_no_aeff *fr * Q * dt 
+    for i in range(shape1):
+        N[0,i] = (Qk * M3[0,i] + Qr * M4[0,i])* u0[0,i] 
+    return N
+
+
+cpdef complex128_t[:,::1] dAdzmm_roff_s0_cython_nm1(complex128_t[:,::1] u0, complex128_t Q, double tsh,
+                                                    double dt, complex128_t[::1] hf, double[:,::1] w_tiled,
+                                                    complex128_t gam_no_aeff):
+
+    cdef long shape1 = u0.shape[1]
+    cdef long i
+
+    cdef complex128_t[:, ::1] M3 = np.empty([1,shape1], dtype='complex_')
+    cdef complex128_t[:, ::1] N = np.empty([1,shape1], dtype='complex_')
+   
+
+    for i in range(shape1):
+            M3[0,i] = u0[0,i].real**2 +  u0[0,i].imag**2
+
+
+
+    cdef complex Qk = gam_no_aeff *kr * Q
+    for i in range(shape1):
+        N[0,i] = Qk * M3[0,i]* u0[0,i] 
+    return N
+
+
+cpdef complex128_t[:,::1] dAdzmm_roff_s1_cython_nm1(complex128_t[:,::1] u0, complex128_t Q, double tsh,
+                                                    double dt, complex128_t[::1] hf, double[:,::1] w_tiled,
+                                                    complex128_t gam_no_aeff):
+
+    cdef long shape1 = u0.shape[1]
+    cdef long i
+
+    cdef complex128_t[:, ::1] M3 = np.empty([1,shape1], dtype='complex_')
+    cdef complex128_t[:, ::1] N = np.empty([1,shape1], dtype='complex_')
+   
+
+    for i in range(shape1):
+            M3[0,i] = u0[0,i].real**2 +  u0[0,i].imag**2
+
+
+    cdef complex Qk = kr * Q
+    
+    for i in range(shape1):
+        N[0,i] = (Qk * M3[0,i]) * u0[0,i]
+
+    cdef complex128_t[:, ::1] M5 = fft(N)
+
+    for i in range(shape1):
+        M5[0,i] = w_tiled[0,i] * M5[0,i]
+
+    M5 = ifft(M5)
+
+    for i in range(shape1):
+        N[0,i] = gam_no_aeff * (N[0,i] + tsh * M5[0,i])
+    return N
+
+
+"---------------------------------------------------nm = 2--------------------------------------------------------------------"
+cpdef complex128_t[:, ::1] dAdzmm_ron_s1_cython_nm2(complex128_t[:, ::1] u0, complex128_t[:, ::1] u0_conj,
                                                               np.ndarray[long, ndim=2] M1, np.ndarray[long, ndim = 2] M2, complex128_t[:, ::1] Q,
                                                               double tsh, double dt, complex128_t[:, ::1] hf,
                                                               double[:, ::1] w_tiled, complex128_t gam_no_aeff):
@@ -59,7 +185,7 @@ cpdef complex128_t[:, ::1] dAdzmm_ron_s1_cython(complex128_t[:, ::1] u0, complex
     return N
 
 
-cpdef complex128_t[:, ::1] dAdzmm_ron_s0_cython(complex128_t[:, ::1] u0, const complex128_t[:, ::1] u0_conj,
+cpdef complex128_t[:, ::1] dAdzmm_ron_s0_cython_nm2(complex128_t[:, ::1] u0, const complex128_t[:, ::1] u0_conj,
                                                              np.ndarray[long, ndim= 2] M1, np.ndarray[long, ndim = 2] M2, complex128_t[:, ::1] Q,
                                                              double tsh, double dt, complex128_t[:, ::1] hf,
                                                              double[:, ::1] w_tiled, complex128_t gam_no_aeff):
@@ -70,7 +196,7 @@ cpdef complex128_t[:, ::1] dAdzmm_ron_s0_cython(complex128_t[:, ::1] u0, const c
     cdef long i, j
     cdef complex128_t[:, ::1] M3 = np.empty([shapeM2, shape2], dtype='complex_')
     cdef complex128_t[:, ::1] N = np.zeros([shape1, shape2], dtype='complex_')
-
+    cdef complex128_t[::1] Q_comp = np.empty(shapeM1, dtype='complex_')
     for i in range(shapeM2):
         for j in range(shape2):
             M3[i, j] = u0[M2[0, i], j]*u0_conj[M2[1, i], j]
@@ -83,7 +209,6 @@ cpdef complex128_t[:, ::1] dAdzmm_ron_s0_cython(complex128_t[:, ::1] u0, const c
     M4 = ifft(M4)
     M4 = fftshift(M4)
 
-    cdef complex128_t[::1] Q_comp = np.empty(shapeM1, dtype='complex_')
     dt = 3 * fr * dt 
 
     for i in range(shapeM1):
@@ -99,7 +224,7 @@ cpdef complex128_t[:, ::1] dAdzmm_ron_s0_cython(complex128_t[:, ::1] u0, const c
             N[i, j] = gam_no_aeff * N[i, j]
     return np.asarray(N)
 
-cpdef complex128_t[:, ::1] dAdzmm_roff_s0_cython(complex128_t[:, ::1] u0, complex128_t[:, ::1] u0_conj,
+cpdef complex128_t[:, ::1] dAdzmm_roff_s0_cython_nm2(complex128_t[:, ::1] u0, complex128_t[:, ::1] u0_conj,
                                                               np.ndarray[long, ndim= 2] M1, np.ndarray[long, ndim = 2] M2, complex128_t[:, ::1] Q,
                                                               double tsh, double dt, complex128_t[:, ::1] hf,
                                                               double[:, ::1] w_tiled, complex128_t gam_no_aeff):
@@ -110,12 +235,11 @@ cpdef complex128_t[:, ::1] dAdzmm_roff_s0_cython(complex128_t[:, ::1] u0, comple
     cdef int i, j
     cdef complex128_t[:, ::1] M3 = np.empty([shapeM2, shape2], dtype='complex_')
     cdef complex128_t[:, ::1] N = np.zeros([shape1, shape2], dtype='complex_')
-
+    cdef complex128_t[::1] Q_comp = np.empty(shapeM1, dtype='complex_')
     for i in range(shapeM2):
         for j in range(shape2):
             M3[i, j] = u0[M2[0, i], j]*u0_conj[M2[1, i], j]
 
-    cdef complex128_t[::1] Q_comp = np.empty(shapeM1, dtype='complex_')
 
     for i in range(shapeM1):
         Q_comp[i] = 2 * kr * Q[0, i] + kr * Q[1, i]
@@ -131,7 +255,7 @@ cpdef complex128_t[:, ::1] dAdzmm_roff_s0_cython(complex128_t[:, ::1] u0, comple
     return N
 
 
-cpdef complex128_t[:, ::1] dAdzmm_roff_s1_cython(const complex128_t[:, ::1] u0, const complex128_t[:, ::1] u0_conj,
+cpdef complex128_t[:, ::1] dAdzmm_roff_s1_cython_nm2(const complex128_t[:, ::1] u0, const complex128_t[:, ::1] u0_conj,
                                                               np.ndarray[long, ndim= 2] M1, np.ndarray[long, ndim = 2] M2, const complex128_t[:, ::1] Q,
                                                               const double tsh, double dt, const complex128_t[:, ::1] hf,
                                                               const double[:, ::1] w_tiled, const complex128_t gam_no_aeff):
@@ -142,12 +266,12 @@ cpdef complex128_t[:, ::1] dAdzmm_roff_s1_cython(const complex128_t[:, ::1] u0, 
     cdef int i, j
     cdef complex128_t[:, ::1] M3 = np.empty([shapeM2, shape2], dtype='complex_')
     cdef complex128_t[:, ::1] N = np.zeros([shape1, shape2], dtype='complex_')
-
+    cdef complex128_t[::1] Q_comp = np.empty(shapeM1, dtype='complex_') 
     for i in range(shapeM2):
         for j in range(shape2):
             M3[i, j] = u0[M2[0, i], j]*u0_conj[M2[1, i], j]
 
-    cdef complex128_t[::1] Q_comp = np.empty(shapeM1, dtype='complex_') 
+
 
     for i in range(shapeM1):
         Q_comp[i] = 2 * kr * Q[0, i] + kr * Q[1, i]

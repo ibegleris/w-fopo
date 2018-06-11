@@ -98,7 +98,7 @@ class Test_birefring():
     that occurs at the wobbly sections. 
     """
     Num_a = 10
-    Dtheta = birfeg_variation(Num_a)
+    Dtheta = birfeg_variation(Num_a, 2)
 
     def test_energy_1m(self):
         u1 = 100*(np.random.randn(2,1, 1024) +

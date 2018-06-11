@@ -16,7 +16,7 @@ from time import time, sleep
 def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
              master_index, P0_p1, P0_s, f_p, f_s, p_pos, s_pos,
              splicers_vec, WDM_vec, M1, M2, Q_large, hf, Dop_large, dAdzmm, D_pic,
-             pulse_pos_dict_or, plots, mode_names, ex, Dtheta, fopa):
+             pulse_pos_dict_or, plots, mode_names, ex, Dtheta, fopa, RK):
 
     u = np.empty(
         [int_fwm.nm, len(sim_wind.t)], dtype='complex128')
@@ -80,7 +80,7 @@ def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
             Q , Dop = Q_large[index_woble], Dop_large[index_woble]
             int_fwm.woble_propagate(index_woble)                   
             u, U = pulse_propagation(u, U, int_fwm, M1, M2, Q,
-                                     sim_wind, hf, Dop, dAdzmm,gam_no_aeff)
+                                     sim_wind, hf, Dop, dAdzmm,gam_no_aeff, RK)
             u = Dtheta.bire_pass(u,index_woble)
 
         ex.exporter(index, int_fwm, sim_wind, u, U, P0_p1,
@@ -147,7 +147,7 @@ def formulate(index, n2, gama, alphadB, P_p, P_s, TFWHM_p, TFWHM_s, spl_losses,
     lamda = lamp*1e-9  # central wavelength of the grid[m]
     fv_idler_int = 10  # safety for the idler to be spotted used only for idler power
     "-----------------------------f-----------------------------"
-    Dtheta = birfeg_variation(Dtheta)
+    Dtheta = birfeg_variation(Dtheta, nm)
     "---------------------Grid&window-----------------------"
     print(lamp, lams,P_s)
     fv, where = fv_creator(lamp,lams,P_s, Deltaf, int_fwm)
@@ -163,6 +163,8 @@ def formulate(index, n2, gama, alphadB, P_p, P_s, TFWHM_p, TFWHM_s, spl_losses,
                                                     index, master_index,
                                                     filename='step_index_2m'
                                                     )
+    if nm ==1:
+        M1, M2, Q_large= np.array([1]), np.array([1]), np.ascontiguousarray(Q_large[:,0,0])
 
     "----------------------------------------------------------"
 
@@ -171,7 +173,7 @@ def formulate(index, n2, gama, alphadB, P_p, P_s, TFWHM_p, TFWHM_s, spl_losses,
     loss = Loss(int_fwm, sim_wind, amax=None)
 
     
-    int_fwm.alpha = loss.atten_func_full(fv)
+    int_fwm.alpha = loss.atten_func_full(fv, int_fwm)
 
     "----------------------------------------------------------"
 
@@ -192,12 +194,15 @@ def formulate(index, n2, gama, alphadB, P_p, P_s, TFWHM_p, TFWHM_s, spl_losses,
     keys = ['loading_data/green_dot_fopo/pngs/' +
             str(i)+str('.png') for i in range(7)]
     D_pic = [plt.imread(i) for i in keys]
-
-
-    integrand = Integrand(ram, ss, cython = True, timing = False)
+    Integrator
+    
+    integrator = Integrator(int_fwm)
+    integrand = Integrand(int_fwm.nm,ram, ss, cython = False, timing = True)
     dAdzmm = integrand.dAdzmm
+    RK = integrator.RK45mm 
+    
     raman = raman_object(int_fwm.ram, int_fwm.how)
-    raman.raman_load(sim_wind.t, sim_wind.dt, M2)
+    raman.raman_load(sim_wind.t, sim_wind.dt, M2, int_fwm.nm)
     hf = raman.hf
     "--------------------------------------------------------"
 
@@ -224,7 +229,7 @@ def formulate(index, n2, gama, alphadB, P_p, P_s, TFWHM_p, TFWHM_s, spl_losses,
     f_p, f_s = 1e-3*c/lamp, 1e-3*c/lams
 
     oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index, master_index, P_p, P_s, f_p, f_s, p_pos, s_pos, splicers_vec,
-             WDM_vec, M1, M2, Q_large, hf, Dop_large, dAdzmm, D_pic, pulse_pos_dict_or, plots, mode_names, ex, Dtheta, fopa)
+             WDM_vec, M1, M2, Q_large, hf, Dop_large, dAdzmm, D_pic, pulse_pos_dict_or, plots, mode_names, ex, Dtheta, fopa, RK)
     return None
 
 
@@ -244,9 +249,9 @@ def main():
     N = 12                                  # 2**N grid points
     nt = 2**N                               # number of grid points
     nplot = 2                               # number of plots within fibre min is 2
-    # Number of modes (include degenerate polarisation)
+    nm = 1 # Number of modes (include degenerate polarisation)
     
-    nm = 2
+    
     mode_names = ['LP01a', 'LP01b']         # Names of modes for plotting
     if 'mpi' in sys.argv:
         method = 'mpi'
@@ -262,7 +267,7 @@ def main():
     gama = 10e-3                            # Overwirtes n2 and Aeff w/m        
     alphadB = np.array([0,0])              # loss within fibre[dB/m]
     z = 1000                                 # Length of the fibre
-    P_p = [10]
+    P_p = [2]
     P_s = 100e-3
     TFWHM_p = 0                             # full with half max of pump
     TFWHM_s = 0                             # full with half max of signal
@@ -274,7 +279,7 @@ def main():
     a_err = 0.008 #[125um +- 1um ]
     dnerr_med = 0.0002
     cutting = 100
-    Num_a = 1000
+    Num_a = 3
     if loada_vec and os.path.isfile('loading_data/a_vec.hdf5'):   
         D = read_variables('a_vec', '0', filepath='loading_data/')
         a_vec = D['a_vec']
